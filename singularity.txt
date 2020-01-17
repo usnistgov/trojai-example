@@ -1,0 +1,5 @@
+Build container image:
+sudo singularity build fake_trojan_detector.simg fake_trojan_detector.def
+
+Run container image:
+singularity run --nv ./fake_trojan_detector.simg --model_filepath ./model.pt --result_filepath ./output.txt --scratch_dirpath ./scratch

@@ -1,0 +1,8 @@
+Bootstrap: docker
+From: pytorch/pytorch
+
+%files
+    ./fake_trojan_detector.py /
+
+%runscript
+    exec python3 /fake_trojan_detector.py "$@"
