@@ -6,6 +6,26 @@ A submission singularity container must evaluate a single trained image classifi
 
 --------------
 
+# Table of Contents
+1. [Challenge Submission](#challenge-submission)
+    1. [Compute Resources](#compute-resources)
+    2. [Container Handling](#container-handling)
+    3. [Container API](#container-api)
+2. [How to Build this Minimal Example](#how-to-build-this-minimal-example)
+    1. [Install Anaconda Python](#install-anaconda-python)
+    2. [Setup the Conda Environment](#setup-the-conda-environment)
+    3. [Test Fake Detector Without Containerization](#test-fake-detector-without-containerization)
+    4. [Package Solution into a Singularity Container](#package-solution-into-a-singularity-container)
+3. [How to Register a TrojAI Team](#how-to-register-a-trojai-team)
+    1. [Accounts](#accounts)
+    2. [Verify Team Creation](#verify-team-creation)
+4. [Container Submission Mechanism](#container-submission-mechanism)
+5. [Results](#results)
+    1. [Jobs Table](#jobs-table)
+    2. [Results Table](#results-table)
+    3. [Output Logs](#output-logs)
+
+--------------
 # Challenge Submission
 
 Every solution submitted for evaluation must be containerized via Singularity. That container will be run by the NIST test and evaluation server using the API specified in section "Container API" inside of a virtual machine that has no network capability.
@@ -48,11 +68,11 @@ For each point in the test dataset, your container will be launched using the fo
 
 # How to Build this Minimal Example
 
-### Install Anaconda Python
+## Install Anaconda Python
 
 [https://www.anaconda.com/distribution/](https://www.anaconda.com/distribution/)
 
-### Setup the Conda Environment
+## Setup the Conda Environment
 
 1. `conda create --name fake_detector python=3.6` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
 2. `conda activate fake_detector`
@@ -61,7 +81,7 @@ For each point in the test dataset, your container will be launched using the fo
     1. `conda install numpy`
     2. `conda install pytorch torchvision cudatoolkit=10.1 -c pytorch` ([help](https://pytorch.org/get-started/locally/))
 
-### Test Fake Detector Without Containerization
+## Test Fake Detector Without Containerization
 
 Test the python based `fake_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
 
@@ -77,7 +97,7 @@ Inference Logits: [[-0.10224161 -3.4528108  -0.71384144  0.4821875  -2.4659822 ]
 Trojan Probability: 0.07013004086445151
 ```
 
-### Package Solution into a Singularity Container
+## Package Solution into a Singularity Container
 
 Package `fake_trojan_detector.py` into a Singularity container.
 
@@ -172,7 +192,7 @@ Package `fake_trojan_detector.py` into a Singularity container.
     ```
 
 --------------
-# How to Register a TrojAI Evaluation Team
+# How to Register a TrojAI Team
 
 ## Accounts
 
@@ -188,7 +208,7 @@ The Team Names need to be unique across the set of all perfomers submitting to t
 
 Only containers submitted from the email you notified NIST about will be considered for evaluation, all other container images shared with the NIST Google Drive account will be ignored.
 
-## Verify Team Exists
+## Verify Team Creation
 
 Once the TrojAI T&E team creates your team it will show up on the results website [https://pages.nist.gov/trojai/](https://pages.nist.gov/trojai/) Jobs table.
 
