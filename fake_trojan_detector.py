@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import os
 
-print(torch.__version__)
 
 def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath):
 
