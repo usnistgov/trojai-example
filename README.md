@@ -226,7 +226,7 @@ Containers are to be submitted for evaluation by sharing them with a functional 
 3. Right click on the container file within Google Drive and select "Share", enter "trojai@nist.gov" and click "Done"
 4. Your container is now visible to the NIST trojai user.
 5. Every 15 minutes the test and evaluation server will poll the NIST trojai@nist.gov Google Drive account for new submissions.
-6. When your submission is detected, a SLURM job is created to add your container to the evaluation queue. Your container will run either a) as soon as resources are available, or b) as soon as resources are available after your once per week submission restriction resets. If you upload another container (which is required to have the same filename) while the previous job is still in the queue (before the SLURM job is allocated resources and launched), your most recent container will be evaluated instead of the container that existed when the submission was entered into the queue.
+6. When your submission is detected, your container will be added to the evaluation queue. Your container will run either a) as soon as resources are available, or b) as soon as resources are available after your once per week submission restriction resets. If you upload another container (which is required to have the same filename) while the previous job is still in the queue, your most recent container will be evaluated instead of the container that existed when the submission was entered into the queue.
 
 
 --------------
