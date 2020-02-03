@@ -215,15 +215,15 @@ Note: [https://pages.nist.gov/trojai/](https://pages.nist.gov/trojai/) only upda
 --------------
 # Container Submission Mechanism
 
-Containers are to be submitted for evaluation by sharing them with a functional NIST Google Drive account (trojai@nist.gov) via a team Google Drive. 
+Containers are to be submitted for evaluation by sharing them with a functional NIST Google Drive account (trojai@nist.gov) via a team Google Drive account. 
 
 1. Package your solution into a Singularity container.
 2. Upload your packaged and renamed Singularity container to Google Drive using the account you registered with the NIST T&E Team.
     - **Files from a non-registered email address will be ignored**
 3. Right click on the container file within Google Drive and select "Share", enter "trojai@nist.gov" and click "Done"
 4. Your container is now visible to the NIST trojai user.
-5. Every 15 minutes the test and evaluation server will poll the NIST trojai@nist.gov Google Drive account for new submissions.
-6. When your submission is detected, your container will be added to the evaluation queue. Your container will run either a) as soon as resources are available, or b) as soon as resources are available after your once per week submission restriction resets. If you upload another container (which is required to have the same filename) while the previous job is still in the queue, your most recent container will be evaluated instead of the container that existed when the submission was entered into the queue.
+5. Every few minutes (less than 15 minutes) the test and evaluation server will poll the NIST trojai@nist.gov Google Drive account for new submissions.
+6. When your submission is detected, your container will be added to the evaluation queue. Your container will run either a) as soon as resources are available, or b) as soon as resources are available after your timeout window has passes. The timeout window is used to limit submission to one per week per team. If you upload another container (which is required to have the same filename) while the previous job is still in the queue (but has not yet been downloaded), your most recent container will be evaluated instead of the container that existed when the submission was entered into the queue.
 
 
 --------------
@@ -239,9 +239,9 @@ Contains the following fields:
 
 - Team: The team name you selected.
 - Execution Date: When your submission was received by the test and evaluation server and added to the input queue.
-- File Status: 
+- File Status: Should be "None" if no file is detected, or "Ok". File status will show "Multiple Files Shared" if you share multiple files with the same name with the TrojAI Drive Account. 
 - Job File Date: The timestamp of the file received from your team email which caused a job to be created, entering your submission into the work queue.
-- Time Remaining for Next Execution: How long before your next submission will be eligible for entry into the work queue. For Round1 you are allowed one submission per week (7 days).
+- Time Remaining until Next Execution: How long before your next submission will be eligible for entry into the work queue. For Round1 you are allowed one submission per week (7 days).
 
 ## Results Table
 
@@ -249,14 +249,15 @@ Contains the following fields:
 
 - Team: The team name you selected.
 - Loss (Cross Entropy): Your loss for a given submission.
-- Execution Date: 
-- File Date: 
-- Errors, Status Code:
+- Execution Date: When the container was executed on the server.
+- File Date: The file modified date of the file executed on the server. This timestamp might change if you changed the file while your job was in the input queue
+- Pasing Errors: Any errors which stem from parsing your output results files.
+- Launch Errors: Any errors which stem from running your containter. 
 
 ## Output Logs
 
-When your submission is run, all output logs are uploaded to the TrojAI NIST Google Drive run completion before being shared with your team email. 
+When your submission is run, all output logs are uploaded to the TrojAI NIST Google Drive upon completion. The log files are then shared only with your team email. 
 
-The log will be named "<team name>.out".
+The log will be named "<team name>-sts.out" or "<team name>-es.out" depending on which server the job ran on (Smoke Test Server = STS, or Evaluation Server = ES).
 
 The log will be overwritten by subsequent submission evaluation runs. So if you want a persistent copy, download and rename the file from Google Drive before your next submission. 
