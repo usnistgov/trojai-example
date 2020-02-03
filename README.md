@@ -209,7 +209,7 @@ Only containers submitted from the email you notified NIST about will be conside
 
 Once the TrojAI T&E team creates your team it will show up on the results website [https://pages.nist.gov/trojai/](https://pages.nist.gov/trojai/) Jobs table.
 
-Note: [https://pages.nist.gov/trojai/](https://pages.nist.gov/trojai/) only updates every 15 minutes.
+Note: [https://pages.nist.gov/trojai/](https://pages.nist.gov/trojai/) only updates every few minutes. The webpage includes a last updated timestamp near above the tables. 
 
 
 --------------
