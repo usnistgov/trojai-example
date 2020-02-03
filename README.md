@@ -93,7 +93,6 @@ python fake_trojan_detector.py --model_filepath=./model.pt --result_filepath=./o
 Example Output:
 ```
 $ python fake_trojan_detector.py --model_filepath=./model.pt --result_filepath=./output.txt --scratch_dirpath=./scratch/
-Inference Logits: [[-0.10224161 -3.4528108  -0.71384144  0.4821875  -2.4659822 ]]
 Trojan Probability: 0.07013004086445151
 ```
 
