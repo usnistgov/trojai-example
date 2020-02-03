@@ -185,8 +185,6 @@ Package `fake_trojan_detector.py` into a Singularity container.
 
     Example Output:
     ```
-    $ singularity run --nv ./fake_trojan_detector.simg --model_filepath ./model.pt --result_filepath ./output.txt --scratch_dirpath ./scratch
-    Inference Logits: [[-0.1722797 -3.506585  -0.7010066  0.340551  -2.5264986]]
     Trojan Probability: 0.7091788412534845
     ```
 
