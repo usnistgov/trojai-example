@@ -223,6 +223,7 @@ Containers are to be submitted for evaluation by sharing them with a functional 
     - **Files from a non-registered email address will be ignored**
     - container names that start with 'test_' will be evaluated on the [Smoke Test Server](#evaluation-server-vs-smoke-test-server)
     - container names that do not start with 'test_' will be evaluated on the [Evaluation Server](#evaluation-server-vs-smoke-test-server)
+    - You can only be sharing 1 file for each server, no matter what the file name. So your Drive account can have up to 2 files shared with the TrojAI Drive account, one starting with 'test_' and one which does not. The file count restriction allows the servers to be as agnostic as possible to file naming. 
 3. Right click on the container file within Google Drive and select "Share", enter "trojai@nist.gov" and click "Done"
 4. Your container is now visible to the NIST trojai user.
 5. Every few minutes (less than 15 minutes) the test and evaluation server will poll the NIST trojai@nist.gov Google Drive account for new submissions.
