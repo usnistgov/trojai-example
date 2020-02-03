@@ -21,9 +21,12 @@ A submission singularity container must evaluate a single trained image classifi
     2. [Verify Team Creation](#verify-team-creation)
 4. [Container Submission Mechanism](#container-submission-mechanism)
 5. [Results](#results)
-    1. [Jobs Table](#jobs-table)
-    2. [Results Table](#results-table)
-    3. [Output Logs](#output-logs)
+    1. [Evaluation Server vs Smoke Test Server](#evaluation-server-vs-smoke-test-server)
+        1. [Evaluation Server (ES)](#evaluation-server-es)
+        2. [Smoke Test Server (STS)](#smoke-test-server-sts)
+    2. [Jobs Table](#jobs-table)
+    3. [Results Table](#results-table)
+    4. [Output Logs](#output-logs)
 
 --------------
 # Challenge Submission
