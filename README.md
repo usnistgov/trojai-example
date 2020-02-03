@@ -34,7 +34,7 @@ The container submitted to NIST for evaluation must perform trojan detection for
 
 The test and evaluation infrastructure will iterate over the N models which your container must predict trojan presence. 
 
-For each test data point lacking an ouptut poisoning probability (for eacmple, if you ran out of compute time) then the test and evaluation server will use the probability 0.5 when computing your overall cross entropy loss for the test dataset.
+For each test data point lacking an ouptut poisoning probability (for example, if you ran out of compute time) the test and evaluation server will use the probability 0.5 when computing your overall cross entropy loss for the test dataset.
 
 
 ## Compute Resources
