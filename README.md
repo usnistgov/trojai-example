@@ -87,8 +87,8 @@ Test the python based `fake_trojan_detector` outside of any containerization to 
 
 Command:
 ```
-$ mkdir ./scratch
-$ python fake_trojan_detector.py --model_filepath=./model.pt --result_filepath=./output.txt --scratch_dirpath=./scratch/
+mkdir ./scratch
+python fake_trojan_detector.py --model_filepath=./model.pt --result_filepath=./output.txt --scratch_dirpath=./scratch/
 ```
 
 Example Output:
