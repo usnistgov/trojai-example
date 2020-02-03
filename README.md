@@ -103,7 +103,7 @@ Package `fake_trojan_detector.py` into a Singularity container.
 1. Install Singularity
     
     - For Ubuntu 18.04: `sudo apt install singularity-container`
-    - For others follow: [https://singularity.lbl.gov/install-linux](https://singularity.lbl.gov/install-linux)
+    - For others follow: [https://sylabs.io/guides/3.5/admin-guide/installation.html](https://sylabs.io/guides/3.5/admin-guide/installation.html)
         
 
 2. Build singularity based on `fake_trojan_detector.def` file: 
