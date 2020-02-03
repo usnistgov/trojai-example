@@ -61,7 +61,7 @@ For each point in the test dataset, your container will be launched using the fo
 - `--model_filepath` = The path to the model file to be evaluated.
 - `--result_filepath` = The path to the output result file where the probability [0, 1] (in the range of 0 to 1 inclusive) of the aforementioned model file being poisoned is to be written as text (not binary).
 - `--scratch_dirpath` = The path to a directory (empty folder) where temporary data can be written during the evaluation of the model file.
-- `--examples_dirpath` = The path to a directory containing 100 example png images for each of the 5 classes the trained model is trained to classify. Example name: "class_0_example_0.png".
+- `--examples_dirpath` = The path to a directory containing 100 example png images for each of the 5 classes the trained model is trained to classify. Names are of the format "class_0_example_0.png" through "class_4_example_99.png".
 
 
 --------------
