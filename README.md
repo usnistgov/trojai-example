@@ -49,7 +49,7 @@ Your solution will have the following resources allocated for 24 hours to evalua
 
 ## Container Handling
 
-When you submit a container for evaluation, it will be added to a queue. When it's your container's turn to be run, the container will be copied into a non-networked VM instance populated with the test data (in a read-only partition). The NIST test and evaluation harness will iterate over all elements of the held-out test dataset and call your container once per data point (trained AI model). Container execution will terminate either after 24 hours (the compute time limit) or when it finishes processing all the test data. After your container terminates, NIST will compute the average cross entropy loss between your predictions and the ground truth answers. This score is then posted to the leader-board website.
+When you submit a container for evaluation, it will be added to a queue. When it's your container's turn to be run, the container will be copied into a non-networked VM instance populated with read-only test data. The NIST test and evaluation harness will iterate over all elements of the held-out test dataset and call your container once per data point (trained AI model). Container execution will terminate either after 24 hours (the compute time limit) or when it finishes processing all the test data. After your container terminates, NIST will compute the average cross entropy loss between your predictions and the ground truth answers. This score is then posted to the leader-board website.
 
 
 ## Container API
