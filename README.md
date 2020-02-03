@@ -28,7 +28,7 @@ A submission singularity container must evaluate a single trained image classifi
 --------------
 # Challenge Submission
 
-Every solution submitted for evaluation must be containerized via Singularity (a tutorial on Singularity can be found [here](https://pawseysc.github.io/sc19-containers/)). That container will be run by the NIST test and evaluation server using the API specified in section "Container API" inside of a virtual machine that has no network capability.
+Every solution submitted for evaluation must be containerized via [Singularity](https://sylabs.io/docs/) (a tutorial on Singularity can be found [here](https://pawseysc.github.io/sc19-containers/)). That container will be run by the NIST test and evaluation server using the API specified in section "Container API" inside of a virtual machine that has no network capability.
 
 The container submitted to NIST for evaluation must perform trojan detection for a single trained AI model file and output a single probability of the model being poisoned. 
 
