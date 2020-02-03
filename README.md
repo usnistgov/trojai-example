@@ -258,7 +258,7 @@ Contains the following fields:
 
 ## Output Logs
 
-When your submission is run, all output logs are uploaded to the TrojAI NIST Google Drive run completion before being shared with your team eamil. 
+When your submission is run, all output logs are uploaded to the TrojAI NIST Google Drive run completion before being shared with your team email. 
 
 The log will be named "<team name>.out".
 
