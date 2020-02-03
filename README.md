@@ -234,7 +234,7 @@ This website will update with your submitted job status and show results when yo
 
 Above the tables the "Last modified" date is included so you know when these tables were last updated. 
 
-## Evaluation vs Smoke Test Servers
+## Evaluation Server vs Smoke Test Server
 
 There are two test and evaluation servers being operated by NIST. Both 'servers' operate on the same physical hardware, with identical software setups. The difference between the two 'servers' is which SLURM queue the job is submitted to, what compute time limits there are, and how much data will be evaluated. Currently there are 2 slots (concurrent executions) on the STS, and 4 slots on the ES. These specific numbers might change in the future, but the ES will always have more slots due to the much higher compute time limits. 
 
