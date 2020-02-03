@@ -34,7 +34,7 @@ The container submitted to NIST for evaluation must perform trojan detection for
 
 The test and evaluation infrastructure will iterate over the N models which your container must predict trojan presence. 
 
-For each test data point lacking an ouptut poisoning probability (for example, if you ran out of compute time) the test and evaluation server will use the probability 0.5 when computing your overall cross entropy loss for the test dataset.
+For each test data point lacking an output poisoning probability (for example, if you ran out of compute time) the test and evaluation server will use the probability 0.5 when computing your overall cross entropy loss for the test dataset.
 
 
 ## Compute Resources
@@ -204,7 +204,7 @@ When you email trojai@nist.gov to create a test and evaluation account please in
 1. Team Name (alpha-numeric, no special characters, no spaces)
 2. Google Drive Account email
 
-The Team Names need to be unique across the set of all perfomers submitting to the NIST test and evaluation server, so you might be requested to pick another team name if a naming conflict arises (team names are first come first serve).
+The Team Names need to be unique across the set of all performers submitting to the NIST test and evaluation server, so you might be requested to pick another team name if a naming conflict arises (team names are first come first serve).
 
 Only containers submitted from the email you notified NIST about will be considered for evaluation, all other container images shared with the NIST Google Drive account will be ignored.
 
@@ -262,4 +262,4 @@ When your submission is run, all output logs are uploaded to the TrojAI NIST Goo
 
 The log will be named "<team name>.out".
 
-The log will be overwritten by subsequent submission evaluation runs. So if you want a persistant copy, download and rename the file from Google Drive before your next submission. 
+The log will be overwritten by subsequent submission evaluation runs. So if you want a persistent copy, download and rename the file from Google Drive before your next submission. 
