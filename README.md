@@ -49,7 +49,7 @@ Disk: 2TB SATA SSDs for scratch space
 
 ## Container Handling
 
-When you submit a container for evaluation it will be added to the queue managed by SLURM. When its your turn, the server will download your container and copy it into a blank VM instance populated only with the test data (in a read only partition). The network access for the VM will be terminated and the VM launched. The NIST test and evaluation harness will iterate over all elements of the held out test dataset and call your container once per data point (trained AI model). Container execution will terminate either after 24 hours (the compute time limit) or when it finishes processing all the test data. After your container terminates, NIST will compute the average cross entropy loss between your predictions and the ground truth answers. This score is then posted to the leader-board website. Finally, the VM is expunged and completely reset before the next solution container is run.
+When you submit a container for evaluation it will be added to a queue. When its your turn, the server will download your container and copy it into a blank VM instance populated only with the test data (in a read only partition). The network access for the VM will be terminated and the VM launched. The NIST test and evaluation harness will iterate over all elements of the held out test dataset and call your container once per data point (trained AI model). Container execution will terminate either after 24 hours (the compute time limit) or when it finishes processing all the test data. After your container terminates, NIST will compute the average cross entropy loss between your predictions and the ground truth answers. This score is then posted to the leader-board website. Finally, the VM is expunged and completely reset before the next solution container is run.
 
 
 ## Container API
@@ -243,7 +243,7 @@ Contains the following fields:
 - Team: The team name you selected.
 - Execution Date: When your submission was received by the test and evaluation server and added to the input queue.
 - File Status: 
-- Job File Date: The timestamp of the file received from your team email which caused a slurm job to be created, entering your submission into the work queue.
+- Job File Date: The timestamp of the file received from your team email which caused a job to be created, entering your submission into the work queue.
 - Time Remaining for Next Execution: How long before your next submission will be eligible for entry into the work queue. For Round1 you are allowed one submission per week (7 days).
 
 ## Results Table
