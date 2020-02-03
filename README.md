@@ -232,6 +232,28 @@ Result Website: [https://pages.nist.gov/trojai/](https://pages.nist.gov/trojai/)
 
 This website will update with your submitted job status and show results when your submission completes.
 
+Above the tables the "Last modified" date is included so you know when these tables were last updated. 
+
+## Evaluation vs Smoke Test Servers
+
+There are two test and evaluation servers being operated by NIST. Both 'servers' operate on the same physical hardware, with identical software setups. The difference between the two 'servers' is which SLURM queue the job is submitted to, what compute time limits there are, and how much data will be evaluated. Currently there are 2 slots (concurrent executions) on the STS, and 4 slots on the ES. These specific numbers might change in the future, but the ES will always have more slots due to the much higher compute time limits. 
+
+The results webpage by default displays the "Evaluation Server" results. You can select the "Smoke Test Server" results by clicking on the server name.
+
+### Evaluation Server (ES)
+
+- Datset: the sequestered evaluation dataset
+- Compute time limit: 24 hours
+- Purpose: official evaluation of your container against the sequestered dataset
+
+### Smoke Test Server (STS)
+
+- Dataset: a small publicly available data. 
+- Compute time limit: 20 minutes
+- Purpose: testing, debugging. 
+
+
+
 ## Jobs Table
 
 Contains the following fields:
