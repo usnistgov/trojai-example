@@ -204,6 +204,8 @@ The Team Names need to be unique across the set of all performers submitting to 
 
 Only containers submitted from the email you notified NIST about will be considered for evaluation, all other container images shared with the NIST Google Drive account will be ignored.
 
+NIST operates two test [servers](#evaluation-server-vs-smoke-test-server). Indicate which (or both) servers you would like accounts on. 
+
 ## Verify Team Creation
 
 Once the TrojAI T&E team creates your team it will show up on the results website [https://pages.nist.gov/trojai/](https://pages.nist.gov/trojai/) Jobs table.
@@ -217,8 +219,10 @@ Note: [https://pages.nist.gov/trojai/](https://pages.nist.gov/trojai/) only upda
 Containers are to be submitted for evaluation by sharing them with a functional NIST Google Drive account (trojai@nist.gov) via a team Google Drive account. 
 
 1. Package your solution into a Singularity container.
-2. Upload your packaged and renamed Singularity container to Google Drive using the account you registered with the NIST T&E Team.
+2. Upload your packaged Singularity container to Google Drive using the account you registered with the NIST T&E Team.
     - **Files from a non-registered email address will be ignored**
+    - container names that start with 'test_' will be evaluated on the [Smoke Test Server](#evaluation-server-vs-smoke-test-server)
+    - container names that do not start with 'test_' will be evaluated on the [Evaluation Server](#evaluation-server-vs-smoke-test-server)
 3. Right click on the container file within Google Drive and select "Share", enter "trojai@nist.gov" and click "Done"
 4. Your container is now visible to the NIST trojai user.
 5. Every few minutes (less than 15 minutes) the test and evaluation server will poll the NIST trojai@nist.gov Google Drive account for new submissions.
