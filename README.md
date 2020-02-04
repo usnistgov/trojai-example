@@ -62,9 +62,9 @@ For each point in the test dataset, your container will be launched using the fo
 ### Parameters Passed to the Container on Launch
 
 - `--model_filepath` = The path to the model file to be evaluated.
-- `--result_filepath` = The path to the output result file where the probability [0, 1] (in the range of 0 to 1 inclusive) of the aforementioned model file being poisoned is to be written as text (not binary).
+- `--result_filepath` = The path to the output result file where the probability [0, 1] (in the range of 0 to 1 inclusive) of the aforementioned model file being poisoned is to be written as text (not binary). For example, "0.75". No other data should be written to this file. If the test server cannot parse your results file, the default probability of 0.5 will be substituted. If any parse errors occur, they will be listed on the results webpage table under the column "Parsing Errors".
 - `--scratch_dirpath` = The path to a directory (empty folder) where temporary data can be written during the evaluation of the model file.
-- `--examples_dirpath` = The path to a directory containing 100 example png images for each of the 5 classes the trained model is trained to classify. Names are of the format "class_0_example_0.png" through "class_4_example_99.png".
+- `--examples_dirpath` = The path to a directory containing a few example png images (for example, round 1 will have 100 examples per model) for each of the classes in the trained model is trained to classify. Names are of the format "class_2_example_35.png".
 
 
 --------------
@@ -224,9 +224,9 @@ Containers are to be submitted for evaluation by sharing them with a functional 
 1. Package your solution into a Singularity container.
 2. Upload your packaged Singularity container to Google Drive using the account you registered with the NIST T&E Team.
     - **Files from a non-registered email address will be ignored**
-    - container names that start with 'test_' will be evaluated on the [Smoke Test Server](#evaluation-server-vs-smoke-test-server)
-    - container names that do not start with 'test_' will be evaluated on the [Evaluation Server](#evaluation-server-vs-smoke-test-server)
-    - You can only be sharing 1 file for each server, no matter what the file name. So your Drive account can have up to 2 files shared with the TrojAI Drive account, one starting with 'test_' and one which does not. The file count restriction allows the servers to be as agnostic as possible to file naming. 
+    - container names that start with 'test' will be evaluated on the [Smoke Test Server](#evaluation-server-vs-smoke-test-server)
+    - container names that do not start with 'test' will be evaluated on the [Evaluation Server](#evaluation-server-vs-smoke-test-server)
+    - You can only be sharing 1 file for each server, no matter what the file name. So your Drive account can have up to 2 files shared with the TrojAI Drive account, one starting with 'test' and one which does not. The file count restriction allows the servers to be as agnostic as possible to file naming. 
 3. Right click on the container file within Google Drive and select "Share", enter "trojai@nist.gov" and click "Done"
 4. Your container is now visible to the NIST trojai user.
 5. Every few minutes (less than 15 minutes) the test and evaluation server will poll the NIST trojai@nist.gov Google Drive account for new submissions.
@@ -240,17 +240,17 @@ Result Website: [https://pages.nist.gov/trojai/](https://pages.nist.gov/trojai/)
 
 This website will update with your submitted job status and show results when your submission completes.
 
-Above the tables the "Last modified" date is included so you know when these tables were last updated. 
+A "Last modified" date is included on the page so you know when these tables were last updated. 
 
 ## Evaluation Server vs Smoke Test Server
 
-There are two test and evaluation servers being operated by NIST. Both 'servers' operate on the same physical hardware, with identical software setups. The difference between the two 'servers' is which SLURM queue the job is submitted to, what compute time limits there are, and how much data will be evaluated. Currently there are 2 slots (concurrent executions) on the STS, and 4 slots on the ES. These specific numbers might change in the future, but the ES will always have more slots due to the much higher compute time limits. 
+There are two test and evaluation servers being operated by NIST. Both 'servers' operate on the same physical hardware, with identical software setups. The difference between the two 'servers' is which processing queue the job is submitted to, what compute time limits there are, and how much data will be evaluated. Currently there are 2 slots (concurrent executions) on the Smoke Test Server (STS), and 4 slots on the Evaluation Server (ES). These specific numbers might change in the future, but the Evaluation Server (ES) will always have more slots due to the much higher compute time limits. 
 
 The results webpage by default displays the "Evaluation Server" results. You can select the "Smoke Test Server" results by clicking on the server name.
 
 ### Evaluation Server (ES)
 
-- Datset: the sequestered evaluation dataset
+- Dataset: the sequestered evaluation dataset
 - Compute time limit: 24 hours
 - Purpose: official evaluation of your container against the sequestered dataset
 
@@ -280,13 +280,13 @@ Contains the following fields:
 - Loss (Cross Entropy): Your loss for a given submission.
 - Execution Date: When the container was executed on the server.
 - File Date: The file modified date of the file executed on the server. This timestamp might change if you changed the file while your job was in the input queue
-- Pasing Errors: Any errors which stem from parsing your output results files.
-- Launch Errors: Any errors which stem from running your containter. 
+- Parsing Errors: Any errors which stem from parsing your output results files.
+- Launch Errors: Any errors which stem from running your container. 
 
 ## Output Logs
 
-When your submission is run, all output logs are uploaded to the TrojAI NIST Google Drive upon completion. The log files are then shared only with your team email. 
+When your submission is run, all output logs are uploaded to the TrojAI NIST Google Drive upon completion. The log files are then shared just with your team email (the logs are not posted publicly). 
 
-The log will be named "<team name>-sts.out" or "<team name>-es.out" depending on which server the job ran on (Smoke Test Server = STS, or Evaluation Server = ES).
+The log will be named "<team name>.sts.out" or "<team name>.es.out" depending on which server the job ran on (Smoke Test Server = STS, or Evaluation Server = ES).
 
 The log will be overwritten by subsequent submission evaluation runs. So if you want a persistent copy, download and rename the file from Google Drive before your next submission. 
