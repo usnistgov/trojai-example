@@ -47,7 +47,7 @@ Your solution will have the following resources allocated for 24 hours to evalua
 - CPU: 5 physical cores (10 logical) from Intel Xeon Silver 4216 @ 2.10GHz 
 - Memory: 32 GB
 - GPU: NVidia V100 (32GB GPU memory)
-- Disk: 2TB SATA SSDs for scratch space
+- Disk: 1.5TB SATA SSDs for scratch space
 
 
 ## Container Handling
