@@ -1,3 +1,10 @@
+# System Requirements
+
+- Linux OS (tested on Ubuntu 18.04 LTS)
+- CUDA capable NVIDIA GPU (tested on Titan RTX)
+
+Note: This example assumes you are running on a version of Linux (like Ubuntu 18.04 LTS) with a CUDA enabled NVIDIA GPU. Singularity only runs natively on Linux, and most Deep Learning libraries are designed for Linux first. While this Conda setup will install the CUDA drivers required to run PyTorch, the CUDA enabled GPU needs to be present on the system.   
+
 # Summary
 
 This repo contains a minimal working example showing a submission to the TrojAI NIST Evaluation server. This 'solution' loads the model file, inferences 10 random tensors, and then writes a random number to the output file.
@@ -71,8 +78,6 @@ For each point in the test dataset, your container will be launched using the fo
 
 # How to Build this Minimal Example
 
-Note: This example assumes you are running on a version of Linux (like Ubuntu 18.04 LTS) with a CUDA enabled NVIDIA GPU. Singularity only runs natively on Linux, and most Deep Learning libraries are designed for Linux first. While this Conda setup will intall the CUDA drivers required to run PyTorch, the CUDA enabled GPU needs to be present on the system.  
-
 ## Install Anaconda Python
 
 [https://www.anaconda.com/distribution/](https://www.anaconda.com/distribution/)
@@ -97,13 +102,13 @@ Note: This example assumes you are running on a version of Linux (like Ubuntu 18
 
 2. Test the python based `fake_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
 
-    ```
+    ```bash
     python fake_trojan_detector.py --model_filepath=./model.pt --result_filepath=./output.txt --scratch_dirpath=./scratch/
     ```
 
     Example Output:
     
-    ```
+    ```bash
     Trojan Probability: 0.07013004086445151
     ```
 
@@ -119,12 +124,16 @@ Package `fake_trojan_detector.py` into a Singularity container.
 2. Build singularity based on `fake_trojan_detector.def` file: 
 
     - delete any old copy of output file if it exists: `rm fake_trojan_detector.simg`
-    - package container: `sudo singularity build fake_trojan_detector.simg fake_trojan_detector.def`
+    - package container: 
+    
+      ```bash
+      sudo singularity build fake_trojan_detector.simg fake_trojan_detector.def
+      ```
 
     which generates a `fake_trojan_detector.simg` file.
 
     Example Output:
-    ```
+    ```bash
     $ sudo singularity build fake_trojan_detector.simg fake_trojan_detector.def
     Using container recipe deffile: fake_trojan_detector.def
     Sanitizing environment
@@ -188,12 +197,12 @@ Package `fake_trojan_detector.py` into a Singularity container.
 
 3. Test run container: 
 
-    ```
+    ```bash
     singularity run --nv ./fake_trojan_detector.simg --model_filepath ./model.pt --result_filepath ./output.txt --scratch_dirpath ./scratch
     ```
 
     Example Output:
-    ```
+    ```bash
     Trojan Probability: 0.7091788412534845
     ```
 
