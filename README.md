@@ -31,13 +31,13 @@ A submission singularity container must evaluate a single trained image classifi
 --------------
 # Challenge Submission
 
-Every solution submitted for evaluation must be containerized via [Singularity](https://sylabs.io/docs/) (see also this [Singularity tutorial](https://pawseysc.github.io/sc19-containers/)). That container will be run by the NIST test and evaluation server using the API specified in section "Container API" inside of a virtual machine that has no network capability.
+Every solution submitted for evaluation must be containerized via [Singularity](https://sylabs.io/docs/) (see this [Singularity tutorial](https://pawseysc.github.io/sc19-containers/)). 
 
-The container submitted to NIST for evaluation must perform trojan detection for a single trained AI model file and output a single probability of the model being poisoned. 
+The submitted Singularity container will be run by the NIST test and evaluation server using the API specified in [Container API](#container-api) inside of a virtual machine which has no network capability.
 
-The test and evaluation infrastructure will iterate over the N models which your container must predict trojan presence. 
+The container submitted to NIST for evaluation must perform trojan detection for a single trained AI model file and output a single probability of the model being poisoned. The test and evaluation infrastructure will iterate over the *N* models for which your container must predict trojan presence. 
 
-For each test data point lacking an output poisoning probability (for example, if you ran out of compute time) the test and evaluation server will use the probability 0.5 when computing your overall cross entropy loss for the test dataset.
+For each test data point lacking an output poisoning probability (for example, if you ran out of compute time) will be considered as being probability 0.5 when computing your overall cross entropy loss for the test dataset.
 
 
 ## Compute Resources
@@ -52,7 +52,7 @@ Your solution will have the following resources allocated for 24 hours to evalua
 
 ## Container Handling
 
-When you submit a container for evaluation, it will be added to a queue. When it's your container's turn to be run, the container will be copied into a non-networked VM instance populated with read-only test data. The NIST test and evaluation harness will iterate over all elements of the held-out test dataset and call your container once per data point (trained AI model). Container execution will terminate either after 24 hours (the compute time limit) or when it finishes processing all the test data. After your container terminates, NIST will compute the average cross entropy loss between your predictions and the ground truth answers. This score is then posted to the leader-board website.
+When you submit a container for evaluation, it will be added to a queue. When it's your container's turn to be run, the container will be copied into a non-networked VM (Ubuntu 18.04 LTS) instance populated with read-only test data and a 1.5TB SATA SSD read/write scratch space drive. The NIST test and evaluation harness will iterate over all elements of the sequestered test dataset and call your container once per data point. Each data point is a trained AI model. Execution will terminate either after 24 hours (the compute time limit) or when it finishes processing all the test data. After your container terminates, NIST will compute the average cross entropy loss between your predictions and the ground truth answers. This score is then posted to the leader-board website.
 
 
 ## Container API
@@ -62,14 +62,16 @@ For each point in the test dataset, your container will be launched using the fo
 ### Parameters Passed to the Container on Launch
 
 - `--model_filepath` = The path to the model file to be evaluated.
-- `--result_filepath` = The path to the output result file where the probability [0, 1] (in the range of 0 to 1 inclusive) of the aforementioned model file being poisoned is to be written as text (not binary). For example, "0.75". No other data should be written to this file. If the test server cannot parse your results file, the default probability of 0.5 will be substituted. If any parse errors occur, they will be listed on the results webpage table under the column "Parsing Errors".
+- `--result_filepath` = The path to the output result file where the probability [0, 1] (floating point value in the range of 0 to 1 inclusive) of the aforementioned model file being poisoned is to be written as text (not binary). For example, "0.75". No other data should be written to this file. If the test server cannot parse your results file, the default probability of 0.5 will be substituted. If any parse errors occur, they will be listed on the leader-board webpage.
 - `--scratch_dirpath` = The path to a directory (empty folder) where temporary data can be written during the evaluation of the model file.
-- `--examples_dirpath` = The path to a directory containing a few example png images (for example, round 1 will have 100 examples per model) for each of the classes in the trained model is trained to classify. Names are of the format "class_2_example_35.png".
+- `--examples_dirpath` = The path to a directory containing a few example png images for each of the classes the model is trained to classify. Names are of the format "class_2_example_35.png".
 
 
 --------------
 
 # How to Build this Minimal Example
+
+Note: This example assumes you are running on a version of Linux (like Ubuntu 18.04 LTS) with a CUDA enabled NVIDIA GPU. Singularity only runs natively on Linux, and most Deep Learning libraries are designed for Linux first. While this Conda setup will intall the CUDA drivers required to run PyTorch, the CUDA enabled GPU needs to be present on the system.  
 
 ## Install Anaconda Python
 
@@ -86,17 +88,24 @@ For each point in the test dataset, your container will be launched using the fo
 
 ## Test Fake Detector Without Containerization
 
-Test the python based `fake_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
+1.  Clone the repository 
+ 
+    ```
+    git clone https://github.com/usnistgov/trojai-example
+    cd trojai-example
+    ``` 
 
-Command:
-```
-python fake_trojan_detector.py --model_filepath=./model.pt --result_filepath=./output.txt --scratch_dirpath=./scratch/
-```
+2. Test the python based `fake_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
 
-Example Output:
-```
-Trojan Probability: 0.07013004086445151
-```
+    ```
+    python fake_trojan_detector.py --model_filepath=./model.pt --result_filepath=./output.txt --scratch_dirpath=./scratch/
+    ```
+
+    Example Output:
+    
+    ```
+    Trojan Probability: 0.07013004086445151
+    ```
 
 ## Package Solution into a Singularity Container
 
@@ -104,10 +113,9 @@ Package `fake_trojan_detector.py` into a Singularity container.
 
 1. Install Singularity
     
-    - For Ubuntu 18.04: `sudo apt install singularity-container`
-    - For others follow: [https://sylabs.io/guides/3.5/admin-guide/installation.html](https://sylabs.io/guides/3.5/admin-guide/installation.html)
+    - For Ubuntu 18.04 LTS: `sudo apt install singularity-container`
+    - For others Linux Distros follow: [https://sylabs.io/guides/3.5/admin-guide/installation.html#installation-on-linux](https://sylabs.io/guides/3.5/admin-guide/installation.html#installation-on-linux)
         
-
 2. Build singularity based on `fake_trojan_detector.def` file: 
 
     - delete any old copy of output file if it exists: `rm fake_trojan_detector.simg`
@@ -180,7 +188,6 @@ Package `fake_trojan_detector.py` into a Singularity container.
 
 3. Test run container: 
 
-    Command:
     ```
     singularity run --nv ./fake_trojan_detector.simg --model_filepath ./model.pt --result_filepath ./output.txt --scratch_dirpath ./scratch
     ```
@@ -211,7 +218,7 @@ NIST operates two test [servers](#evaluation-server-vs-smoke-test-server). Indic
 
 ## Verify Team Creation
 
-Once the TrojAI T&E team creates your team it will show up on the results website [https://pages.nist.gov/trojai/](https://pages.nist.gov/trojai/) Jobs table.
+Once the NIST T&E system creates your team it will show up on the results website [https://pages.nist.gov/trojai/](https://pages.nist.gov/trojai/) Jobs table.
 
 Note: [https://pages.nist.gov/trojai/](https://pages.nist.gov/trojai/) only updates every few minutes. The webpage includes a last updated timestamp near above the tables. 
 
@@ -228,6 +235,8 @@ Containers are to be submitted for evaluation by sharing them with a functional 
     - container names that do not start with 'test' will be evaluated on the [Evaluation Server](#evaluation-server-vs-smoke-test-server)
     - You can only be sharing 1 file for each server, no matter what the file name. So your Drive account can have up to 2 files shared with the TrojAI Drive account, one starting with 'test' and one which does not. The file count restriction allows the servers to be as agnostic as possible to file naming. 
 3. Right click on the container file within Google Drive and select "Share", enter "trojai@nist.gov" and click "Done"
+    - For details on how to share a file see [https://support.google.com/drive/answer/2494822](https://support.google.com/drive/answer/2494822) 
+    - For details on how to stop sharing a file see [https://support.google.com/drive/answer/2494893](https://support.google.com/drive/answer/2494893)
 4. Your container is now visible to the NIST trojai user.
 5. Every few minutes (less than 15 minutes) the test and evaluation server will poll the NIST trojai@nist.gov Google Drive account for new submissions.
 6. When your submission is detected, your container will be added to the evaluation queue. Your container will run either a) as soon as resources are available, or b) as soon as resources are available after your timeout window has passes. The timeout window is used to limit submission to one per week per team. If you upload another container (which is required to have the same filename) while the previous job is still in the queue (but has not yet been downloaded), your most recent container will be evaluated instead of the container that existed when the submission was entered into the queue.
