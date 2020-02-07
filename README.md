@@ -303,7 +303,7 @@ Contains the following fields:
 
 ## Output Logs
 
-When your submission is run, all output logs are uploaded to the TrojAI NIST Google Drive upon completion. The log files are then shared just with your team email (the logs are not posted publicly). 
+When your submission is run, the first 1 MB (megabyte) of output logs are uploaded to the TrojAI NIST Google Drive upon completion. That log file is then shared just with your team email (the logs are not posted publicly). 
 
 The log will be named "<team name>.sts.out" or "<team name>.es.out" depending on which server the job ran on (Smoke Test Server = STS, or Evaluation Server = ES).
 
