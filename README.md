@@ -52,7 +52,7 @@ For each test data point lacking an output poisoning probability (for example, i
 Your solution will have the following resources allocated for 24 hours to evaluate the test dataset.
 
 - CPU: 5 physical cores (10 logical) from Intel Xeon Silver 4216 @ 2.10GHz 
-- Memory: 32 GB
+- Memory: 24 GB
 - GPU: NVidia V100 (32GB GPU memory)
 - Disk: 1.5TB SATA SSDs for scratch space
 
