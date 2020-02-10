@@ -305,6 +305,6 @@ Contains the following fields:
 
 When your submission is run, the first 1 MB (megabyte) of output logs are uploaded to the TrojAI NIST Google Drive upon completion. That log file is then shared just with your team email (the logs are not posted publicly). 
 
-The log will be named "<team name>.sts.out" or "<team name>.es.out" depending on which server the job ran on (Smoke Test Server = STS, or Evaluation Server = ES).
+The log will be named "<team name>.sts.txt" or "<team name>.es.txt" depending on which server the job ran on (Smoke Test Server = STS, or Evaluation Server = ES).
 
 The log will be overwritten by subsequent submission evaluation runs. So if you want a persistent copy, download and rename the file from Google Drive before your next submission. 
