@@ -1,6 +1,6 @@
 # System Requirements
 
-- Linux OS (tested on Ubuntu 18.04 LTS)
+- Linux (tested on Ubuntu 18.04 LTS)
 - CUDA capable NVIDIA GPU (tested on Titan RTX)
 
 Note: This example assumes you are running on a version of Linux (like Ubuntu 18.04 LTS) with a CUDA enabled NVIDIA GPU. Singularity only runs natively on Linux, and most Deep Learning libraries are designed for Linux first. While this Conda setup will install the CUDA drivers required to run PyTorch, the CUDA enabled GPU needs to be present on the system.   
