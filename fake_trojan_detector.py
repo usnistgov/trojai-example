@@ -9,7 +9,7 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath):
 
     model = torch.load(model_filepath)
     
-    for i in range(100):
+    for i in range(10):
         img = np.random.rand(1, 3, 224, 224)
         img_tmp_fp = os.path.join(scratch_dirpath, 'img')
         np.save(img_tmp_fp, img)
