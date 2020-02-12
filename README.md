@@ -1,3 +1,25 @@
+This repo contains a minimal working example showing a submission to the TrojAI NIST Test and Evaluation server. This 'solution' loads the model file, inferences 10 random tensors, and then writes a random number to the output file.
+
+Every solution submitted for evaluation must be containerized via [Singularity](https://sylabs.io/docs/) (see this [Singularity tutorial](https://pawseysc.github.io/sc19-containers/)). 
+
+The submitted Singularity container will be run by the NIST test and evaluation server using the specified [Container API](https://pages.nist.gov/trojai/docs/submission.html#container-api), inside of a virtual machine which has no network capability.
+
+The container submitted to NIST for evaluation must perform trojan detection for a single trained AI model file and output a single probability of the model being poisoned. The test and evaluation infrastructure will iterate over the *N* models for which your container must predict trojan presence. 
+
+Your container will have access to these [Submission Compute Resources](https://pages.nist.gov/trojai/docs/architecture.html#compute-resources).
+
+--------------
+# Table of Contents
+1. [System Requirements](#system-requirements)
+2. [Submission Instructions](#submission-instructions)
+3. [How to Build this Minimal Example](#how-to-build-this-minimal-example)
+    1. [Install Anaconda Python](#install-anaconda-python)
+    2. [Setup the Conda Environment](#setup-the-conda-environment)
+    3. [Test Fake Detector Without Containerization](#test-fake-detector-without-containerization)
+    4. [Package Solution into a Singularity Container](#package-solution-into-a-singularity-container)
+
+
+--------------
 # System Requirements
 
 - Linux (tested on Ubuntu 18.04 LTS)
@@ -5,27 +27,6 @@
 
 Note: This example assumes you are running on a version of Linux (like Ubuntu 18.04 LTS) with a CUDA enabled NVIDIA GPU. Singularity only runs natively on Linux, and most Deep Learning libraries are designed for Linux first. While this Conda setup will install the CUDA drivers required to run PyTorch, the CUDA enabled GPU needs to be present on the system.   
 
-# Summary
-
-This repo contains a minimal working example showing a submission to the TrojAI NIST Test and Evaluation server. This 'solution' loads the model file, inferences 10 random tensors, and then writes a random number to the output file.
-
-Every solution submitted for evaluation must be containerized via [Singularity](https://sylabs.io/docs/) (see this [Singularity tutorial](https://pawseysc.github.io/sc19-containers/)). 
-
-The submitted Singularity container will be run by the NIST test and evaluation server using the API specified in [Container API](https://pages.nist.gov/trojai/docs/submission.html#container-api) inside of a virtual machine which has no network capability.
-
-The container submitted to NIST for evaluation must perform trojan detection for a single trained AI model file and output a single probability of the model being poisoned. The test and evaluation infrastructure will iterate over the *N* models for which your container must predict trojan presence. 
-
-Your container will have access to these [Submission Compute Resources](https://pages.nist.gov/trojai/docs/architecture.html#compute-resources).
-
---------------
-
-# Table of Contents
-1. [Submission Instructions](#submission-instructions)
-2. [How to Build this Minimal Example](#how-to-build-this-minimal-example)
-    1. [Install Anaconda Python](#install-anaconda-python)
-    2. [Setup the Conda Environment](#setup-the-conda-environment)
-    3. [Test Fake Detector Without Containerization](#test-fake-detector-without-containerization)
-    4. [Package Solution into a Singularity Container](#package-solution-into-a-singularity-container)
 
 
 --------------
