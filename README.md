@@ -34,7 +34,7 @@ Note: This example assumes you are running on a version of Linux (like Ubuntu 18
 
 1. Package your trojan detection solution into a Singularity Container.
     - Name your container file based on which [server](https://pages.nist.gov/trojai/docs/architecture.html) you want to submit to.
-2. Create an [Account](https://pages.nist.gov/trojai/docs/accounts.html) on the NIST Test and Evaluation Server.
+2. Request an [Account](https://pages.nist.gov/trojai/docs/accounts.html) on the NIST Test and Evaluation Server.
 3. Follow the [Google Drive Submission Instructions](https://pages.nist.gov/trojai/docs/submission.html#container-submission).
 4. View job status and results on the [Leader-Board website](https://pages.nist.gov/trojai/).
 5. Review your [submission logs](https://pages.nist.gov/trojai/docs/submission.html#output-logs) shared back with your team Google Drive account.
