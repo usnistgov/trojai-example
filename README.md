@@ -8,9 +8,11 @@ The container submitted to NIST for evaluation must perform trojan detection for
 
 Your container will have access to these [Submission Compute Resources](https://pages.nist.gov/trojai/docs/architecture.html#compute-resources).
 
+
 --------------
 # Table of Contents
 1. [System Requirements](#system-requirements)
+2. [Example Data](#example-data)
 2. [Submission Instructions](#submission-instructions)
 3. [How to Build this Minimal Example](#how-to-build-this-minimal-example)
     1. [Install Anaconda Python](#install-anaconda-python)
@@ -27,6 +29,10 @@ Your container will have access to these [Submission Compute Resources](https://
 
 Note: This example assumes you are running on a version of Linux (like Ubuntu 18.04 LTS) with a CUDA enabled NVIDIA GPU. Singularity only runs natively on Linux, and most Deep Learning libraries are designed for Linux first. While this Conda setup will install the CUDA drivers required to run PyTorch, the CUDA enabled GPU needs to be present on the system.   
 
+--------------
+# Example Data
+
+Example data can be downloaded from the NIST [Leader-Board website](https://pages.nist.gov/trojai/).
 
 
 --------------
