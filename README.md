@@ -1,4 +1,4 @@
-This repo contains a minimal working example showing a submission to the TrojAI NIST Test and Evaluation server. This 'solution' loads the model file, inferences 10 random tensors, and then writes a random number to the output file.
+This repo contains a minimal working example for a submission to the TrojAI NIST Test and Evaluation server. This minimal ‘solution’ loads the model file, inferences 10 random tensors, and then writes a random number to the output file. You can use this as your base to build your own solution for the [TrojAI leaderboard](https://pages.nist.gov/trojai/).
 
 Every solution submitted for evaluation must be containerized via [Singularity](https://sylabs.io/docs/) (see this [Singularity tutorial](https://pawseysc.github.io/sc19-containers/)). 
 
