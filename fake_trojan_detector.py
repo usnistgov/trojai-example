@@ -2,6 +2,7 @@ import os
 import numpy as np
 import skimage.io
 import torch
+import torchvision.transforms.functional
 import os
 import warnings 
 warnings.filterwarnings("ignore")
@@ -16,11 +17,15 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     for fn in fns:
         # read the image
         img = skimage.io.imread(fn)
-        # reorder from HWC to CHW
-        batch_data = np.transpose(img, (2, 0, 1))
-        # format into NCHW dimension ordering
-        batch_data = np.reshape(batch_data, (1, batch_data.shape))
-        batch_data = torch.cuda.FloatTensor(batch_data)
+        # convert to CHW dimension ordering
+        img = np.transpose(img, (2, 0, 1))
+        # convert to NCHW dimension ordering
+        img = np.expand_dims(img, 0)
+        # normalize the image
+        img = img - np.min(img)
+        img = img / np.max(img)
+        # convert image to a gpu tensor
+        batch_data = torch.cuda.FloatTensor(img)
         # inference the image
         logits = model(batch_data)
         print('img {} logits = {}'.format(fn, logits))
