@@ -13,8 +13,19 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     # Inference the example images in data
     fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith(example_img_format)]
     for fn in fns:
-        # read the image
+        # read the image (using skimage)
         img = skimage.io.imread(fn)
+        # convert to BGR (training codebase uses cv2 to load images which uses bgr format)
+        r = img[:, :, 0]
+        g = img[:, :, 1]
+        b = img[:, :, 2]
+        img = np.stack((b, g, r), axis=2)
+
+        # Or use cv2 (opencv) to read the image
+        # img = cv2.imread(fn, cv2.IMREAD_UNCHANGED)
+        # img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
+
+        # perform tensor formatting and normalization explicitly
         # convert to CHW dimension ordering
         img = np.transpose(img, (2, 0, 1))
         # convert to NCHW dimension ordering
@@ -23,7 +34,18 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
         img = img - np.min(img)
         img = img / np.max(img)
         # convert image to a gpu tensor
-        batch_data = torch.cuda.FloatTensor(img)
+        batch_data = torch.FloatTensor(img)
+
+        # or use pytorch transform
+        # import torchvision
+        # my_xforms = torchvision.transforms.Compose([
+        #     torchvision.transforms.ToPILImage(),
+        #     torchvision.transforms.ToTensor()])  # ToTensor performs min-max normalization
+        # batch_data = my_xforms.__call__(img)
+
+        # move tensor to the gpu
+        batch_data = batch_data.cuda()
+
         # inference the image
         logits = model(batch_data)
         print('img {} logits = {}'.format(fn, logits))
