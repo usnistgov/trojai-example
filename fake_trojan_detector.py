@@ -2,8 +2,6 @@ import os
 import numpy as np
 import skimage.io
 import torch
-import torchvision.transforms.functional
-import os
 import warnings 
 warnings.filterwarnings("ignore")
 
