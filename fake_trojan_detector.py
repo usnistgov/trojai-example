@@ -23,6 +23,8 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
 
     # Inference the example images in data
     fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith(example_img_format)]
+    if len(fns) > 10:
+        fns = fns[0:10]
     for fn in fns:
         # read the image (using skimage)
         img = skimage.io.imread(fn)
@@ -61,11 +63,14 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
         logits = model(batch_data)
         print('example img filepath = {}, logits = {}'.format(fn, logits))
     
-    for i in range(10):
-        img = np.random.rand(1, 3, 224, 224)
-        img_tmp_fp = os.path.join(scratch_dirpath, 'img')
-        np.save(img_tmp_fp, img)
 
+    # Test scratch space
+    img = np.random.rand(1, 3, 224, 224)
+    img_tmp_fp = os.path.join(scratch_dirpath, 'img')
+    np.save(img_tmp_fp, img)
+
+    # test model inference if no example images exist
+    if len(fns) == 0:
         input_var = torch.cuda.FloatTensor(img)
 
         logits = model(input_var)
