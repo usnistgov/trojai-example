@@ -1,8 +1,11 @@
 Bootstrap: docker
-From: pytorch/pytorch
+From: pytorch/pytorch:latest
 
 %files
     ./fake_trojan_detector.py /
+
+%post
+    /opt/conda/bin/conda install scikit-image
 
 %runscript
     exec python3 /fake_trojan_detector.py "$@"

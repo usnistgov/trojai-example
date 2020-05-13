@@ -59,7 +59,7 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
 
         # inference the image
         logits = model(batch_data)
-        print('img {} logits = {}'.format(fn, logits))
+        print('example img filepath = {}, logits = {}'.format(fn, logits))
     
     for i in range(10):
         img = np.random.rand(1, 3, 224, 224)
