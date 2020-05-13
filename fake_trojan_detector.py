@@ -14,6 +14,11 @@ warnings.filterwarnings("ignore")
 
 def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examples_dirpath, example_img_format='png'):
 
+    print('model_filepath = {}'.format(model_filepath))
+    print('result_filepath = {}'.format(result_filepath))
+    print('scratch_dirpath = {}'.format(scratch_dirpath))
+    print('examples_dirpath = {}'.format(examples_dirpath))
+    
     model = torch.load(model_filepath)
 
     # Inference the example images in data
