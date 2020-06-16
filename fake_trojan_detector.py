@@ -7,6 +7,7 @@
 import os
 import numpy as np
 import skimage.io
+import random
 import torch
 import warnings 
 warnings.filterwarnings("ignore")
@@ -23,8 +24,9 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
 
     # Inference the example images in data
     fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith(example_img_format)]
-    if len(fns) > 10:
-        fns = fns[0:10]
+    random.shuffle(fns)
+    if len(fns) > 5:
+        fns = fns[0:5]
     for fn in fns:
         # read the image (using skimage)
         img = skimage.io.imread(fn)
