@@ -1,10 +1,10 @@
-This repo contains a minimal working example for a submission to the TrojAI NIST Evaluation server. This minimal ‘solution’ loads the model file, inferences 10 random tensors, and then writes a random number to the output file. You can use this as your base to build your own solution for the [TrojAI leaderboard](https://pages.nist.gov/trojai/).
+This repo contains a minimal working example for a submission to the NIST TrojAI Evaluation Server. This minimal ‘solution’ loads the model file, inferences 10 random tensors, and then writes a random number to the output file. You can use this as your base to build your own solution for the [TrojAI leaderboard](https://pages.nist.gov/trojai/).
 
 Every solution submitted for evaluation must be containerized via [Singularity](https://sylabs.io/docs/) (see this [Singularity tutorial](https://pawseysc.github.io/sc19-containers/)). 
 
-The submitted Singularity container will be run by the NIST test and evaluation server using the specified [Container API](https://pages.nist.gov/trojai/docs/submission.html#container-api), inside of a virtual machine which has no network capability.
+The submitted Singularity container will be run by the TrojAI Evaluation Server using the specified [Container API](https://pages.nist.gov/trojai/docs/submission.html#container-api), inside of a virtual machine which has no network capability.
 
-The container submitted to NIST for evaluation must perform trojan detection for a single trained AI model file and output a single probability of the model being poisoned. The test and evaluation infrastructure will iterate over the *N* models for which your container must predict trojan presence. 
+The container submitted for evaluation must perform trojan detection for a single trained AI model file and output a single probability of the model being poisoned. The test and evaluation infrastructure will iterate over the *N* models for which your container must predict trojan presence. 
 
 Your container will have access to these [Submission Compute Resources](https://pages.nist.gov/trojai/docs/architecture.html#compute-resources).
 
