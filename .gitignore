@@ -10,3 +10,4 @@ __pychache__
 *.out
 
 token.pickle
+output/*
