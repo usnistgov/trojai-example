@@ -70,6 +70,37 @@ def save_pattern(pattern, mask, y_source, y_target, result_dir):
   dump_image(fusion, img_filename,'png')
 
 
+def mad_detection(l1_norm_list, crosp_lb):
+  constant = 1.4826
+  median = np.median(l1_norm_list)
+  mad = constant * np.median(np.abs(l1_norm_list-median))
+  a_idx = np.abs(l1_norm_list-median) / mad
+  #min_idx = np.abs(np.min(l1_norm_list)-median)/mad
+  #min_idx = np.max(a_idx)
+  min_idx = np.min(l1_norm_list)/np.max(l1_norm_list)
+
+  print('median: %f, MAD: %f' % (median, mad))
+  print('min anomaly index: %f' % min_idx)
+
+  flag_list = []
+  for sc, lb, ori in zip(a_idx, crosp_lb, l1_norm_list):
+    if sc > 2:
+      flag_list.append((lb,ori))
+
+  if len(flag_list) == 0:
+    print('flagged label list: None')
+  else:
+    print('flagged label list: %s' %
+          ', '.join(['%s: %2f' % (lb,sc)
+                     for lb,sc in flag_list]))
+
+  return min_idx, a_idx
+
+
+
+
+
+
 
 
 
