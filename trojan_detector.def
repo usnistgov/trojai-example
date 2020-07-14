@@ -1,0 +1,13 @@
+Bootstrap: docker
+From: pytorch/pytorch:latest
+
+%files
+    ./trojan_detector.py /
+    ./NC_pytorch.py /
+    ./utils.py /
+
+%post
+    /opt/conda/bin/conda install -c conda-forge opencv
+
+%runscript
+    exec python3 /trojan_detector.py "$@"
