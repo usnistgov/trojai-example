@@ -45,14 +45,14 @@ INIT_COST = 1e-3  # initial weight used for balancing two objectives
 
 REGULARIZATION = 'l1'  # reg term to control the mask's norm
 
-ATTACK_SUCC_THRESHOLD = 0.9  # attack success threshold of the reversed attack
-PATIENCE = 5  # patience for adjusting weight, number of mini batches
+ATTACK_SUCC_THRESHOLD = 0.8  # attack success threshold of the reversed attack
+PATIENCE = 3 #5  # patience for adjusting weight, number of mini batches
 COST_MULTIPLIER = 2  # multiplier for auto-control of weight (COST)
 SAVE_LAST = False  # whether to save the last result or best result
 
 EARLY_STOP = True  # whether to early stop
 EARLY_STOP_THRESHOLD = 1.0  # loss threshold for early stop
-EARLY_STOP_PATIENCE = 5 * PATIENCE  # patience for early stop
+EARLY_STOP_PATIENCE = 3 * PATIENCE  # patience for early stop
 
 # the following part is not used in our experiment
 # but our code implementation also supports super-pixel mask

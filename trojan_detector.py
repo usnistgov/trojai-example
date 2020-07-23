@@ -80,12 +80,12 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
         rst_l1_norm[source_lb][target_lb] = l1_norm
 
     print(rst_l1_norm)
-    #model_name = model_filepath.split('/')[-2]
-    #np.save(os.path.join('output/', model_name), rst_l1_norm)
+    model_name = model_filepath.split('/')[-2]
+    np.save(os.path.join('output/', model_name), rst_l1_norm)
 
 
     #trojan_probability = np.random.rand()
-    trojan_probability = np.min(rst_l1_norm[0])/np.max(rst_l1_norm[0])
+    trojan_probability = 1-np.min(rst_l1_norm[0])/np.max(rst_l1_norm[0])
     print('Trojan Probability: {}'.format(trojan_probability))
 
     with open(result_filepath, 'w') as fh:
