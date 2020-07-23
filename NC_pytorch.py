@@ -45,7 +45,7 @@ INIT_COST = 1e-3  # initial weight used for balancing two objectives
 
 REGULARIZATION = 'l1'  # reg term to control the mask's norm
 
-ATTACK_SUCC_THRESHOLD = 0.99  # attack success threshold of the reversed attack
+ATTACK_SUCC_THRESHOLD = 0.9  # attack success threshold of the reversed attack
 PATIENCE = 5  # patience for adjusting weight, number of mini batches
 COST_MULTIPLIER = 2  # multiplier for auto-control of weight (COST)
 SAVE_LAST = False  # whether to save the last result or best result
@@ -393,8 +393,8 @@ class Visualizer:
                 self.cost_tensor.data = torch.tensor(self.cost)
                 cost_down_flag = True
 
-            if self.save_tmp:
-                self.save_tmp_func(step)
+            #if self.save_tmp:
+            #    self.save_tmp_func(step)
 
         # save the final version
         if mask_best is None or self.save_last:

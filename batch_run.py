@@ -13,3 +13,4 @@ for d in dirs:
 
   print(cmmd)
   os.system(cmmd)
+  break

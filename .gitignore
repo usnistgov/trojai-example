@@ -11,3 +11,4 @@ __pychache__
 
 token.pickle
 output/*
+scratch/*
