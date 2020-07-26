@@ -63,8 +63,9 @@ class NeuronAnalyzer:
         rsts = []
         for i in range(n):
             os = np.concatenate(outputs[i], axis=0)
+            os = np.abs(os)
             tmp = np.max(os, axis=(2,3))
-            recs.append(np.mean(tmp, axis=0))
+            recs.append(np.max(tmp, axis=0))
 
             w = weights[i][0]
             sp = w.shape
