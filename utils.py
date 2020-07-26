@@ -32,7 +32,7 @@ def read_example_images(examples_dirpath, example_img_format='png'):
 
   cat_batch = {}
   for key in cat_imgs:
-    cat_batch[key] = np.asarray(cat_imgs[key])
+    cat_batch[key] = np.asarray(cat_imgs[key], dtype=np.float32)
     print('label {} : {}'.format(key, cat_batch[key].shape))
 
   return cat_batch

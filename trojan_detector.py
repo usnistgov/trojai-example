@@ -9,6 +9,7 @@ import os
 import numpy as np
 import random
 import torch
+import torchvision.models
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -16,8 +17,9 @@ from torch.utils.data import TensorDataset, DataLoader
 
 import utils
 from NC_pytorch import Visualizer
+from neuron import NeuronAnalyzer
 
-
+ava_model_type = ['ResNet', 'DenseNet','Inception3']
 
 def build_data_loader(X,batch_size=32):
     tensor_X = torch.Tensor(X)
@@ -33,12 +35,29 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     print('scratch_dirpath = {}'.format(scratch_dirpath))
     print('examples_dirpath = {}'.format(examples_dirpath))
 
-    cat_batch = utils.read_example_images(examples_dirpath,example_img_format)
+    cat_batch = utils.read_example_images(examples_dirpath, example_img_format)
 
-    num_classes = 5
+
+    num_classes=5
     model = torch.load(model_filepath)
-    visualizer = Visualizer(model, init_cost=1e-3, lr=0.1, \
-                            num_classes=num_classes, tmp_dir=scratch_dirpath)
+    analyzer = NeuronAnalyzer(model)
+    all_x = [cat_batch[i] for i in range(num_classes)]
+    big_batch = np.concatenate(all_x, axis=0)
+    dataloader = build_data_loader(big_batch)
+
+    sc = analyzer.analyse(dataloader)
+
+    trojan_probability = 1-sc
+    print('Trojan Probability: {}'.format(trojan_probability))
+
+    model_name = model_filepath.split('/')[-2]
+    np.save(os.path.join('output/', model_name), np.asarray(sc))
+
+    exit(0)
+
+
+    #visualizer = Visualizer(model, init_cost=1e-3, lr=0.1, \
+    #                        num_classes=num_classes, tmp_dir=scratch_dirpath)
 
     rst_l1_norm = np.zeros((num_classes,num_classes))
 
@@ -58,7 +77,7 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
         visualize_start_time = time.time()
 
         #pattern, mask, mask_upsample, logs = visualizer.visualize(dataloader, y_target=target_lb, pattern_init=pattern, mask_init=mask, max_steps=1000, num_batches_per_step=9)
-        pattern, mask, mask_upsample, logs = visualizer.visualize(dataloader, y_target=target_lb, pattern_init=pattern, mask_init=mask, max_steps=1000, num_batches_per_step=16)
+        #pattern, mask, mask_upsample, logs = visualizer.visualize(dataloader, y_target=target_lb, pattern_init=pattern, mask_init=mask, max_steps=1000, num_batches_per_step=16)
 
         visualize_end_time = time.time()
 
@@ -80,8 +99,8 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
         rst_l1_norm[source_lb][target_lb] = l1_norm
 
     print(rst_l1_norm)
-    model_name = model_filepath.split('/')[-2]
-    np.save(os.path.join('output/', model_name), rst_l1_norm)
+    #model_name = model_filepath.split('/')[-2]
+    #np.save(os.path.join('output/', model_name), rst_l1_norm)
 
 
     #trojan_probability = np.random.rand()

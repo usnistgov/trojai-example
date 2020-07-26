@@ -18,12 +18,15 @@ def draw_roc(out_dir, model_dir):
       true_lb = int(f.readline())
 
     raw_list = np.load(os.path.join(out_dir,fn))
-    #'''
+
+    score = np.min(raw_list)
+
+    '''
     #original nc
     l1_norm_list = raw_list[0]
     crosp_lb = list(range(5))
     min_idx, a_idx = mad_detection(l1_norm_list, [0,1,2,3,4])
-    #'''
+    '''
     '''
     # NN nc
     l1_norm_list = []
@@ -38,15 +41,16 @@ def draw_roc(out_dir, model_dir):
     '''
 
     lb_list.append(true_lb)
-    sc_list.append(min_idx)
+    sc_list.append(score)
 
 
-  from sklearn.metrics import roc_curve
+  from sklearn.metrics import roc_curve, auc
   import matplotlib.pyplot as plt
 
   print(sum(lb_list))
 
   tpr, fpr, thr = roc_curve(lb_list,sc_list)
+  print(auc(fpr,tpr))
   plt.figure()
   plt.plot(fpr,tpr)
   plt.show()

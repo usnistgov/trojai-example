@@ -1,10 +1,11 @@
 import os
 
 home = os.environ['HOME']
-folder_root = os.path.join(home,'data/trojai-round0-dataset')
+#folder_root = os.path.join(home,'data/trojai-round0-dataset')
+folder_root = os.path.join(home,'data/round1-dataset-train/models/')
 dirs = os.listdir(folder_root)
 
-
+k = 0
 for d in dirs:
   model_filepath=os.path.join(folder_root, d, 'model.pt')
   examples_dirpath=os.path.join(folder_root, d, 'example_data')
@@ -13,3 +14,5 @@ for d in dirs:
 
   print(cmmd)
   os.system(cmmd)
+
+  k = k+1
