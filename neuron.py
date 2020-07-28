@@ -26,6 +26,8 @@ class NeuronAnalyzer:
                 ntname = type(ntmd).__name__
                 if ntname != 'BatchNorm2d':
                     continue
+                if md.out_channels != ntmd.num_features:
+                    continue
                 md.register_forward_hook(self.get_hook(mdname, n_conv, is_BN=False))
                 ntmd.register_forward_hook(self.get_hook(ntname, n_conv, is_BN=True))
                 last_conv_k = k
@@ -100,7 +102,6 @@ class NeuronAnalyzer:
             imgs = x[0]
             print(imgs.shape)
             y = self.model(imgs.cuda())
-            break
 
         return self._deal_conv(self.data['Conv2d'])
 

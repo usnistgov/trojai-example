@@ -47,7 +47,7 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
 
     sc = analyzer.analyse(dataloader)
 
-    trojan_probability = sc
+    trojan_probability = np.min(sc)
     print('Trojan Probability: {}'.format(trojan_probability))
     with open(result_filepath, 'w') as fh:
         fh.write("{}".format(trojan_probability))
