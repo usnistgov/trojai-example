@@ -24,7 +24,7 @@ ava_model_type = ['ResNet', 'DenseNet','Inception3']
 def build_data_loader(X,batch_size=32):
     tensor_X = torch.Tensor(X)
     dataset = TensorDataset(tensor_X)
-    loader = DataLoader(dataset,batch_size=batch_size,drop_last=True, shuffle=True)
+    loader = DataLoader(dataset,batch_size=batch_size,drop_last=True, shuffle=False)
     return loader
 
 
