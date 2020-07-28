@@ -13,11 +13,22 @@ class NeuronAnalyzer:
         for tp in CONSIDER_LAYER_TYPE:
             self.data[tp] = self._build_dict()
 
+
+        mds = []
+        for md in model.modules():
+            mds.append(md)
+
         n_conv = 0
-        for k, md in enumerate(model.modules()):
+        for k, md in enumerate(mds):
             mdname = type(md).__name__
             if mdname == 'Conv2d':
+                ntmd = mds[k+1]
+                ntname = type(ntmd).__name__
+                if ntname != 'BatchNorm2d':
+                    continue
                 md.register_forward_hook(self.get_hook(mdname, n_conv, is_BN=False))
+                ntmd.register_forward_hook(self.get_hook(ntname, n_conv, is_BN=True))
+                last_conv_k = k
                 n_conv += 1
                 self.data[mdname]['n'] += 1
                 self.data[mdname]['inputs'].append([])
@@ -33,8 +44,6 @@ class NeuronAnalyzer:
                 print(self.data[mdname]['weights'][-1][0].shape)
                 exit(0)
                 '''
-            elif mdname == 'BatchNorm2d':
-                md.register_forward_hook(self.get_hook(mdname, n_conv-1, is_BN=True))
 
 
     def _build_dict(self):
@@ -83,6 +92,7 @@ class NeuronAnalyzer:
             rsts.append(np.abs(recs[i]/noms[i]))
 
         zz = np.concatenate(rsts, axis=0)
+        return zz
         return np.min(zz)
 
     def analyse(self, dataloader):
@@ -90,6 +100,7 @@ class NeuronAnalyzer:
             imgs = x[0]
             print(imgs.shape)
             y = self.model(imgs.cuda())
+            break
 
         return self._deal_conv(self.data['Conv2d'])
 
