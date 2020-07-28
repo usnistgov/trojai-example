@@ -13,10 +13,12 @@ class NeuronAnalyzer:
         for tp in CONSIDER_LAYER_TYPE:
             self.data[tp] = self._build_dict()
 
-        for md in model.modules():
+        n_conv = 0
+        for k, md in enumerate(model.modules()):
             mdname = type(md).__name__
-            if mdname in CONSIDER_LAYER_TYPE:
-                md.register_forward_hook(self.get_hook(mdname, self.data[mdname]['n']))
+            if mdname == 'Conv2d':
+                md.register_forward_hook(self.get_hook(mdname, n_conv, is_BN=False))
+                n_conv += 1
                 self.data[mdname]['n'] += 1
                 self.data[mdname]['inputs'].append([])
                 self.data[mdname]['outputs'].append([])
@@ -31,6 +33,8 @@ class NeuronAnalyzer:
                 print(self.data[mdname]['weights'][-1][0].shape)
                 exit(0)
                 '''
+            elif mdname == 'BatchNorm2d':
+                md.register_forward_hook(self.get_hook(mdname, n_conv-1, is_BN=True))
 
 
     def _build_dict(self):
@@ -42,14 +46,16 @@ class NeuronAnalyzer:
         rst['modules'] = []
         return rst
 
-    def get_hook(self, mdname, idx):
+    def get_hook(self, mdname, idx, is_BN=False):
         def hook(model, input, output):
             if type(input) is tuple:
                 input = input[0]
             if type(output) is tuple:
                 output = output[0]
-            self.data[mdname]['inputs'][idx].append(input.cpu().detach().numpy())
-            self.data[mdname]['outputs'][idx].append(output.cpu().detach().numpy())
+            if not is_BN:
+                self.data['Conv2d']['inputs'][idx].append(input.cpu().detach().numpy())
+            else:
+                self.data['Conv2d']['outputs'][idx].append(output.cpu().detach().numpy())
         return hook
 
 
@@ -65,7 +71,7 @@ class NeuronAnalyzer:
             os = np.concatenate(outputs[i], axis=0)
             os = np.abs(os)
             tmp = np.max(os, axis=(2,3))
-            recs.append(np.max(tmp, axis=0))
+            recs.append(np.mean(tmp, axis=0))
 
             w = weights[i][0]
             sp = w.shape
@@ -84,7 +90,6 @@ class NeuronAnalyzer:
             imgs = x[0]
             print(imgs.shape)
             y = self.model(imgs.cuda())
-            break
 
         return self._deal_conv(self.data['Conv2d'])
 

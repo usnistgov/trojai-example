@@ -16,3 +16,4 @@ for d in dirs:
   os.system(cmmd)
 
   k = k+1
+  break
