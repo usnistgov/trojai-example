@@ -2,6 +2,7 @@ import numpy as np
 import numpy.linalg as LA
 import numpy.random as RD
 import torch
+import torch.nn.functional as F
 import threading, queue
 import time
 
@@ -184,25 +185,34 @@ class NeuronAnalyzer:
         self.model = model
         self.model.eval()
 
-        self.hook_activate = True
+        self.hook_activate = False
 
-        self.data = dict()
-        for tp in CONSIDER_LAYER_TYPE:
-            self.data[tp] = self._build_dict()
+        mds = list(self.model.modules())
+        self.model_name = type(mds[0]).__name__
+        print(self.model_name)
 
-        mds = list(model.modules())
+        '''
         self.childrens = list(model.children())
         self.n_child = len(self.childrens)
         self.child = list()
         for k,md in enumerate(self.childrens):
             self.child.append(self._build_dict())
             md.register_forward_hook(self.get_children_hook(k))
+        '''
 
+        '''
+        self.data = dict()
+        for tp in CONSIDER_LAYER_TYPE:
+            self.data[tp] = self._build_dict()
+
+        mds = list(model.modules())
         n_conv = 0
         for k, md in enumerate(mds):
             mdname = type(md).__name__
             if k==0:
+                self.model_name = mdname
                 print(mdname)
+                break
             if mdname == 'Conv2d':
                 ntmd = mds[k+1]
                 ntname = type(ntmd).__name__
@@ -223,11 +233,10 @@ class NeuronAnalyzer:
                     w_list.append(w.cpu().detach().numpy())
                 self.data[mdname]['weights'].append(w_list)
 
-                '''
-                print(self.data[mdname]['modules'][-1])
-                print(self.data[mdname]['weights'][-1][0].shape)
-                exit(0)
-                '''
+                #print(self.data[mdname]['modules'][-1])
+                #print(self.data[mdname]['weights'][-1][0].shape)
+                #exit(0)
+        '''
         self.results = list()
         self.manager = MP.Manager()
 
@@ -242,7 +251,7 @@ class NeuronAnalyzer:
         return rst
 
 
-    def get_children_hook(self, idx):
+    def get_hook(self):
         def hook(model, input, output):
             if not self.hook_activate:
                 return
@@ -250,11 +259,12 @@ class NeuronAnalyzer:
                 input = input[0]
             if type(output) is tuple:
                 output = output[0]
-            self.child[idx]['inputs'].append(input.cpu().detach().numpy())
-            self.child[idx]['outputs'].append(output.cpu().detach().numpy())
+            self.inputs.append(input.cpu().detach().numpy())
+            self.outputs.append(output.cpu().detach().numpy())
         return hook
 
 
+    '''
     def get_hook(self, mdname, idx, is_BN=False):
         def hook(model, input, output):
             if not self.hook_activate:
@@ -268,8 +278,10 @@ class NeuronAnalyzer:
             else:
                 self.data['Conv2d']['outputs'][idx].append(output.cpu().detach().numpy())
         return hook
+    '''
 
 
+    '''
     def _call_partial_model(self, x_tensor, from_k):
         x = x_tensor.cuda()
         for k in range(from_k, self.n_child):
@@ -279,8 +291,61 @@ class NeuronAnalyzer:
             x = md(x)
 
         return x.cpu().detach().numpy()
+    '''
+
+    def _deal_DenseNet(self):
+        childs = list(self.model.children())
+        main_ch = childs[0]
+        _childs = list(main_ch.children())
+        md = _childs[-2]
+
+        self.inputs = list()
+        self.outputs = list()
+        md.register_forward_hook(self.get_hook())
+
+        _model = torch.nn.Sequential(_childs[-2],
+                                     _childs[-1],
+                                     torch.nn.ReLU(inplace=True),
+                                     torch.nn.AdaptiveAvgPool2d((1,1)),
+                                     torch.nn.Flatten(1),
+                                     childs[-1])
+
+        return _model
 
 
+    def _deal_ResNet(self):
+        childs = list(self.model.children())
+        md = childs[-3]
+
+        self.inputs = list()
+        self.outputs = list()
+        md.register_forward_hook(self.get_hook())
+
+        _model = torch.nn.Sequential(childs[-3],
+                                     childs[-2],
+                                     torch.nn.Flatten(1),
+                                     childs[-1])
+
+        return _model
+
+    def _deal_Inception3(self):
+        childs = list(self.model.children())
+        md = childs[-2]
+
+        self.inputs = list()
+        self.outputs = list()
+        md.register_forward_hook(self.get_hook())
+
+        print(childs[-1])
+
+        _model = torch.nn.Sequential(childs[-2],
+                                     torch.nn.AdaptiveAvgPool2d((1,1)),
+                                     torch.nn.Flatten(1),
+                                     childs[-1])
+
+        return _model
+
+    '''
     def _deal_conv(self, data_dict):
         n = data_dict['n']
         weights = data_dict['weights']
@@ -306,10 +371,10 @@ class NeuronAnalyzer:
 
         zz = np.concatenate(rsts, axis=0)
         return zz
+    '''
 
 
-    def _get_predict_function(self, layer_k):
-        base_x = self.child[layer_k]['inputs'][0][0]
+    def _get_predict_function(self, base_x):
         input_shape = base_x.shape
         flattened_base_input = base_x.flatten()
 
@@ -322,9 +387,21 @@ class NeuronAnalyzer:
                 feed_x.append(n_x)
             feed_x = np.asarray(feed_x)
             x_tensor = torch.from_numpy(feed_x)
-            y = self._call_partial_model(x_tensor, layer_k)
-            return y
+            y = self.partial_model(x_tensor.cuda())
+            return y.cpu().detach().numpy()
         return p_func
+
+
+    def get_partial_model(self):
+        mdname = self.model_name.lower()
+        if mdname == 'densenet':
+            _f = self._deal_DenseNet()
+        elif mdname == 'resnet':
+            _f = self._deal_ResNet()
+        elif mdname == 'inception3':
+            _f = self._deal_Inception3()
+
+        return _f
 
 
     def recall_fn(self, future):
@@ -332,32 +409,9 @@ class NeuronAnalyzer:
         self.results.append((idx,data))
 
 
-    def analyse_children_k(self, k, init_x, init_y):
-        self.hook_activate = False
-
-        init_x = init_x.flatten()
-        n = init_x.shape[0]
-        rand_idx_list = RD.permutation(n)
-
-        p_func = self._get_predict_function(k)
-        pred_thrd = PredictingThread(p_func)
-        pipes = self.manager.list([pred_thrd.get_pipe() for _ in range(NUM_WORKERS)])
-
-        pred_thrd.start()
-
-        with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
-            for i in range(NUM_SELECTED_NEURONS):
-                idx = rand_idx_list[i]
-                ix = init_x[idx]
-                iy = init_y
-                ff = executor.submit(process_run, idx, ix, iy, pipes)
-                ff.add_done_callback(self.recall_fn)
-
-        pred_thrd.join()
-        #print(self.results)
-
-
     def analyse(self, dataloader):
+        self.partial_model = self.get_partial_model()
+        self.hook_activate = True
         for step, x in enumerate(dataloader):
             imgs = x[0]
             print(LA.norm(imgs))
@@ -366,14 +420,35 @@ class NeuronAnalyzer:
             y = y_tensor.cpu().detach().numpy()
             break
 
-        layer_k = 7
-        init_x = self.child[layer_k]['inputs'][0][0]
+        self.hook_activate = False
+
+        init_x = self.inputs[0][0]
         init_y = y[0]
-        self.analyse_children_k(layer_k, init_x, init_y)
+
+        flattened_x = init_x.flatten()
+        n = flattened_x.shape[0]
+        rand_idx_list = RD.permutation(n)
+
+        p_func = self._get_predict_function(init_x)
+        pred_thrd = PredictingThread(p_func)
+        pipes = self.manager.list([pred_thrd.get_pipe() for _ in range(NUM_WORKERS)])
+
+        pred_thrd.start()
+
+        with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
+            for i in range(NUM_SELECTED_NEURONS):
+                idx = rand_idx_list[i]
+                ix = flattened_x[idx]
+                iy = init_y
+                ff = executor.submit(process_run, idx, ix, iy, pipes)
+                ff.add_done_callback(self.recall_fn)
+
+        pred_thrd.join()
 
         max_peaks = []
         for z in self.results:
             max_peaks.append(np.max(z[1]))
+
         return max(max_peaks)
 
 
