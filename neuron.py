@@ -11,9 +11,10 @@ import multiprocessing as MP
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
 BATCH_SIZE = 32
-NUM_WORKERS = BATCH_SIZE*1
+NUM_WORKERS = BATCH_SIZE*2
 EPS = 1e-3
 TURNPOINT_TEST_LIMIT=200
+NUM_SELECTED_NEURONS=1000
 
 
 class SingleNeuronAnalyzer:
@@ -345,7 +346,7 @@ class NeuronAnalyzer:
         pred_thrd.start()
 
         with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
-            for i in range(1000):
+            for i in range(NUM_SELECTED_NEURONS):
                 idx = rand_idx_list[i]
                 ix = init_x[idx]
                 iy = init_y
