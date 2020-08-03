@@ -30,15 +30,12 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     for fn in fns:
         # read the image (using skimage)
         img = skimage.io.imread(fn)
-        # convert to BGR (training codebase uses cv2 to load images which uses bgr format)
-        r = img[:, :, 0]
-        g = img[:, :, 1]
-        b = img[:, :, 2]
-        img = np.stack((b, g, r), axis=2)
-
-        # Or use cv2 (opencv) to read the image
-        # img = cv2.imread(fn, cv2.IMREAD_UNCHANGED)
-        # img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
+        
+        # If needed: convert to BGR
+        # r = img[:, :, 0]
+        # g = img[:, :, 1]
+        # b = img[:, :, 2]
+        # img = np.stack((b, g, r), axis=2)
 
         # perform tensor formatting and normalization explicitly
         # convert to CHW dimension ordering
