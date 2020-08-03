@@ -12,8 +12,8 @@ import multiprocessing as MP
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
 BATCH_SIZE = 32
-NUM_WORKERS = BATCH_SIZE*2
-EPS = 1e-3
+NUM_WORKERS = BATCH_SIZE
+EPS = 1e-4
 TURNPOINT_TEST_LIMIT=200
 NUM_SELECTED_NEURONS=1000
 
@@ -27,6 +27,9 @@ class SingleNeuronAnalyzer:
         self.x_list = list()
         self.y_list = list()
 
+        self.turn_x = list()
+        self.turn_y = list()
+
     def _f(self, x):
         self.x_list.append(x)
         self.pipe.send((self.n_idx, x))
@@ -37,11 +40,15 @@ class SingleNeuronAnalyzer:
     def _3p_inline(self, x, y):
         lx = x[1]-x[0]
         rx = x[2]-x[1]
-        m = y[0].shape[0]
+        m = len(y[0])
         for j in range(m):
             ly = y[1][j]-y[0][j]
             ry = y[2][j]-y[1][j]
-            cosa = (lx*ry-rx*ly)/LA.norm([lx,ly])/LA.norm([rx,ry])
+            na = LA.norm([lx,ly])
+            nb = LA.norm([rx,ry])
+            if (na < EPS) or (nb < EPS):
+                continue
+            cosa = (lx*ry-rx*ly)/na/nb
             #print([lx, ly, rx, ry,cosa])
             if abs(cosa) > EPS:
                 return False
@@ -54,23 +61,31 @@ class SingleNeuronAnalyzer:
         lx, ly = l_x, l_y
         rx, ry = r_x, r_y
         while lx+EPS < rx:
-            mx = (lx+rx)/2.0
-            my = self._f(mx)
-            if not self._3p_inline([lx,mx,rx],[ly,my,ry]):
-                rx, ry = mx, my
+            dd = rx-lx;
+            p1_x = lx+dd*1.0/3.0
+            p1_y = self._f(p1_x)
+            p2_x = lx+dd*2.0/3.0
+            p2_y = self._f(p2_x)
+
+
+            if self._3p_inline([lx,p1_x,p2_x],[ly,p1_y,p2_y]):
+                lx, ly = p2_x, p2_y
+            elif self._3p_inline([p1_x,p2_x,rx],[p1_y,p2_y,ry]):
+                rx, ry = p1_x, p1_y
             else:
-                break
+                rx, ry = p2_x, p2_y
         return rx, ry
 
-    def find_upper_bound(self):
-        delta = 1.1
-        lx, ly = self.init_x, self.init_y
-        if lx > EPS:
-            mx, my = lx*delta, self._f(lx*delta)
-        else:
-            mx, my = delta, self._f(delta)
+    def find_bound(self, init_x, init_y, init_delta):
+        scale = 1.1
+        delta = init_delta
+        ix, iy = init_x, init_y
+
+        lx, ly = ix, iy
+        mx, my = lx+delta, self._f(lx+delta)
         while True:
-            rx, ry = mx*delta, self._f(mx*delta)
+            delta *= scale
+            rx, ry = mx+delta, self._f(mx+delta)
             if not self._3p_inline([lx,mx,rx],[ly,my,ry]):
                 lx, ly = mx, my
                 mx, my = rx, ry
@@ -78,45 +93,88 @@ class SingleNeuronAnalyzer:
                 break
         return lx, ly
 
+    def _deal_interval(self, lx, ly, rx, ry):
+        if (rx-lx < 0.1):
+            return
+
+        #print([lx,rx])
+
+        mx = (lx+rx)/2.0
+        my = self._f(mx)
+        if self._3p_inline([lx,mx,rx],[ly,my,ry]):
+            return
+        self._deal_interval(lx,ly,mx,my)
+        self._deal_interval(mx,my,rx,ry)
+
     def search_trunpoints(self):
+        self._deal_interval(self.l_x, self.l_y, self.r_x, self.r_y)
+        return
+
+
         nt_limit = TURNPOINT_TEST_LIMIT
         nt_x = self.l_x
         nt_y = self.l_y
         k_nt = 0
-        rst = [nt_x]
+
+        self.turn_x.append(self.x_list[0])
+        self.turn_y.append(self.y_list[0])
+        self.turn_x.append(nt_x)
+        self.turn_y.append(nt_y)
         while nt_x < self.r_x-EPS:
             nt_x, nt_y = self.find_lowerest_turn(nt_x, nt_y, self.r_x, self.r_y)
-            rst.append(nt_x)
+            self.turn_x.append(nt_x)
+            self.turn_y.append(nt_y)
             k_nt += 1
             if k_nt >= nt_limit:
                 break
         if k_nt >= nt_limit:
-            rst.append(self.r_x)
+            self.turn_x.append(self.r_x)
+            self.turn_y.append(self.r_y)
         #print(rst)
 
     def find_peak(self):
         n = len(self.x_list)
-        m = self.y_list[0].shape[0]
+        m = len(self.y_list[0])
         peak = self.y_list[0].copy()
         idxs = list(range(n))
         sorted_idxs = sorted(idxs, key=lambda z: self.x_list[z])
         #print(sorted_idxs)
-        y_list = self.y_list
+        #turn_y = self.turn_y
+        list_x = self.x_list
+        list_y = self.y_list
         for j in range(m):
-            peak[j] = 0
+            turn_y = list()
             for i in range(1,n-1):
                 a, b, c = sorted_idxs[i-1:i+1+1]
-                ld = y_list[b][j]-y_list[a][j]
-                rd = y_list[b][j]-y_list[c][j]
+                xx = [list_x[a], list_x[b], list_x[c]]
+                yy = [[list_y[a][j]],[list_y[b][j]],[list_y[c][j]]]
+                if self._3p_inline(xx,yy):
+                    continue
+                turn_y.append(list_y[b][j])
+
+            peak[j] = 0
+            nt = len(turn_y)
+
+            #print(nt)
+
+            for i in range(1,nt-1):
+                ld = turn_y[i]-turn_y[i-1]
+                rd = turn_y[i+1]-turn_y[i]
                 if ld > 0 and rd > 0:
                     peak[j] = max(peak[j],max(ld, rd))
 
+        for j in range(m):
+            peak[j] /= abs(self.init_y[j])
+
         self.peak = peak
 
-
     def run(self):
-        self.l_x, self.l_y = self.find_lowerest_turn(0, self._f(0), self.init_x, self.init_y)
-        self.r_x, self.r_y = self.find_upper_bound()
+        self.l_x, self.l_y = self.find_bound(self.init_x, self.init_y, -1000)
+        self.r_x, self.r_y = self.find_bound(self.init_x, self.init_y, 1000)
+
+        #print([self.l_x, self.r_x])
+        #print([self.l_y, self.r_y])
+
         self.search_trunpoints()
         self.find_peak()
         return self.peak
@@ -426,7 +484,7 @@ class NeuronAnalyzer:
         init_y = y[0]
 
         flattened_x = init_x.flatten()
-        n = flattened_x.shape[0]
+        n = len(flattened_x)
         rand_idx_list = RD.permutation(n)
 
         p_func = self._get_predict_function(init_x)
