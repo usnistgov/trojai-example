@@ -19,8 +19,9 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     print('result_filepath = {}'.format(result_filepath))
     print('scratch_dirpath = {}'.format(scratch_dirpath))
     print('examples_dirpath = {}'.format(examples_dirpath))
-    
-    model = torch.load(model_filepath)
+
+    # load the model and move it to the GPU
+    model = torch.load(model_filepath).cuda()
 
     # Inference the example images in data
     fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith(example_img_format)]
@@ -30,7 +31,13 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     for fn in fns:
         # read the image (using skimage)
         img = skimage.io.imread(fn)
-        
+
+        # perform center crop to what the CNN is expecting 224x224
+        h, w, c = img.shape
+        dx = int((w - 224) / 2)
+        dy = int((w - 224) / 2)
+        img = img[dy:dy+224, dx:dx+224, :]
+
         # If needed: convert to BGR
         # r = img[:, :, 0]
         # g = img[:, :, 1]
@@ -47,13 +54,6 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
         img = img / np.max(img)
         # convert image to a gpu tensor
         batch_data = torch.FloatTensor(img)
-
-        # or use pytorch transform
-        # import torchvision
-        # my_xforms = torchvision.transforms.Compose([
-        #     torchvision.transforms.ToPILImage(),
-        #     torchvision.transforms.ToTensor()])  # ToTensor performs min-max normalization
-        # batch_data = my_xforms.__call__(img)
 
         # move tensor to the gpu
         batch_data = batch_data.cuda()
