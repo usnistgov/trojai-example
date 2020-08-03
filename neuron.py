@@ -15,7 +15,7 @@ BATCH_SIZE = 32
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-4
 TURNPOINT_TEST_LIMIT=200
-NUM_SELECTED_NEURONS=1000
+NUM_SELECTED_NEURONS=25000
 
 
 class SingleNeuronAnalyzer:
@@ -110,7 +110,6 @@ class SingleNeuronAnalyzer:
         self._deal_interval(self.l_x, self.l_y, self.r_x, self.r_y)
         return
 
-
         nt_limit = TURNPOINT_TEST_LIMIT
         nt_x = self.l_x
         nt_y = self.l_y
@@ -155,7 +154,7 @@ class SingleNeuronAnalyzer:
             peak[j] = 0
             nt = len(turn_y)
 
-            #print(nt)
+            print(nt)
 
             for i in range(1,nt-1):
                 ld = turn_y[i]-turn_y[i-1]
@@ -248,6 +247,8 @@ class NeuronAnalyzer:
         mds = list(self.model.modules())
         self.model_name = type(mds[0]).__name__
         print(self.model_name)
+
+        self.num_selected_neurons = NUM_SELECTED_NEURONS
 
         '''
         self.childrens = list(model.children())
@@ -367,24 +368,34 @@ class NeuronAnalyzer:
                                      torch.nn.AdaptiveAvgPool2d((1,1)),
                                      torch.nn.Flatten(1),
                                      childs[-1])
-
+        self.num_selected_neurons = int(self.num_selected_neurons*1.0)
         return _model
 
 
     def _deal_ResNet(self):
         childs = list(self.model.children())
-        md = childs[-3]
+        main_ch = childs[-3]
+        _childs = list(main_ch.children())
+        md = _childs[-1]
 
         self.inputs = list()
         self.outputs = list()
         md.register_forward_hook(self.get_hook())
+        _model = torch.nn.Sequential(md,
+                                     childs[-2],
+                                     torch.nn.Flatten(1),
+                                     childs[-1])
+        self.num_selected_neurons = int(self.num_selected_neurons*0.1)
+        return _model
 
+        '''
+        md = childs[-3]
         _model = torch.nn.Sequential(childs[-3],
                                      childs[-2],
                                      torch.nn.Flatten(1),
                                      childs[-1])
-
         return _model
+        '''
 
     def _deal_Inception3(self):
         childs = list(self.model.children())
@@ -394,13 +405,11 @@ class NeuronAnalyzer:
         self.outputs = list()
         md.register_forward_hook(self.get_hook())
 
-        print(childs[-1])
-
         _model = torch.nn.Sequential(childs[-2],
                                      torch.nn.AdaptiveAvgPool2d((1,1)),
                                      torch.nn.Flatten(1),
                                      childs[-1])
-
+        self.num_selected_neurons = int(self.num_selected_neurons*0.1)
         return _model
 
     '''
@@ -483,6 +492,8 @@ class NeuronAnalyzer:
         init_x = self.inputs[0][0]
         init_y = y[0]
 
+        print(init_x.shape)
+
         flattened_x = init_x.flatten()
         n = len(flattened_x)
         rand_idx_list = RD.permutation(n)
@@ -494,7 +505,7 @@ class NeuronAnalyzer:
         pred_thrd.start()
 
         with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
-            for i in range(NUM_SELECTED_NEURONS):
+            for i in range(min(self.num_selected_neurons,n)):
                 idx = rand_idx_list[i]
                 ix = flattened_x[idx]
                 iy = init_y
