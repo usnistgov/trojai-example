@@ -21,7 +21,7 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     print('examples_dirpath = {}'.format(examples_dirpath))
 
     # load the model and move it to the GPU
-    model = torch.load(model_filepath).cuda()
+    model = torch.load(model_filepath, map_location=torch.device('cuda'))
 
     # Inference the example images in data
     fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith(example_img_format)]
