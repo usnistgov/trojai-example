@@ -50,6 +50,9 @@ def draw_roc(out_dir, model_dir):
   print(sum(lb_list))
 
   tpr, fpr, thr = roc_curve(lb_list,sc_list)
+  print(fpr)
+  print(tpr)
+  print(thr)
   print(auc(fpr,tpr))
   plt.figure()
   plt.plot(fpr,tpr)

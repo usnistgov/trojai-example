@@ -15,11 +15,13 @@ BATCH_SIZE = 32
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-4
 TURNPOINT_TEST_LIMIT=200
-NUM_SELECTED_NEURONS=25000
+NUM_SELECTED_NEURONS=10000
 
 
 class SingleNeuronAnalyzer:
     def __init__(self, n_idx, init_x, init_y, pipe):
+        self.out_fn = 'logs/log_neuron_'+str(n_idx)+'.txt'
+
         self.n_idx = n_idx
         self.init_x = init_x
         self.init_y = init_y
@@ -48,9 +50,12 @@ class SingleNeuronAnalyzer:
             nb = LA.norm([rx,ry])
             if (na < EPS) or (nb < EPS):
                 continue
-            cosa = (lx*ry-rx*ly)/na/nb
+            #cosa = (lx*rx+ly*ry)/na/nb
             #print([lx, ly, rx, ry,cosa])
-            if abs(cosa) > EPS:
+            #if abs(cosa) < 1-EPS:
+            #    return False
+            sina = (lx*ry-rx*ly)/na/nb
+            if abs(sina) > EPS:
                 return False
         return True
 
@@ -80,18 +85,39 @@ class SingleNeuronAnalyzer:
         scale = 1.1
         delta = init_delta
         ix, iy = init_x, init_y
+        ok = False
 
-        lx, ly = ix, iy
-        mx, my = lx+delta, self._f(lx+delta)
-        while True:
-            delta *= scale
-            rx, ry = mx+delta, self._f(mx+delta)
-            if not self._3p_inline([lx,mx,rx],[ly,my,ry]):
-                lx, ly = mx, my
-                mx, my = rx, ry
-            else:
-                break
-        return lx, ly
+        while not ok:
+            lx, ly = ix, iy
+            mx, my = lx+delta, self._f(lx+delta)
+            while True:
+                delta *= scale
+                rx, ry = mx+delta, self._f(mx+delta)
+                if not self._3p_inline([lx,mx,rx],[ly,my,ry]):
+                    lx, ly = mx, my
+                    mx, my = rx, ry
+                else:
+                    break
+
+            zx, zy = rx, ry
+            ck_list_x = [mx,rx]
+            ck_list_y = [my,ry]
+            for i in range(5):
+                delta *= scale
+                zx, zy = zx+delta, self._f(zx+delta)
+                ck_list_x.append(zx)
+                ck_list_y.append(zy)
+            ok = True
+            for i in range(1,6):
+                if not self._3p_inline(ck_list_x[i-1:i+1+1], ck_list_y[i-1:i+1+1]):
+                    ok = False
+                    break
+
+            ix, iy = lx, ly
+            delta = init_delta
+
+
+        return ix, iy
 
     def _deal_interval(self, lx, ly, rx, ry):
         if (rx-lx < 0.1):
@@ -143,6 +169,7 @@ class SingleNeuronAnalyzer:
         list_y = self.y_list
         for j in range(m):
             turn_y = list()
+            turn_x = list()
             for i in range(1,n-1):
                 a, b, c = sorted_idxs[i-1:i+1+1]
                 xx = [list_x[a], list_x[b], list_x[c]]
@@ -150,6 +177,7 @@ class SingleNeuronAnalyzer:
                 if self._3p_inline(xx,yy):
                     continue
                 turn_y.append(list_y[b][j])
+                turn_x.append(list_y[b])
 
             peak[j] = 0
             nt = len(turn_y)
@@ -167,6 +195,23 @@ class SingleNeuronAnalyzer:
 
         self.peak = peak
 
+
+    def output(self):
+        n = len(self.x_list)
+        m = len(self.y_list[0])
+        idxs = list(range(n))
+        sorted_idxs = sorted(idxs, key=lambda z: self.x_list[z])
+        with open(self.out_fn,'w') as f:
+            f.write('{} {}\n'.format(n,m))
+            for idx in sorted_idxs:
+                out_tmp = list()
+                out_tmp.append(self.x_list[idx])
+                for y in self.y_list[idx]:
+                    out_tmp.append(y)
+                f.write(' '.join([str(z) for z in out_tmp])+'\n')
+
+
+
     def run(self):
         self.l_x, self.l_y = self.find_bound(self.init_x, self.init_y, -1000)
         self.r_x, self.r_y = self.find_bound(self.init_x, self.init_y, 1000)
@@ -175,6 +220,7 @@ class SingleNeuronAnalyzer:
         #print([self.l_y, self.r_y])
 
         self.search_trunpoints()
+        self.output()
         self.find_peak()
         return self.peak
 
