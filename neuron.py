@@ -5,6 +5,7 @@ import torch
 import torch.nn.functional as F
 import threading, queue
 import time
+import numpy as np
 
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing as MP
@@ -13,14 +14,13 @@ import multiprocessing as MP
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
 BATCH_SIZE = 32
 NUM_WORKERS = BATCH_SIZE
-EPS = 1e-4
+EPS = 1e-3
 TURNPOINT_TEST_LIMIT=200
-NUM_SELECTED_NEURONS=10000
+NUM_SELECTED_NEURONS=1000
 
 
 class SingleNeuronAnalyzer:
     def __init__(self, n_idx, init_x, init_y, pipe):
-        self.out_fn = 'logs/log_neuron_'+str(n_idx)+'.txt'
 
         self.n_idx = n_idx
         self.init_x = init_x
@@ -111,13 +111,11 @@ class SingleNeuronAnalyzer:
             for i in range(1,6):
                 if not self._3p_inline(ck_list_x[i-1:i+1+1], ck_list_y[i-1:i+1+1]):
                     ok = False
+                    ix, iy = ck_list_x[i], ck_list_y[i]
+                    delta = init_delta
                     break
 
-            ix, iy = lx, ly
-            delta = init_delta
-
-
-        return ix, iy
+        return ck_list_x[0], ck_list_y[0]
 
     def _deal_interval(self, lx, ly, rx, ry):
         if (rx-lx < 0.1):
@@ -182,7 +180,7 @@ class SingleNeuronAnalyzer:
             peak[j] = 0
             nt = len(turn_y)
 
-            print(nt)
+            #print(nt)
 
             for i in range(1,nt-1):
                 ld = turn_y[i]-turn_y[i-1]
@@ -196,22 +194,6 @@ class SingleNeuronAnalyzer:
         self.peak = peak
 
 
-    def output(self):
-        n = len(self.x_list)
-        m = len(self.y_list[0])
-        idxs = list(range(n))
-        sorted_idxs = sorted(idxs, key=lambda z: self.x_list[z])
-        with open(self.out_fn,'w') as f:
-            f.write('{} {}\n'.format(n,m))
-            for idx in sorted_idxs:
-                out_tmp = list()
-                out_tmp.append(self.x_list[idx])
-                for y in self.y_list[idx]:
-                    out_tmp.append(y)
-                f.write(' '.join([str(z) for z in out_tmp])+'\n')
-
-
-
     def run(self):
         self.l_x, self.l_y = self.find_bound(self.init_x, self.init_y, -1000)
         self.r_x, self.r_y = self.find_bound(self.init_x, self.init_y, 1000)
@@ -220,7 +202,6 @@ class SingleNeuronAnalyzer:
         #print([self.l_y, self.r_y])
 
         self.search_trunpoints()
-        self.output()
         self.find_peak()
         return self.peak
 
@@ -344,6 +325,8 @@ class NeuronAnalyzer:
         '''
         self.results = list()
         self.manager = MP.Manager()
+
+        self.output_queue = queue.Queue()
 
 
     def _build_dict(self):
@@ -517,9 +500,54 @@ class NeuronAnalyzer:
         return _f
 
 
+    def add_to_output_queue(self, out_fn, x_list, y_list):
+        n = len(x_list)
+        m = len(y_list[0])
+        idxs = list(range(n))
+        sorted_idxs = sorted(idxs, key=lambda z: x_list[z])
+
+        tt_list = list()
+        for idx in sorted_idxs:
+            out_tmp = list()
+            out_tmp.append(x_list[idx])
+            for y in y_list[idx]:
+                out_tmp.append(y)
+            tt_list.append(out_tmp)
+
+        self.output_queue.put((out_fn, np.asarray(tt_list)))
+
+
+    def output_func(self):
+        while self.output_run:
+            try:
+                fn, data = self.output_queue.get(timeout=0.1)
+                with open(fn,'wb') as f:
+                    np.save(f,data)
+            except queue.Empty:
+                continue
+
+
+    def start_output_thread(self):
+        self.output_run = True
+        self._t_output = threading.Thread(target=self.output_func, name='output_thread')
+        self._t_output.start()
+        print('haha')
+
+
+    def stop_output_thread(self):
+        self.output_run = False
+        self._t_output.join()
+        print('lala')
+
+
     def recall_fn(self, future):
-        idx, data = future.result()
+        #idx, data = future.result()
+        idx, data, x_list, y_list = future.result()
         self.results.append((idx,data))
+        out_fn = 'logs/log_neuron_'+str(idx)+'.npy'
+        self.done_ct += 1
+        #print(self.done_ct)
+        self.add_to_output_queue(out_fn, x_list, y_list)
 
 
     def analyse(self, dataloader):
@@ -550,6 +578,9 @@ class NeuronAnalyzer:
 
         pred_thrd.start()
 
+        self.start_output_thread()
+
+        self.done_ct = 0
         with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
             for i in range(min(self.num_selected_neurons,n)):
                 idx = rand_idx_list[i]
@@ -558,7 +589,10 @@ class NeuronAnalyzer:
                 ff = executor.submit(process_run, idx, ix, iy, pipes)
                 ff.add_done_callback(self.recall_fn)
 
+        print('aaaaaaaa')
         pred_thrd.join()
+        print('bbbb')
+        self.stop_output_thread()
 
         max_peaks = []
         for z in self.results:
@@ -572,4 +606,5 @@ def process_run(idx, init_x, init_y, pipes):
     sna = SingleNeuronAnalyzer(idx, init_x, init_y, pipe)
     sna.run()
     pipes.append(pipe)
-    return (idx, sna.peak)
+    #return (idx, sna.peak)
+    return (idx, sna.peak, sna.x_list, sna.y_list)
