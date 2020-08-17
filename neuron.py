@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import threading, queue
 import time
 import numpy as np
+from scipy.special import softmax
 
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing as MP
@@ -16,15 +17,15 @@ BATCH_SIZE = 32
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
 TURNPOINT_TEST_LIMIT=200
-NUM_SELECTED_NEURONS=1000
+NUM_SELECTED_NEURONS=100
 
 
 class SingleNeuronAnalyzer:
     def __init__(self, n_idx, init_x, init_y, pipe):
-
         self.n_idx = n_idx
         self.init_x = init_x
         self.init_y = init_y
+        #self.init_y = softmax(self.init_y)
         self.pipe = pipe
         self.x_list = list()
         self.y_list = list()
@@ -36,6 +37,7 @@ class SingleNeuronAnalyzer:
         self.x_list.append(x)
         self.pipe.send((self.n_idx, x))
         y = self.pipe.recv()
+        #y = softmax(y)
         self.y_list.append(y)
         return y
 
@@ -46,6 +48,7 @@ class SingleNeuronAnalyzer:
         for j in range(m):
             ly = y[1][j]-y[0][j]
             ry = y[2][j]-y[1][j]
+            #'''
             na = LA.norm([lx,ly])
             nb = LA.norm([rx,ry])
             if (na < EPS) or (nb < EPS):
@@ -57,7 +60,11 @@ class SingleNeuronAnalyzer:
             sina = (lx*ry-rx*ly)/na/nb
             if abs(sina) > EPS:
                 return False
+            #'''
+            #if abs(lx/(lx+rx)*(ly+ry)-ly) > min(EPS*abs(y[0][j]), 1):
+            #    return False
         return True
+
 
     def find_lowerest_turn(self, l_x, l_y, r_x, r_y):
         if r_x < l_x+EPS:
@@ -81,6 +88,7 @@ class SingleNeuronAnalyzer:
                 rx, ry = p2_x, p2_y
         return rx, ry
 
+
     def find_bound(self, init_x, init_y, init_delta):
         scale = 1.1
         delta = init_delta
@@ -93,6 +101,8 @@ class SingleNeuronAnalyzer:
             while True:
                 delta *= scale
                 rx, ry = mx+delta, self._f(mx+delta)
+                if (abs(mx) > 1e8):
+                    break
                 if not self._3p_inline([lx,mx,rx],[ly,my,ry]):
                     lx, ly = mx, my
                     mx, my = rx, ry
@@ -102,6 +112,8 @@ class SingleNeuronAnalyzer:
             zx, zy = rx, ry
             ck_list_x = [mx,rx]
             ck_list_y = [my,ry]
+            if (abs(mx) > 1e8):
+                break
             for i in range(5):
                 delta *= scale
                 zx, zy = zx+delta, self._f(zx+delta)
@@ -117,11 +129,10 @@ class SingleNeuronAnalyzer:
 
         return ck_list_x[0], ck_list_y[0]
 
+
     def _deal_interval(self, lx, ly, rx, ry):
         if (rx-lx < 0.1):
             return
-
-        #print([lx,rx])
 
         mx = (lx+rx)/2.0
         my = self._f(mx)
@@ -130,66 +141,58 @@ class SingleNeuronAnalyzer:
         self._deal_interval(lx,ly,mx,my)
         self._deal_interval(mx,my,rx,ry)
 
+
     def search_trunpoints(self):
-        self._deal_interval(self.l_x, self.l_y, self.r_x, self.r_y)
-        return
+        #self._deal_interval(self.l_x, self.l_y, self.r_x, self.r_y)
+        #return
 
-        nt_limit = TURNPOINT_TEST_LIMIT
-        nt_x = self.l_x
-        nt_y = self.l_y
-        k_nt = 0
+        n = len(self.x_list)
+        idxs = list(range(n))
+        idxs = sorted(idxs, key=lambda z: self.x_list[z])
+        int_list = list()
+        for i in range(1,n-1):
+            a, b, c = idxs[i-1], idxs[i], idxs[i+1]
+            xx = [self.x_list[a], self.x_list[b], self.x_list[c]]
+            yy = [self.y_list[a], self.y_list[b], self.y_list[c]]
+            if self._3p_inline(xx,yy):
+                continue
+            int_list.append((xx[0],xx[1],yy[0],yy[1]))
+            int_list.append((xx[1],xx[2],yy[1],yy[2]))
 
-        self.turn_x.append(self.x_list[0])
-        self.turn_y.append(self.y_list[0])
-        self.turn_x.append(nt_x)
-        self.turn_y.append(nt_y)
-        while nt_x < self.r_x-EPS:
-            nt_x, nt_y = self.find_lowerest_turn(nt_x, nt_y, self.r_x, self.r_y)
-            self.turn_x.append(nt_x)
-            self.turn_y.append(nt_y)
-            k_nt += 1
-            if k_nt >= nt_limit:
+
+        while len(self.x_list) < 10000:
+            new_int = list()
+            for x1,x2,y1,y2 in int_list:
+                if (x2-x1 < 0.1):
+                    continue
+                mx = (x1+x2)/2.0
+                my = self._f(mx)
+                if self._3p_inline([x1,mx,x2],[y1,my,y2]):
+                    continue
+                new_int.append((x1,mx,y1,my))
+                new_int.append((mx,x2,my,y2))
+            if len(new_int) == 0:
                 break
-        if k_nt >= nt_limit:
-            self.turn_x.append(self.r_x)
-            self.turn_y.append(self.r_y)
-        #print(rst)
+            int_list = new_int
+        #print(len(self.x_list))
+
 
     def find_peak(self):
         n = len(self.x_list)
         m = len(self.y_list[0])
-        peak = self.y_list[0].copy()
-        idxs = list(range(n))
-        sorted_idxs = sorted(idxs, key=lambda z: self.x_list[z])
-        #print(sorted_idxs)
-        #turn_y = self.turn_y
-        list_x = self.x_list
-        list_y = self.y_list
-        for j in range(m):
-            turn_y = list()
-            turn_x = list()
-            for i in range(1,n-1):
-                a, b, c = sorted_idxs[i-1:i+1+1]
-                xx = [list_x[a], list_x[b], list_x[c]]
-                yy = [[list_y[a][j]],[list_y[b][j]],[list_y[c][j]]]
-                if self._3p_inline(xx,yy):
-                    continue
-                turn_y.append(list_y[b][j])
-                turn_x.append(list_y[b])
 
-            peak[j] = 0
-            nt = len(turn_y)
-
-            #print(nt)
-
-            for i in range(1,nt-1):
-                ld = turn_y[i]-turn_y[i-1]
-                rd = turn_y[i+1]-turn_y[i]
-                if ld > 0 and rd > 0:
-                    peak[j] = max(peak[j],max(ld, rd))
+        init_y = softmax(self.init_y)
+        peak = np.zeros_like(self.y_list[0])
+        for z in self.y_list:
+            sz = softmax(z)
+            for j in range(m):
+                peak[j] = max(peak[j], sz[j])
 
         for j in range(m):
-            peak[j] /= abs(self.init_y[j])
+            peak[j] = (peak[j]-init_y[j])
+
+        init_lb = np.argmax(init_y)
+        peak[init_lb] = 0
 
         self.peak = peak
 
@@ -198,7 +201,7 @@ class SingleNeuronAnalyzer:
         self.l_x, self.l_y = self.find_bound(self.init_x, self.init_y, -1000)
         self.r_x, self.r_y = self.find_bound(self.init_x, self.init_y, 1000)
 
-        #print([self.l_x, self.r_x])
+        print([self.l_x, self.r_x])
         #print([self.l_y, self.r_y])
 
         self.search_trunpoints()
@@ -403,41 +406,41 @@ class NeuronAnalyzer:
 
     def _deal_ResNet(self):
         childs = list(self.model.children())
-        main_ch = childs[-3]
-        _childs = list(main_ch.children())
-        md = _childs[-1]
 
+        md = childs[4]
         self.inputs = list()
         self.outputs = list()
         md.register_forward_hook(self.get_hook())
-        _model = torch.nn.Sequential(md,
-                                     childs[-2],
-                                     torch.nn.Flatten(1),
-                                     childs[-1])
+
+        md_list = list()
+        for i in range(4,len(childs)-1):
+            md_list.append(childs[i])
+        md_list.append(torch.nn.Flatten(1))
+        md_list.append(childs[-1])
+
+        _model = torch.nn.Sequential(*md_list)
         self.num_selected_neurons = int(self.num_selected_neurons*0.1)
         return _model
 
-        '''
-        md = childs[-3]
-        _model = torch.nn.Sequential(childs[-3],
-                                     childs[-2],
-                                     torch.nn.Flatten(1),
-                                     childs[-1])
-        return _model
-        '''
 
     def _deal_Inception3(self):
         childs = list(self.model.children())
-        md = childs[-2]
 
+        #md = childs[-2]
+        md = childs[5]
         self.inputs = list()
         self.outputs = list()
         md.register_forward_hook(self.get_hook())
 
-        _model = torch.nn.Sequential(childs[-2],
-                                     torch.nn.AdaptiveAvgPool2d((1,1)),
-                                     torch.nn.Flatten(1),
-                                     childs[-1])
+        md_list = list()
+        #for i in range(len(childs)-2,len(childs)-1):
+        for i in range(5,len(childs)-1):
+            md_list.append(childs[i])
+        md_list.append(torch.nn.AdaptiveAvgPool2d((1,1)))
+        md_list.append(torch.nn.Flatten(1))
+        md_list.append(childs[-1])
+
+        _model = torch.nn.Sequential(*md_list)
         self.num_selected_neurons = int(self.num_selected_neurons*0.1)
         return _model
 
@@ -531,13 +534,11 @@ class NeuronAnalyzer:
         self.output_run = True
         self._t_output = threading.Thread(target=self.output_func, name='output_thread')
         self._t_output.start()
-        print('haha')
 
 
     def stop_output_thread(self):
         self.output_run = False
         self._t_output.join()
-        print('lala')
 
 
     def recall_fn(self, future):
@@ -566,6 +567,7 @@ class NeuronAnalyzer:
         init_x = self.inputs[0][0]
         init_y = y[0]
 
+        print(init_y)
         print(init_x.shape)
 
         flattened_x = init_x.flatten()
@@ -573,6 +575,11 @@ class NeuronAnalyzer:
         rand_idx_list = RD.permutation(n)
 
         p_func = self._get_predict_function(init_x)
+
+        #print(p_func([(0,init_x[0][0][0])]))
+        #print(init_y)
+        #exit(0)
+
         pred_thrd = PredictingThread(p_func)
         pipes = self.manager.list([pred_thrd.get_pipe() for _ in range(NUM_WORKERS)])
 
@@ -589,16 +596,25 @@ class NeuronAnalyzer:
                 ff = executor.submit(process_run, idx, ix, iy, pipes)
                 ff.add_done_callback(self.recall_fn)
 
-        print('aaaaaaaa')
         pred_thrd.join()
-        print('bbbb')
         self.stop_output_thread()
 
-        max_peaks = []
-        for z in self.results:
-            max_peaks.append(np.max(z[1]))
+        mxid, mxvl = -1, -1
+        for k,z in enumerate(self.results):
+            k1 = np.argmax(z[1])
+            vk1 = z[1][k1]
+            z[1][k1] = 0
+            k2 = np.argmax(z[1])
+            vk2 = z[1][k2]
+            z[1][k1] = vk1
+            if (vk1-vk2 > mxvl):
+                mxvl = vk1-vk2
+                mxid = k
+                print(z)
+                print(mxvl)
 
-        return max(max_peaks)
+        print(self.results[mxid][0])
+        return mxvl
 
 
 def process_run(idx, init_x, init_y, pipes):
