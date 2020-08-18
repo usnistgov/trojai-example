@@ -289,7 +289,7 @@ class NeuronAnalyzer:
             md.register_forward_hook(self.get_children_hook(k))
         '''
 
-        '''
+        #'''
         self.data = dict()
         for tp in CONSIDER_LAYER_TYPE:
             self.data[tp] = self._build_dict()
@@ -301,17 +301,8 @@ class NeuronAnalyzer:
             if k==0:
                 self.model_name = mdname
                 print(mdname)
-                break
             if mdname == 'Conv2d':
-                ntmd = mds[k+1]
-                ntname = type(ntmd).__name__
-                if ntname != 'BatchNorm2d':
-                    continue
-                if md.out_channels != ntmd.num_features:
-                    continue
-                md.register_forward_hook(self.get_hook(mdname, n_conv, is_BN=False))
-                ntmd.register_forward_hook(self.get_hook(ntname, n_conv, is_BN=True))
-                last_conv_k = k
+                md.register_forward_hook(self.get_hook_record(mdname, n_conv))
                 n_conv += 1
                 self.data[mdname]['n'] += 1
                 self.data[mdname]['inputs'].append([])
@@ -322,10 +313,7 @@ class NeuronAnalyzer:
                     w_list.append(w.cpu().detach().numpy())
                 self.data[mdname]['weights'].append(w_list)
 
-                #print(self.data[mdname]['modules'][-1])
-                #print(self.data[mdname]['weights'][-1][0].shape)
-                #exit(0)
-        '''
+        #'''
         self.results = list()
         self.manager = MP.Manager()
 
@@ -355,8 +343,8 @@ class NeuronAnalyzer:
         return hook
 
 
-    '''
-    def get_hook(self, mdname, idx, is_BN=False):
+    #'''
+    def get_hook_record(self, mdname, idx):
         def hook(model, input, output):
             if not self.hook_activate:
                 return
@@ -364,12 +352,10 @@ class NeuronAnalyzer:
                 input = input[0]
             if type(output) is tuple:
                 output = output[0]
-            if not is_BN:
-                self.data['Conv2d']['inputs'][idx].append(input.cpu().detach().numpy())
-            else:
-                self.data['Conv2d']['outputs'][idx].append(output.cpu().detach().numpy())
+            self.data['Conv2d']['inputs'][idx].append(input.cpu().detach().numpy())
+            self.data['Conv2d']['outputs'][idx].append(output.cpu().detach().numpy())
         return hook
-    '''
+    #'''
 
 
     '''
@@ -383,6 +369,7 @@ class NeuronAnalyzer:
 
         return x.cpu().detach().numpy()
     '''
+
 
     def _deal_DenseNet(self):
         childs = list(self.model.children())
@@ -560,7 +547,19 @@ class NeuronAnalyzer:
             print(imgs.shape)
             y_tensor = self.model(imgs.cuda())
             y = y_tensor.cpu().detach().numpy()
-            break
+            print(step)
+
+        k = 0
+        for w,o in zip(self.data['weights'], self.data['outputs']):
+            w = w[0]
+            o = np.asarray(o)
+            fn = 'conv{}_'.format(k)
+            np.save('output/'+fn+'weights.npy', w)
+            np.save('output/'+fn+'outputs.npy', o)
+            k += 1
+
+
+        exit(0)
 
         self.hook_activate = False
 
