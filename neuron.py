@@ -550,9 +550,9 @@ class NeuronAnalyzer:
             print(step)
 
         k = 0
-        for w,o in zip(self.data['weights'], self.data['outputs']):
+        for w,o in zip(self.data['Conv2d']['weights'], self.data['Conv2d']['outputs']):
             w = w[0]
-            o = np.asarray(o)
+            o = np.concatenate(o)
             fn = 'conv{}_'.format(k)
             np.save('output/'+fn+'weights.npy', w)
             np.save('output/'+fn+'outputs.npy', o)
