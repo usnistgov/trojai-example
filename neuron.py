@@ -13,11 +13,11 @@ import multiprocessing as MP
 
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
-BATCH_SIZE = 2
+BATCH_SIZE = 64
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
 TURNPOINT_TEST_LIMIT=200
-NUM_SELECTED_NEURONS=10
+NUM_SELECTED_NEURONS=1000
 
 
 
@@ -420,7 +420,6 @@ class NeuronAnalyzer:
         return hook
     '''
 
-
     '''
     def _call_partial_model(self, x_tensor, from_k):
         x = x_tensor.cuda()
@@ -432,46 +431,6 @@ class NeuronAnalyzer:
 
         return x.cpu().detach().numpy()
     '''
-
-
-    def _deal_DenseNet(self):
-        childs = list(self.model.children())
-        main_ch = childs[0]
-        _childs = list(main_ch.children())
-        md = _childs[-2]
-
-        self.inputs = list()
-        self.outputs = list()
-        md.register_forward_hook(self.get_hook())
-
-        _model = torch.nn.Sequential(_childs[-2],
-                                     _childs[-1],
-                                     torch.nn.ReLU(inplace=True),
-                                     torch.nn.AdaptiveAvgPool2d((1,1)),
-                                     torch.nn.Flatten(1),
-                                     childs[-1])
-        self.num_selected_neurons = int(self.num_selected_neurons*1.0)
-        return _model
-
-
-    def _deal_ResNet(self):
-        childs = list(self.model.children())
-
-        md = childs[4]
-        self.inputs = list()
-        self.outputs = list()
-        md.register_forward_hook(self.get_hook())
-
-        md_list = list()
-        for i in range(4,len(childs)-1):
-            md_list.append(childs[i])
-        md_list.append(torch.nn.Flatten(1))
-        md_list.append(childs[-1])
-
-        _model = torch.nn.Sequential(*md_list)
-        self.num_selected_neurons = int(self.num_selected_neurons*0.1)
-        return _model
-
 
     def _init_general(self):
         childs = list(self.model.children())
@@ -580,8 +539,8 @@ class NeuronAnalyzer:
         self.inputs = list()
         self.outputs = list()
         for i in range(n_child):
-            print(i)
-            print(type(childs[i]).__name__)
+            #print(i)
+            #print(type(childs[i]).__name__)
             self.inputs.append([])
             self.outputs.append([])
 
@@ -809,7 +768,7 @@ class NeuronAnalyzer:
     def analyse(self, dataloader):
         self.get_init_values(dataloader)
 
-        #'''
+        '''
         candi_list = list()
         for k, func, param in self.partial_model_params:
             self.partial_model = func(*param)
@@ -841,7 +800,7 @@ class NeuronAnalyzer:
                             candi_list.append((k,i1,i2,i3))
             print(candi_list)
         exit(0)
-        #'''
+        '''
 
         '''
         k = 0
@@ -884,10 +843,8 @@ class NeuronAnalyzer:
                     iy = init_y
                     ff = executor.submit(process_run, k, idx, ix, iy, pipes, self.n_classes)
                     ff.add_done_callback(self.recall_fn)
-                    break
 
             pred_thrd.join()
-            exit(0)
         #self.stop_output_thread()
 
         mxid, mxvl = -1, -1

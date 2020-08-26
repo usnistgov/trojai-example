@@ -56,8 +56,9 @@ if __name__ == '__main__':
     rst = read_gt('/home/tdteach/data/trojai-round0-dataset/round0_train_gt.txt')
     nrst = dict()
     for key in rst:
-      if 'densenet' in rst[key][1]:
-        nrst[key] = rst[key]
+      nrst[key] = rst[key]
+      #if 'resnet' in rst[key][1]:
+      #  nrst[key] = rst[key]
     draw_roc('output', nrst)
 
 
