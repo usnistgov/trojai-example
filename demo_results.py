@@ -2,10 +2,20 @@ import os
 import numpy as np
 from utils import mad_detection
 
+def read_gt(filepath):
+  rst = dict()
+  with open(filepath,'r') as f:
+    for l in f:
+      sl = l.split()
+      if len(sl) == 3:
+        rst[sl[0]] = (sl[1],sl[2])
+  return rst
 
-def draw_roc(out_dir, model_dir):
+
+def draw_roc(out_dir, gt_dict):
   lb_list = []
   sc_list = []
+
 
   files = os.listdir(out_dir)
   for fn in files:
@@ -13,32 +23,16 @@ def draw_roc(out_dir, model_dir):
       continue
 
     na = fn.split('.')[0]
-    csv_fn = os.path.join(model_dir,na,'ground_truth.csv')
-    with open(csv_fn,'r') as f:
-      true_lb = int(f.readline())
+    if na not in gt_dict:
+      continue
+
+    if gt_dict[na][0].lower() == 'true':
+      true_lb = 1
+    else:
+      true_lb = 0
 
     raw_list = np.load(os.path.join(out_dir,fn))
-
     score = np.min(raw_list)
-
-    '''
-    #original nc
-    l1_norm_list = raw_list[0]
-    crosp_lb = list(range(5))
-    min_idx, a_idx = mad_detection(l1_norm_list, [0,1,2,3,4])
-    '''
-    '''
-    # NN nc
-    l1_norm_list = []
-    crosp_lb = []
-    for sc in range(5):
-      for tg in range(5):
-        if sc == tg:
-          continue
-        l1_norm_list.append(raw_list[sc][tg])
-        crosp_lb.append('%d-%d'%(sc,tg))
-    min_idx, a_idx = mad_detection(l1_norm_list, crosp_lb)
-    '''
 
     lb_list.append(true_lb)
     sc_list.append(score)
@@ -59,7 +53,12 @@ def draw_roc(out_dir, model_dir):
   plt.show()
 
 if __name__ == '__main__':
-    draw_roc('output', '/home/tdteach/data/trojai-round0-dataset')
+    rst = read_gt('/home/tdteach/data/trojai-round0-dataset/round0_train_gt.txt')
+    nrst = dict()
+    for key in rst:
+      if 'densenet' in rst[key][1]:
+        nrst[key] = rst[key]
+    draw_roc('output', nrst)
 
 
 

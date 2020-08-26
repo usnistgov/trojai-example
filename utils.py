@@ -24,16 +24,16 @@ def read_example_images(examples_dirpath, example_img_format='png'):
       #img = np.expand_dims(img,0) # to NCHW
 
       # normalize to [0,1]
-      #img = img - np.min(img)
-      #img = img / np.max(img)
+      img = img - np.min(img)
+      img = img / np.max(img)
 
       cat_imgs[key].append(img)
 
 
   cat_batch = {}
   for key in cat_imgs:
-    cat_batch[key] = np.asarray(cat_imgs[key], dtype=np.float32)
-    print('label {} : {}'.format(key, cat_batch[key].shape))
+    cat_batch[key] = {'images':np.asarray(cat_imgs[key], dtype=np.float32), 'labels':np.ones([len(cat_imgs[key]),1])*key}
+    print('label {} : {}'.format(key, cat_batch[key]['images'].shape))
 
   return cat_batch
 
@@ -56,7 +56,7 @@ def dump_image(x, filename, format):
 
 
 def save_pattern(pattern, mask, y_source, y_target, result_dir):
-  return 
+  return
   IMG_FILENAME_TEMPLATE = 'visualize_%s_label_%d_to_%d.png'
   if not os.path.exists(result_dir):
     os.mkdir(result_dir)

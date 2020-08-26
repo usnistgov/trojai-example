@@ -21,10 +21,11 @@ from neuron import NeuronAnalyzer
 
 ava_model_type = ['ResNet', 'DenseNet','Inception3']
 
-def build_data_loader(X,batch_size=32):
+def build_data_loader(X,Y, batch_size=2):
     tensor_X = torch.Tensor(X)
-    dataset = TensorDataset(tensor_X)
-    loader = DataLoader(dataset,batch_size=batch_size,drop_last=True, shuffle=False)
+    tensor_Y = torch.Tensor(Y)
+    dataset = TensorDataset(tensor_X, tensor_Y)
+    loader = DataLoader(dataset,batch_size=batch_size,drop_last=False, shuffle=False)
     return loader
 
 
@@ -38,12 +39,12 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     cat_batch = utils.read_example_images(examples_dirpath, example_img_format)
 
 
-    num_classes=5
+    num_classes=len(cat_batch)
     model = torch.load(model_filepath)
-    analyzer = NeuronAnalyzer(model)
-    all_x = [cat_batch[i] for i in range(num_classes)]
-    big_batch = np.concatenate(all_x, axis=0)
-    dataloader = build_data_loader(big_batch)
+    analyzer = NeuronAnalyzer(model, num_classes)
+    all_x = np.concatenate([cat_batch[i]['images'] for i in range(num_classes)])
+    all_y = np.concatenate([cat_batch[i]['labels'] for i in range(num_classes)])
+    dataloader = build_data_loader(all_x, all_y)
 
     sc = analyzer.analyse(dataloader)
 
