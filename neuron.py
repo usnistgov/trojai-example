@@ -17,25 +17,56 @@ BATCH_SIZE = 2
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
 TURNPOINT_TEST_LIMIT=200
-NUM_SELECTED_NEURONS=1000000
+NUM_SELECTED_NEURONS=10
+
+
+
+def num_to_idx(num, shape):
+    n = len(shape)
+    loc = [0]*n
+    s = [0]*n
+    w = 1
+    for i in range(n-1,-1,-1):
+        s[i] = w
+        w *= shape[i]
+    for i in range(n):
+        loc[i] = num//s[i]
+        num %= s[i]
+    return tuple(loc)
+
+def idx_to_num(idx, shape):
+    n = len(shape)
+    loc = [0]*n
+    s = [0]*n
+    w = 1
+    for i in range(n-1,-1,-1):
+        s[i] = w
+        w *= shape[i]
+    w = 0
+    for i in range(n):
+        w += idx[i]*s[i]
+    return w
+
 
 
 class SingleNeuronAnalyzer:
-    def __init__(self, n_idx, init_x, init_y, pipe):
+    def __init__(self, n_idx, init_x, init_y, pipe, n_classes):
         self.n_idx = n_idx
         self.init_x = init_x
         self.init_y = init_y
         #self.init_y = softmax(self.init_y)
         self.pipe = pipe
+        self.n_classes = n_classes
+
         self.x_list = list()
         self.y_list = list()
 
         self.turn_x = list()
         self.turn_y = list()
 
-    def _f(self, x):
+    def _f(self, k, x):
         self.x_list.append(x)
-        self.pipe.send((self.n_idx, x))
+        self.pipe.send((k, self.n_idx, x))
         y = self.pipe.recv()
         #y = softmax(y)
         self.y_list.append(y)
@@ -200,7 +231,36 @@ class SingleNeuronAnalyzer:
         self.peak = peak
 
 
+    def bf_check(self):
+        init_pred = np.argmax(self.init_y, axis=1)
+        n = len(self.init_x)
+        m = self.n_classes
+
+        pred = list()
+        max_v = np.max(self.init_x)
+        for i in range(n):
+            logits = self._f(i,max_v*10)
+            pred.append(np.argmax(logits))
+
+        mat = np.zeros([m,m])
+        for i in range(n):
+            mat[init_pred[i]][pred[i]] += 1
+        for i in range(m):
+            mat[i] /= np.sum(mat[i])
+
+        self.peak = np.zeros(m)
+        for i in range(m):
+            for j in range(m):
+                if i == j:
+                    continue
+                self.peak[j] = max(self.peak[j], mat[i][j])
+
+
     def run(self):
+        self.bf_check()
+        return self.peak
+
+
         self.l_x, self.l_y = self.find_bound(self.init_x, self.init_y, -10)
         self.r_x, self.r_y = self.find_bound(self.init_x, self.init_y, 10)
 
@@ -422,12 +482,13 @@ class NeuronAnalyzer:
         self.inputs = list()
         self.outputs = list()
         for i in range(n_child):
+            #print(i)
             #print(type(childs[i]).__name__)
             self.inputs.append([])
             self.outputs.append([])
 
         self.partial_model_params = list()
-        for i in range(1, n_child):
+        for i in range(1, n_child-1):
             childs[i].register_forward_hook(self.get_hook(i))
             self.partial_model_params.append((i, self._partial_general, [i]))
 
@@ -483,15 +544,23 @@ class NeuronAnalyzer:
 
     def _get_predict_function(self, base_x):
         input_shape = base_x.shape
-        flattened_base_input = base_x.flatten()
+        len_shape = len(input_shape)
+        s_size = [0]*len_shape
+        w = 1
+        for i in range(len_shape-1,-1,-1):
+            s_size[i] = w
+            w *= input_shape[i]
 
         def p_func(x_list):
             feed_x = list()
-            for xid, xv in x_list:
-                cp_base = flattened_base_input.copy()
-                cp_base[xid] = xv
-                n_x = cp_base.reshape(input_shape)
-                feed_x.append(n_x)
+            for k, xid, xv in x_list:
+                loc = [0]*len_shape
+                for i in range(1,len_shape):
+                    loc[i] = xid//s_size[i]
+                    xid %= s_size[i]
+                cp_base = base_x[k].copy()
+                cp_base[tuple(loc[1:])] = xv
+                feed_x.append(cp_base)
             feed_x = np.asarray(feed_x)
             x_tensor = torch.from_numpy(feed_x)
             y = self.partial_model(x_tensor.cuda())
@@ -556,13 +625,11 @@ class NeuronAnalyzer:
 
 
     def recall_fn(self, future):
-        #idx, data = future.result()
-        idx, data, x_list, y_list = future.result()
+        idx, data = future.result()
+        #idx, data, x_list, y_list = future.result()
         self.results.append((idx,data))
-        out_fn = 'logs/log_neuron_'+str(idx)+'.npy'
-        self.done_ct += 1
-        #print(self.done_ct)
-        self.add_to_output_queue(out_fn, x_list, y_list)
+        #out_fn = 'logs/log_neuron_'+str(idx)+'.npy'
+        #self.add_to_output_queue(out_fn, x_list, y_list)
 
 
     def get_init_values(self, dataloader):
@@ -576,12 +643,13 @@ class NeuronAnalyzer:
 
         acc_ct = 0
         self.pred_init = list()
+        self.logits_init = list()
         for step, data in enumerate(dataloader):
             imgs, lbs = data
             lbs = lbs.numpy().squeeze(axis=-1)
             y_tensor = self.model(imgs.cuda())
-            y = y_tensor.cpu().detach().numpy()
-            pred = np.argmax(y,axis=1)
+            logits = y_tensor.cpu().detach().numpy()
+            pred = np.argmax(logits,axis=1)
 
             correct_idx = (lbs==pred)
             acc_ct += sum(correct_idx)
@@ -593,6 +661,7 @@ class NeuronAnalyzer:
                 self.outputs[i][-1] = self.outputs[i][-1][correct_idx]
 
             self.pred_init.append(pred[correct_idx])
+            self.logits_init.append(logits[correct_idx])
 
         print(acc_ct/500.0)
 
@@ -607,6 +676,22 @@ class NeuronAnalyzer:
             self.outputs[i] = np.concatenate(self.outputs[i])
 
         self.pred_init = np.concatenate(self.pred_init)
+        self.logits_init = np.concatenate(self.logits_init)
+
+        trim_idx = self.pred_init<0
+        ct = [0]*self.n_classes
+        for i in range(len(self.pred_init)):
+            z = self.pred_init[i]
+            if ct[z] < 5:
+                trim_idx[i] = True
+                ct[z] += 1
+        for i in range(n_inputs):
+            if len(self.inputs[i]) == 0:
+                continue
+            self.inputs[i] = self.inputs[i][trim_idx]
+            self.outputs[i] = self.outputs[i][trim_idx]
+        self.pred_init = self.pred_init[trim_idx]
+        self.logits_init = self.logits_init[trim_idx]
 
 
     def _check_preds_backdoor(self, v):
@@ -630,8 +715,8 @@ class NeuronAnalyzer:
     def analyse(self, dataloader):
         self.get_init_values(dataloader)
 
+        '''
         candi_list = list()
-
         for k, func, param in self.partial_model_params:
             self.partial_model = func(*param)
             shape = self.inputs[k].shape
@@ -657,6 +742,8 @@ class NeuronAnalyzer:
             print(candi_list)
         exit(0)
         '''
+
+        '''
         k = 0
         for w,o in zip(self.data['Conv2d']['weights'], self.data['Conv2d']['outputs']):
             w = w[0]
@@ -668,40 +755,38 @@ class NeuronAnalyzer:
         exit(0)
         '''
 
-        init_x = self.inputs[0][0]
-        init_y = y[0]
+        #self.start_output_thread()
 
-        print(init_y)
-        print(init_x.shape)
+        for k, func, param in self.partial_model_params:
+            print(k)
+            self.partial_model = func(*param)
+            init_x = self.inputs[k]
+            init_y = self.logits_init
 
-        flattened_x = init_x.flatten()
-        n = len(flattened_x)
-        rand_idx_list = RD.permutation(n)
+            shape = init_x.shape
+            n = 1
+            for x in shape:
+                n *= x
+            n //= shape[0]
+            rand_idx_list = RD.permutation(n)
 
-        p_func = self._get_predict_function(init_x)
+            p_func = self._get_predict_function(init_x)
+            pred_thrd = PredictingThread(p_func)
+            pipes = self.manager.list([pred_thrd.get_pipe() for _ in range(NUM_WORKERS)])
+            pred_thrd.start()
 
-        #print(p_func([(0,init_x[0][0][0])]))
-        #print(init_y)
-        #exit(0)
+            with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
+                for i in range(min(self.num_selected_neurons,n)):
+                    idx = rand_idx_list[i]
+                    z = [range(shape[0])]
+                    z.extend(num_to_idx(idx,shape[1:]))
+                    ix = init_x[tuple(z)]
+                    iy = init_y
+                    ff = executor.submit(process_run, idx, ix, iy, pipes, self.n_classes)
+                    ff.add_done_callback(self.recall_fn)
 
-        pred_thrd = PredictingThread(p_func)
-        pipes = self.manager.list([pred_thrd.get_pipe() for _ in range(NUM_WORKERS)])
-
-        pred_thrd.start()
-
-        self.start_output_thread()
-
-        self.done_ct = 0
-        with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
-            for i in range(min(self.num_selected_neurons,n)):
-                idx = rand_idx_list[i]
-                ix = flattened_x[idx]
-                iy = init_y
-                ff = executor.submit(process_run, idx, ix, iy, pipes)
-                ff.add_done_callback(self.recall_fn)
-
-        pred_thrd.join()
-        self.stop_output_thread()
+            pred_thrd.join()
+        #self.stop_output_thread()
 
         mxid, mxvl = -1, -1
         for k,z in enumerate(self.results):
@@ -721,10 +806,10 @@ class NeuronAnalyzer:
         return mxvl
 
 
-def process_run(idx, init_x, init_y, pipes):
+def process_run(idx, init_x, init_y, pipes, n_classes):
     pipe = pipes.pop()
-    sna = SingleNeuronAnalyzer(idx, init_x, init_y, pipe)
+    sna = SingleNeuronAnalyzer(idx, init_x, init_y, pipe, n_classes)
     sna.run()
     pipes.append(pipe)
-    #return (idx, sna.peak)
-    return (idx, sna.peak, sna.x_list, sna.y_list)
+    return (idx, sna.peak)
+    #return (idx, sna.peak, sna.x_list, sna.y_list)
