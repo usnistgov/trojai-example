@@ -79,9 +79,7 @@ class SingleNeuronAnalyzer:
         for j in range(m):
             ly = y[1][j]-y[0][j]
             ry = y[2][j]-y[1][j]
-            '''
-            na = LA.norm([lx,ly])
-            nb = LA.norm([rx,ry])
+            ''' na = LA.norm([lx,ly]) nb = LA.norm([rx,ry])
             if (na < EPS) or (nb < EPS):
                 continue
             #cosa = (lx*rx+ly*ry)/na/nb
@@ -500,18 +498,114 @@ class NeuronAnalyzer:
         #print(st_layer)
         for i in range(st_layer,n_child-1):
             md_list.append(childs[i])
-            if i==2:
-                md_list.append(torch.nn.MaxPool2d(kernel_size=3,stride=2))
-            if i==4:
-                md_list.append(torch.nn.MaxPool2d(kernel_size=3,stride=2))
-            #print(childs[i])
-            #print(type(childs[i]).__name__)
         md_list.append(torch.nn.AdaptiveAvgPool2d((1,1)))
         md_list.append(torch.nn.Flatten(1))
         md_list.append(childs[-1])
 
         _model = torch.nn.Sequential(*md_list)
         return _model
+
+
+    def _init_inception3(self):
+        childs = list(self.model.children())
+        n_child = len(childs)
+
+        self.inputs = list()
+        self.outputs = list()
+        for i in range(n_child):
+            self.inputs.append([])
+            self.outputs.append([])
+
+        self.partial_model_params = list()
+        for i in range(1, n_child-1):
+            childs[i].register_forward_hook(self.get_hook(i))
+            self.partial_model_params.append((i, self._partial_inception3, [i]))
+
+
+    def _partial_inception3(self, st_layer):
+        childs = list(self.model.children())
+        n_child = len(childs)
+        md_list = list()
+        #print(st_layer)
+        for i in range(st_layer,n_child-1):
+            md_list.append(childs[i])
+            if i==2:
+                md_list.append(torch.nn.MaxPool2d(kernel_size=3,stride=2))
+            if i==4:
+                md_list.append(torch.nn.MaxPool2d(kernel_size=3,stride=2))
+        md_list.append(torch.nn.AdaptiveAvgPool2d((1,1)))
+        md_list.append(torch.nn.Flatten(1))
+        md_list.append(childs[-1])
+
+        _model = torch.nn.Sequential(*md_list)
+        return _model
+
+
+    def _init_resnet(self):
+        childs = list(self.model.children())
+        n_child = len(childs)
+
+        self.inputs = list()
+        self.outputs = list()
+        for i in range(n_child):
+            #print(i)
+            #print(type(childs[i]).__name__)
+            self.inputs.append([])
+            self.outputs.append([])
+
+        self.partial_model_params = list()
+        for i in range(1, n_child-1):
+            childs[i].register_forward_hook(self.get_hook(i))
+            self.partial_model_params.append((i, self._partial_resnet, [i]))
+
+
+    def _partial_resnet(self, st_layer):
+        childs = list(self.model.children())
+        n_child = len(childs)
+        md_list = list()
+        for i in range(st_layer,n_child-1):
+            md_list.append(childs[i])
+        md_list.append(torch.nn.Flatten(1))
+        md_list.append(childs[-1])
+
+        _model = torch.nn.Sequential(*md_list)
+        return _model
+
+
+    def _init_densenet(self):
+        _childs = list(self.model.children())
+        childs = list(_childs[0].children())
+        n_child = len(childs)
+
+        self.inputs = list()
+        self.outputs = list()
+        for i in range(n_child):
+            print(i)
+            print(type(childs[i]).__name__)
+            self.inputs.append([])
+            self.outputs.append([])
+
+        self.partial_model_params = list()
+        for i in range(n_child):
+            childs[i].register_forward_hook(self.get_hook(i))
+            self.partial_model_params.append((i, self._partial_densenet, [i]))
+
+
+    def _partial_densenet(self, st_layer):
+        _childs = list(self.model.children())
+        childs = list(_childs[0].children())
+        n_child = len(childs)
+        md_list = list()
+        for i in range(st_layer,n_child):
+            md_list.append(childs[i])
+        md_list.append(torch.nn.ReLU(inplace=True))
+        md_list.append(torch.nn.AdaptiveAvgPool2d((1,1)))
+        md_list.append(torch.nn.Flatten(1))
+        md_list.append(_childs[-1])
+
+        _model = torch.nn.Sequential(*md_list)
+        return _model
+
 
     '''
     def _deal_conv(self, data_dict):
@@ -625,9 +719,9 @@ class NeuronAnalyzer:
 
 
     def recall_fn(self, future):
-        idx, data = future.result()
+        k, idx, data = future.result()
         #idx, data, x_list, y_list = future.result()
-        self.results.append((idx,data))
+        self.results.append((k, idx,data))
         #out_fn = 'logs/log_neuron_'+str(idx)+'.npy'
         #self.add_to_output_queue(out_fn, x_list, y_list)
 
@@ -715,7 +809,7 @@ class NeuronAnalyzer:
     def analyse(self, dataloader):
         self.get_init_values(dataloader)
 
-        '''
+        #'''
         candi_list = list()
         for k, func, param in self.partial_model_params:
             self.partial_model = func(*param)
@@ -730,18 +824,24 @@ class NeuronAnalyzer:
                         if (abs(tv) < EPS):
                             continue
                         preds = list()
+                        logits = list()
                         for st in range(0,tn, BATCH_SIZE):
                             x = self.inputs[k][st:min(st+BATCH_SIZE,tn)]
-                            x[:,i1,i2,i3] = max_v*10
+                            #x[:,i1,i2,i3] = max_v*10
                             y = self.forward_from_partial(x)
                             pred = np.argmax(y, axis=1)
                             preds.append(pred)
+                            logits.append(y)
                         preds = np.concatenate(preds)
+                        logits = np.concatenate(logits)
+                        print(logits)
+                        print(self.logits_init)
+                        exit(0)
                         if self._check_preds_backdoor(preds):
                             candi_list.append((k,i1,i2,i3))
             print(candi_list)
         exit(0)
-        '''
+        #'''
 
         '''
         k = 0
@@ -782,34 +882,36 @@ class NeuronAnalyzer:
                     z.extend(num_to_idx(idx,shape[1:]))
                     ix = init_x[tuple(z)]
                     iy = init_y
-                    ff = executor.submit(process_run, idx, ix, iy, pipes, self.n_classes)
+                    ff = executor.submit(process_run, k, idx, ix, iy, pipes, self.n_classes)
                     ff.add_done_callback(self.recall_fn)
+                    break
 
             pred_thrd.join()
+            exit(0)
         #self.stop_output_thread()
 
         mxid, mxvl = -1, -1
         for k,z in enumerate(self.results):
-            k1 = np.argmax(z[1])
-            vk1 = z[1][k1]
-            z[1][k1] = 0
-            k2 = np.argmax(z[1])
-            vk2 = z[1][k2]
-            z[1][k1] = vk1
+            k1 = np.argmax(z[-1])
+            vk1 = z[-1][k1]
+            z[-1][k1] = 0
+            k2 = np.argmax(z[-1])
+            vk2 = z[-1][k2]
+            z[-1][k1] = vk1
             if (vk1-vk2 > mxvl):
                 mxvl = vk1-vk2
                 mxid = k
                 print(z)
                 print(mxvl)
 
-        print(self.results[mxid][0])
+        print(self.results[mxid])
         return mxvl
 
 
-def process_run(idx, init_x, init_y, pipes, n_classes):
+def process_run(k, idx, init_x, init_y, pipes, n_classes):
     pipe = pipes.pop()
     sna = SingleNeuronAnalyzer(idx, init_x, init_y, pipe, n_classes)
     sna.run()
     pipes.append(pipe)
-    return (idx, sna.peak)
+    return (k, idx, sna.peak)
     #return (idx, sna.peak, sna.x_list, sna.y_list)
