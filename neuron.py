@@ -7,15 +7,19 @@ import threading, queue
 import time
 import numpy as np
 from scipy.special import softmax
+from sklearn.decomposition import PCA
 
-from concurrent.futures import ProcessPoolExecutor
-import multiprocessing as MP
+#from concurrent.futures import ProcessPoolExecutor
+#import multiprocessing as MP
+
+from SCAn import *
 
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
 BATCH_SIZE = 2
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
+KEEP_DIM = 64
 
 
 class SingleNeuronAnalyzer:
@@ -309,7 +313,6 @@ class NeuronAnalyzer:
         self.model_name = self.model_name.lower()
         print(self.model_name)
 
-        self.num_selected_neurons = NUM_SELECTED_NEURONS
         self.n_classes = n_classes
 
         self.results = list()
@@ -439,6 +442,10 @@ class NeuronAnalyzer:
         self.logits_init = np.concatenate(self.logits_init)
         self.images = np.concatenate(self.images)
 
+        self.preds_all = self.pred_init
+        self.logits_all = self.logits_init
+        self.images_all = self.images
+
         trim_idx = self.pred_init<0
         ct = [0]*self.n_classes
         for i in range(len(self.pred_init)):
@@ -451,7 +458,7 @@ class NeuronAnalyzer:
         self.images = self.images[trim_idx]
 
         init_f()
-        self._run_once_epoch()
+        self._run_once_epoch(self.images)
 
         out_channel_sum = 0
         for i in range(len(self.inputs)):
@@ -464,13 +471,25 @@ class NeuronAnalyzer:
             handle.remove()
 
 
-    def _run_once_epoch(self):
+    def register_representation_record_hook(self):
+        childs = list(self.model.children())
+        md = childs[-1]
+
+        def hook(model, input, output):
+            if type(input) is tuple:
+                input = input[0]
+            self.reprs.append(input.cpu().detach().numpy())
+
+        md.register_forward_hook(hook)
+
+
+    def _run_once_epoch(self, images_all):
         preds = list()
         logits = list()
 
-        tn = len(self.images)
+        tn = len(images_all)
         for st in range(0,tn, BATCH_SIZE):
-            imgs = self.images[st:min(st+BATCH_SIZE,tn)]
+            imgs = images_all[st:min(st+BATCH_SIZE,tn)]
             imgs_tensor = torch.from_numpy(imgs)
             y_tensor = self.model(imgs_tensor.cuda())
             y = y_tensor.cpu().detach().numpy()
@@ -498,8 +517,8 @@ class NeuronAnalyzer:
                 if i == j:
                     continue
                 if mat[i][j] > 0.9:
-                    return True
-        return False
+                    return (i,j)
+        return None
 
 
     def analyse(self, dataloader):
@@ -509,8 +528,6 @@ class NeuronAnalyzer:
         for k,md in enumerate(self.convs):
             md.register_forward_hook(self.get_modify_hook(k))
 
-
-        #'''
         candi_list = list()
         for k, md in enumerate(self.convs):
             shape = self.outputs[k].shape
@@ -522,16 +539,46 @@ class NeuronAnalyzer:
                 if (abs(tv) < EPS):
                     continue
 
-                self.hook_param = (k,i,tv*2)
+                self.hook_param = (k,i,max_v*2)
 
-                logits, preds = self._run_once_epoch()
+                logits, preds = self._run_once_epoch(self.images)
 
-                #print(logits)
-                #print(self.logits_init)
-                #exit(0)
-                if self._check_preds_backdoor(preds):
-                    candi_list.append((k,i))
+                pair = self._check_preds_backdoor(preds)
+                if pair is not None:
+                    candi_list.append((self.hook_param, pair))
+
         print(candi_list)
+
+
+        self.register_representation_record_hook()
+        self.reprs = list()
+        self._run_once_epoch(self.images_all)
+        good_repr = np.concatenate(self.reprs)
+
+        dealer = SCAn()
+
+        sc_list = list()
+        for param, pair in candi_list:
+            select_idx = (self.preds_all == pair[0])
+            self.hook_param = param
+            self.reprs = list()
+            logits, preds = self._run_once_epoch(self.images_all[select_idx])
+            pos_repr = np.concatenate(self.reprs)
+
+            reprs = np.concatenate([good_repr, pos_repr])
+            labels = np.concatenate([self.preds_all, preds])
+
+            pca = PCA(n_components=KEEP_DIM, svd_solver='full')
+            pca.fit(reprs)
+
+            gb_model = dealer.build_global_model(pca.transform(good_repr), self.preds_all, self.n_classes)
+            lc_model = dealer.build_local_model(pca.transform(reprs), labels, gb_model, self.n_classes)
+            sc = dealer.calc_final_score(lc_model)
+            sc_list.append(max(sc))
+            print(sc)
+
+
+        return max(sc_list)
 
 
 def process_run(k, idx, init_x, init_y, pipes, n_classes):
