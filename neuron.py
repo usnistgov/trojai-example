@@ -13,40 +13,9 @@ import multiprocessing as MP
 
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
-BATCH_SIZE = 64
+BATCH_SIZE = 2
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
-TURNPOINT_TEST_LIMIT=200
-NUM_SELECTED_NEURONS=1000
-
-
-
-def num_to_idx(num, shape):
-    n = len(shape)
-    loc = [0]*n
-    s = [0]*n
-    w = 1
-    for i in range(n-1,-1,-1):
-        s[i] = w
-        w *= shape[i]
-    for i in range(n):
-        loc[i] = num//s[i]
-        num %= s[i]
-    return tuple(loc)
-
-def idx_to_num(idx, shape):
-    n = len(shape)
-    loc = [0]*n
-    s = [0]*n
-    w = 1
-    for i in range(n-1,-1,-1):
-        s[i] = w
-        w *= shape[i]
-    w = 0
-    for i in range(n):
-        w += idx[i]*s[i]
-    return w
-
 
 
 class SingleNeuronAnalyzer:
@@ -237,7 +206,7 @@ class SingleNeuronAnalyzer:
         pred = list()
         max_v = np.max(self.init_x)
         for i in range(n):
-            logits = self._f(i,max_v*10)
+            logits = self._f(i,max_v*2)
             pred.append(np.argmax(logits))
 
         mat = np.zeros([m,m])
@@ -343,60 +312,14 @@ class NeuronAnalyzer:
         self.num_selected_neurons = NUM_SELECTED_NEURONS
         self.n_classes = n_classes
 
-        '''
-        self.childrens = list(model.children())
-        self.n_child = len(self.childrens)
-        self.child = list()
-        for k,md in enumerate(self.childrens):
-            self.child.append(self._build_dict())
-            md.register_forward_hook(self.get_children_hook(k))
-        '''
-
-        '''
-        self.data = dict()
-        for tp in CONSIDER_LAYER_TYPE:
-            self.data[tp] = self._build_dict()
-
-        mds = list(model.modules())
-        n_conv = 0
-        for k, md in enumerate(mds):
-            mdname = type(md).__name__
-            if k==0:
-                self.model_name = mdname
-                print(mdname)
-            if mdname == 'Conv2d':
-                md.register_forward_hook(self.get_hook_record(mdname, n_conv))
-                n_conv += 1
-                self.data[mdname]['n'] += 1
-                self.data[mdname]['inputs'].append([])
-                self.data[mdname]['outputs'].append([])
-                self.data[mdname]['modules'].append(md)
-                w_list = []
-                for w in md.parameters():
-                    w_list.append(w.cpu().detach().numpy())
-                self.data[mdname]['weights'].append(w_list)
-
-        '''
         self.results = list()
-        self.manager = MP.Manager()
+        #self.manager = MP.Manager()
 
         self.output_queue = queue.Queue()
 
 
-    def _build_dict(self):
-        rst = dict()
-        rst['n'] = 0
-        rst['inputs'] = []
-        rst['outputs'] = []
-        rst['weights'] = []
-        rst['modules'] = []
-        return rst
-
-
-    def get_hook(self, k_layer):
+    def get_record_hook(self, k_layer):
         def hook(model, input, output):
-            if not self.hook_activate:
-                return
             if type(input) is tuple:
                 input = input[0]
             if type(output) is tuple:
@@ -406,237 +329,35 @@ class NeuronAnalyzer:
         return hook
 
 
-    '''
-    def get_hook_record(self, mdname, idx):
+    def get_modify_hook(self, k_layer):
         def hook(model, input, output):
-            if not self.hook_activate:
+            if k_layer != self.hook_param[0]:
                 return
-            if type(input) is tuple:
-                input = input[0]
             if type(output) is tuple:
                 output = output[0]
-            self.data['Conv2d']['inputs'][idx].append(input.cpu().detach().numpy())
-            self.data['Conv2d']['outputs'][idx].append(output.cpu().detach().numpy())
+            ori = output.cpu()
+            ori[:,self.hook_param[1],:,:] = self.hook_param[2]
+            return ori.cuda()
         return hook
-    '''
 
-    '''
-    def _call_partial_model(self, x_tensor, from_k):
-        x = x_tensor.cuda()
-        for k in range(from_k, self.n_child):
-            md = self.childrens[k]
-            if k+1 == self.n_child:
-                x = torch.flatten(x,1)
-            x = md(x)
-
-        return x.cpu().detach().numpy()
-    '''
 
     def _init_general(self):
-        childs = list(self.model.children())
-        n_child = len(childs)
+        mds = list(self.model.modules())
 
+        self.convs = list()
         self.inputs = list()
         self.outputs = list()
-        for i in range(n_child):
-            #print(i)
-            #print(type(childs[i]).__name__)
+        for md in mds:
+            na = type(md).__name__
+            if na != 'Conv2d':
+                continue
+            self.convs.append(md)
             self.inputs.append([])
             self.outputs.append([])
 
-        self.partial_model_params = list()
-        for i in range(1, n_child-1):
-            childs[i].register_forward_hook(self.get_hook(i))
-            self.partial_model_params.append((i, self._partial_general, [i]))
-
-
-    def _partial_general(self, st_layer):
-        childs = list(self.model.children())
-        n_child = len(childs)
-        md_list = list()
-        #print(st_layer)
-        for i in range(st_layer,n_child-1):
-            md_list.append(childs[i])
-        md_list.append(torch.nn.AdaptiveAvgPool2d((1,1)))
-        md_list.append(torch.nn.Flatten(1))
-        md_list.append(childs[-1])
-
-        _model = torch.nn.Sequential(*md_list)
-        return _model
-
-
-    def _init_inception3(self):
-        childs = list(self.model.children())
-        n_child = len(childs)
-
-        self.inputs = list()
-        self.outputs = list()
-        for i in range(n_child):
-            self.inputs.append([])
-            self.outputs.append([])
-
-        self.partial_model_params = list()
-        for i in range(1, n_child-1):
-            childs[i].register_forward_hook(self.get_hook(i))
-            self.partial_model_params.append((i, self._partial_inception3, [i]))
-
-
-    def _partial_inception3(self, st_layer):
-        childs = list(self.model.children())
-        n_child = len(childs)
-        md_list = list()
-        #print(st_layer)
-        for i in range(st_layer,n_child-1):
-            md_list.append(childs[i])
-            if i==2:
-                md_list.append(torch.nn.MaxPool2d(kernel_size=3,stride=2))
-            if i==4:
-                md_list.append(torch.nn.MaxPool2d(kernel_size=3,stride=2))
-        md_list.append(torch.nn.AdaptiveAvgPool2d((1,1)))
-        md_list.append(torch.nn.Flatten(1))
-        md_list.append(childs[-1])
-
-        _model = torch.nn.Sequential(*md_list)
-        return _model
-
-
-    def _init_resnet(self):
-        childs = list(self.model.children())
-        n_child = len(childs)
-
-        self.inputs = list()
-        self.outputs = list()
-        for i in range(n_child):
-            #print(i)
-            #print(type(childs[i]).__name__)
-            self.inputs.append([])
-            self.outputs.append([])
-
-        self.partial_model_params = list()
-        for i in range(1, n_child-1):
-            childs[i].register_forward_hook(self.get_hook(i))
-            self.partial_model_params.append((i, self._partial_resnet, [i]))
-
-
-    def _partial_resnet(self, st_layer):
-        childs = list(self.model.children())
-        n_child = len(childs)
-        md_list = list()
-        for i in range(st_layer,n_child-1):
-            md_list.append(childs[i])
-        md_list.append(torch.nn.Flatten(1))
-        md_list.append(childs[-1])
-
-        _model = torch.nn.Sequential(*md_list)
-        return _model
-
-
-    def _init_densenet(self):
-        _childs = list(self.model.children())
-        childs = list(_childs[0].children())
-        n_child = len(childs)
-
-        self.inputs = list()
-        self.outputs = list()
-        for i in range(n_child):
-            #print(i)
-            #print(type(childs[i]).__name__)
-            self.inputs.append([])
-            self.outputs.append([])
-
-        self.partial_model_params = list()
-        for i in range(n_child):
-            childs[i].register_forward_hook(self.get_hook(i))
-            self.partial_model_params.append((i, self._partial_densenet, [i]))
-
-
-    def _partial_densenet(self, st_layer):
-        _childs = list(self.model.children())
-        childs = list(_childs[0].children())
-        n_child = len(childs)
-        md_list = list()
-        for i in range(st_layer,n_child):
-            md_list.append(childs[i])
-        md_list.append(torch.nn.ReLU(inplace=True))
-        md_list.append(torch.nn.AdaptiveAvgPool2d((1,1)))
-        md_list.append(torch.nn.Flatten(1))
-        md_list.append(_childs[-1])
-
-        _model = torch.nn.Sequential(*md_list)
-        return _model
-
-
-    '''
-    def _deal_conv(self, data_dict):
-        n = data_dict['n']
-        weights = data_dict['weights']
-        outputs = data_dict['outputs']
-
-        recs = []
-        noms = []
-        rsts = []
-        for i in range(n):
-            os = np.concatenate(outputs[i], axis=0)
-            os = np.abs(os)
-            tmp = np.max(os, axis=(2,3))
-            recs.append(np.mean(tmp, axis=0))
-
-            w = weights[i][0]
-            sp = w.shape
-            ts = []
-            for j in range(sp[0]):
-                ts.append(LA.norm(w[j,:,:,:]))
-            noms.append(np.asarray(ts))
-
-            rsts.append(np.abs(recs[i]/noms[i]))
-
-        zz = np.concatenate(rsts, axis=0)
-        return zz
-    '''
-
-
-    def _get_predict_function(self, base_x):
-        input_shape = base_x.shape
-        len_shape = len(input_shape)
-        s_size = [0]*len_shape
-        w = 1
-        for i in range(len_shape-1,-1,-1):
-            s_size[i] = w
-            w *= input_shape[i]
-
-        def p_func(x_list):
-            feed_x = list()
-            for k, xid, xv in x_list:
-                loc = [0]*len_shape
-                for i in range(1,len_shape):
-                    loc[i] = xid//s_size[i]
-                    xid %= s_size[i]
-                cp_base = base_x[k].copy()
-                cp_base[tuple(loc[1:])] = xv
-                feed_x.append(cp_base)
-            feed_x = np.asarray(feed_x)
-            x_tensor = torch.from_numpy(feed_x)
-            y = self.partial_model(x_tensor.cuda())
-            return y.cpu().detach().numpy()
-        return p_func
-
-
-    def forward_from_partial(self, x):
-        x_tensor = torch.from_numpy(x)
-        y = self.partial_model(x_tensor.cuda())
-        return y.cpu().detach().numpy()
-
-
-    def get_partial_model(self):
-        mdname = self.model_name.lower()
-        if mdname == 'densenet':
-            _f = self._deal_DenseNet()
-        elif mdname == 'resnet':
-            _f = self._deal_ResNet()
-        elif mdname == 'inception3':
-            _f = self._partial_Inception3()
-
-        return _f
+        self.record_hook_handles = list()
+        for k,md in enumerate(self.convs):
+            self.record_hook_handles.append(md.register_forward_hook(self.get_record_hook(k)))
 
 
     def add_to_output_queue(self, out_fn, x_list, y_list):
@@ -690,15 +411,15 @@ class NeuronAnalyzer:
         if not hasattr(self, init_func_name):
             init_func_name = '_init_general'
         init_f = getattr(self, init_func_name)
-        init_f()
-
-        self.hook_activate = True
 
         acc_ct = 0
+        tot_n = 0
+        self.images = list()
         self.pred_init = list()
         self.logits_init = list()
         for step, data in enumerate(dataloader):
             imgs, lbs = data
+            tot_n += len(lbs)
             lbs = lbs.numpy().squeeze(axis=-1)
             y_tensor = self.model(imgs.cuda())
             logits = y_tensor.cpu().detach().numpy()
@@ -707,29 +428,16 @@ class NeuronAnalyzer:
             correct_idx = (lbs==pred)
             acc_ct += sum(correct_idx)
 
-            for i in range(len(self.inputs)):
-                if len(self.inputs[i]) == 0:
-                    continue
-                self.inputs[i][-1] = self.inputs[i][-1][correct_idx]
-                self.outputs[i][-1] = self.outputs[i][-1][correct_idx]
-
             self.pred_init.append(pred[correct_idx])
             self.logits_init.append(logits[correct_idx])
+            np_imgs = imgs.numpy()
+            self.images.append(np_imgs[correct_idx])
 
-        print(acc_ct/500.0)
-
-        self.hook_activate = False
-
-        n_inputs = len(self.inputs)
-        self.inputs_max_v = np.zeros(n_inputs)
-        for i in range(n_inputs):
-            if len(self.inputs[i]) == 0:
-                continue
-            self.inputs[i] = np.concatenate(self.inputs[i])
-            self.outputs[i] = np.concatenate(self.outputs[i])
+        print(acc_ct/tot_n)
 
         self.pred_init = np.concatenate(self.pred_init)
         self.logits_init = np.concatenate(self.logits_init)
+        self.images = np.concatenate(self.images)
 
         trim_idx = self.pred_init<0
         ct = [0]*self.n_classes
@@ -738,13 +446,42 @@ class NeuronAnalyzer:
             if ct[z] < 5:
                 trim_idx[i] = True
                 ct[z] += 1
-        for i in range(n_inputs):
-            if len(self.inputs[i]) == 0:
-                continue
-            self.inputs[i] = self.inputs[i][trim_idx]
-            self.outputs[i] = self.outputs[i][trim_idx]
         self.pred_init = self.pred_init[trim_idx]
         self.logits_init = self.logits_init[trim_idx]
+        self.images = self.images[trim_idx]
+
+        init_f()
+        self._run_once_epoch()
+
+        out_channel_sum = 0
+        for i in range(len(self.inputs)):
+            self.inputs[i] = np.concatenate(self.inputs[i])
+            self.outputs[i] = np.concatenate(self.outputs[i])
+            out_channel_sum += self.outputs[i].shape[1]
+        print('total channels '+str(out_channel_sum))
+
+        for handle in self.record_hook_handles:
+            handle.remove()
+
+
+    def _run_once_epoch(self):
+        preds = list()
+        logits = list()
+
+        tn = len(self.images)
+        for st in range(0,tn, BATCH_SIZE):
+            imgs = self.images[st:min(st+BATCH_SIZE,tn)]
+            imgs_tensor = torch.from_numpy(imgs)
+            y_tensor = self.model(imgs_tensor.cuda())
+            y = y_tensor.cpu().detach().numpy()
+            pred = np.argmax(y, axis=1)
+            preds.append(pred)
+            logits.append(y)
+
+        preds = np.concatenate(preds)
+        logits = np.concatenate(logits)
+
+        return (logits, preds)
 
 
     def _check_preds_backdoor(self, v):
@@ -768,101 +505,33 @@ class NeuronAnalyzer:
     def analyse(self, dataloader):
         self.get_init_values(dataloader)
 
-        '''
+        self.hook_param = (-1,-1,-1)
+        for k,md in enumerate(self.convs):
+            md.register_forward_hook(self.get_modify_hook(k))
+
+
+        #'''
         candi_list = list()
-        for k, func, param in self.partial_model_params:
-            self.partial_model = func(*param)
-            shape = self.inputs[k].shape
+        for k, md in enumerate(self.convs):
+            shape = self.outputs[k].shape
             print(shape)
             tn = shape[0]
-            max_v = np.max(self.inputs[k])
-            for i1 in range(shape[1]):
-                for i2 in range(shape[2]):
-                    for i3 in range(shape[3]):
-                        tv = np.max(self.inputs[k][:,i1,i2,i3])
-                        if (abs(tv) < EPS):
-                            continue
-                        preds = list()
-                        logits = list()
-                        for st in range(0,tn, BATCH_SIZE):
-                            x = self.inputs[k][st:min(st+BATCH_SIZE,tn)]
-                            #x[:,i1,i2,i3] = max_v*10
-                            y = self.forward_from_partial(x)
-                            pred = np.argmax(y, axis=1)
-                            preds.append(pred)
-                            logits.append(y)
-                        preds = np.concatenate(preds)
-                        logits = np.concatenate(logits)
-                        print(logits)
-                        print(self.logits_init)
-                        exit(0)
-                        if self._check_preds_backdoor(preds):
-                            candi_list.append((k,i1,i2,i3))
-            print(candi_list)
-        exit(0)
-        '''
+            max_v = np.max(self.outputs[k])
+            for i in range(shape[1]):
+                tv = np.max(self.outputs[k][:,i, :, :])
+                if (abs(tv) < EPS):
+                    continue
 
-        '''
-        k = 0
-        for w,o in zip(self.data['Conv2d']['weights'], self.data['Conv2d']['outputs']):
-            w = w[0]
-            o = np.concatenate(o)
-            fn = 'conv{}_'.format(k)
-            np.save('output/'+fn+'weights.npy', w)
-            np.save('output/'+fn+'outputs.npy', o)
-            k += 1
-        exit(0)
-        '''
+                self.hook_param = (k,i,tv*2)
 
-        #self.start_output_thread()
+                logits, preds = self._run_once_epoch()
 
-        for k, func, param in self.partial_model_params:
-            print(k)
-            self.partial_model = func(*param)
-            init_x = self.inputs[k]
-            init_y = self.logits_init
-
-            shape = init_x.shape
-            n = 1
-            for x in shape:
-                n *= x
-            n //= shape[0]
-            rand_idx_list = RD.permutation(n)
-
-            p_func = self._get_predict_function(init_x)
-            pred_thrd = PredictingThread(p_func)
-            pipes = self.manager.list([pred_thrd.get_pipe() for _ in range(NUM_WORKERS)])
-            pred_thrd.start()
-
-            with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
-                for i in range(min(self.num_selected_neurons,n)):
-                    idx = rand_idx_list[i]
-                    z = [range(shape[0])]
-                    z.extend(num_to_idx(idx,shape[1:]))
-                    ix = init_x[tuple(z)]
-                    iy = init_y
-                    ff = executor.submit(process_run, k, idx, ix, iy, pipes, self.n_classes)
-                    ff.add_done_callback(self.recall_fn)
-
-            pred_thrd.join()
-        #self.stop_output_thread()
-
-        mxid, mxvl = -1, -1
-        for k,z in enumerate(self.results):
-            k1 = np.argmax(z[-1])
-            vk1 = z[-1][k1]
-            z[-1][k1] = 0
-            k2 = np.argmax(z[-1])
-            vk2 = z[-1][k2]
-            z[-1][k1] = vk1
-            if (vk1-vk2 > mxvl):
-                mxvl = vk1-vk2
-                mxid = k
-                print(z)
-                print(mxvl)
-
-        print(self.results[mxid])
-        return mxvl
+                #print(logits)
+                #print(self.logits_init)
+                #exit(0)
+                if self._check_preds_backdoor(preds):
+                    candi_list.append((k,i))
+        print(candi_list)
 
 
 def process_run(k, idx, init_x, init_y, pipes, n_classes):
@@ -870,5 +539,6 @@ def process_run(k, idx, init_x, init_y, pipes, n_classes):
     sna = SingleNeuronAnalyzer(idx, init_x, init_y, pipe, n_classes)
     sna.run()
     pipes.append(pipe)
+    print((k, idx, sna.peak))
     return (k, idx, sna.peak)
     #return (idx, sna.peak, sna.x_list, sna.y_list)

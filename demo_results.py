@@ -26,6 +26,8 @@ def draw_roc(out_dir, gt_dict):
     if na not in gt_dict:
       continue
 
+    print(fn)
+
     if gt_dict[na][0].lower() == 'true':
       true_lb = 1
     else:
@@ -43,6 +45,23 @@ def draw_roc(out_dir, gt_dict):
 
   print(sum(lb_list))
 
+  print(lb_list)
+  print(sc_list)
+
+  gt_pos = 0
+  cover_loss = 0
+
+  for x,y in zip(lb_list,sc_list):
+      #if x == 0 and y > 0:
+      #    print((x,y))
+      if x > 0:
+          gt_pos += 1
+          if y < 1-1e-3:
+              cover_loss += 1
+              print((x,y))
+  print(cover_loss/gt_pos)
+
+
   tpr, fpr, thr = roc_curve(lb_list,sc_list)
   print(fpr)
   print(tpr)
@@ -55,10 +74,13 @@ def draw_roc(out_dir, gt_dict):
 if __name__ == '__main__':
     rst = read_gt('/home/tdteach/data/trojai-round0-dataset/round0_train_gt.txt')
     nrst = dict()
+    ac_list = ['resnet','inception','densenet']
+    #ac_list = ['densenet']
     for key in rst:
-      nrst[key] = rst[key]
-      #if 'resnet' in rst[key][1]:
-      #  nrst[key] = rst[key]
+        for ac in ac_list:
+            if ac in rst[key][1]:
+                nrst[key] = rst[key]
+                break
     draw_roc('output', nrst)
 
 
