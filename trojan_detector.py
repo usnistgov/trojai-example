@@ -21,7 +21,7 @@ from neuron import NeuronAnalyzer
 
 ava_model_type = ['ResNet', 'DenseNet','Inception3']
 
-def build_data_loader(X,Y, batch_size=2):
+def build_data_loader(X,Y, batch_size=32):
     tensor_X = torch.Tensor(X)
     tensor_Y = torch.Tensor(Y)
     dataset = TensorDataset(tensor_X, tensor_Y)
