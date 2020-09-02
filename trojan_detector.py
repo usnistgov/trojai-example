@@ -9,19 +9,19 @@ import os
 import numpy as np
 import random
 import torch
-import torchvision.models
+#import torchvision.models
 import warnings
 warnings.filterwarnings("ignore")
 
 from torch.utils.data import TensorDataset, DataLoader
 
 import utils
-from NC_pytorch import Visualizer
+#from NC_pytorch import Visualizer
 from neuron import NeuronAnalyzer
 
 ava_model_type = ['ResNet', 'DenseNet','Inception3']
 
-def build_data_loader(X,Y, batch_size=2):
+def build_data_loader(X,Y, batch_size=32):
     tensor_X = torch.Tensor(X)
     tensor_Y = torch.Tensor(Y)
     dataset = TensorDataset(tensor_X, tensor_Y)
@@ -38,7 +38,6 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
 
     cat_batch = utils.read_example_images(examples_dirpath, example_img_format)
 
-
     num_classes=len(cat_batch)
     model = torch.load(model_filepath)
     analyzer = NeuronAnalyzer(model, num_classes)
@@ -53,11 +52,10 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     with open(result_filepath, 'w') as fh:
         fh.write("{}".format(trojan_probability))
 
-    model_name = model_filepath.split('/')[-2]
-    np.save(os.path.join('output/', model_name), np.asarray(sc))
+    #model_name = model_filepath.split('/')[-2]
+    #np.save(os.path.join('output/', model_name), np.asarray(sc))
 
     exit(0)
-
 
     #visualizer = Visualizer(model, init_cost=1e-3, lr=0.1, \
     #                        num_classes=num_classes, tmp_dir=scratch_dirpath)

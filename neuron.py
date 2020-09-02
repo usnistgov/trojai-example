@@ -16,7 +16,7 @@ from SCAn import *
 
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
-BATCH_SIZE = 2
+BATCH_SIZE = 32
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
 KEEP_DIM = 64
@@ -340,8 +340,9 @@ class NeuronAnalyzer:
                 output = output[0]
             ori = output.cpu()
             shape = ori.shape
+            ns = min(10, int(shape[2]*shape[3]*0.1))
             for z in range(shape[0]):
-                for i in range(10):
+                for i in range(ns):
                     x = np.random.randint(shape[2])
                     y = np.random.randint(shape[3])
                     ori[z,self.hook_param[1],x,y] = self.hook_param[2]
@@ -545,18 +546,17 @@ class NeuronAnalyzer:
                 if (abs(tv) < EPS):
                     continue
 
-                self.hook_param = (k,i,max_v*1)
+                self.hook_param = (k,i,max_v*1.0)
 
                 logits, preds = self._run_once_epoch(self.images)
 
                 pair = self._check_preds_backdoor(preds)
                 if pair is not None:
                     candi_list.append((self.hook_param, pair))
-            if (len(candi_list) > BATCH_SIZE):
+            if len(candi_list) > BATCH_SIZE:
                 break
 
         print(candi_list)
-
 
         self.register_representation_record_hook()
         self.reprs = list()
@@ -595,8 +595,6 @@ class NeuronAnalyzer:
             lc_model = dealer.build_local_model(pca.transform(reprs), labels, gb_model, self.n_classes)
             sc = dealer.calc_final_score(lc_model)
             sc_list.append(sc[pair[1]])
-            print(sc)
-
 
         return max(sc_list)
 
