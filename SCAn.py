@@ -143,13 +143,13 @@ class SCAn:
         subg = np.random.rand(N)
 
         if (N==1):
-            subg[1] = 0
+            subg[0] = 0
             return (subg, X.copy(), X.copy())
 
         if np.sum(subg >= 0.5) == 0:
-            subg[1] = 1
+            subg[0] = 1
         if np.sum(subg < 0.5) == 0:
-            subg[1] = 0
+            subg[0] = 0
         last_z1 = -np.ones(N)
 
         #EM
@@ -169,7 +169,7 @@ class SCAn:
             else:
                 u1 = np.mean(X[idx1], axis=0)
             if np.sum(idx2) == 1:
-                u1 = X[idx2]
+                u2 = X[idx2]
             else:
                 u2 = np.mean(X[idx2], axis=0)
 
@@ -184,7 +184,6 @@ class SCAn:
                     subg[i] = 0
 
         return (subg, u1, u2)
-
 
 
     def calc_test(self, X, Su, Se, F, subg, u1, u2):

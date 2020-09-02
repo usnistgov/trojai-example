@@ -303,7 +303,7 @@ class PredictingThread(threading.Thread):
 
 class NeuronAnalyzer:
     def __init__(self, model, n_classes=5):
-        self.model = model
+        self.model = model.cuda()
         self.model.eval()
 
         self.hook_activate = False
@@ -339,7 +339,12 @@ class NeuronAnalyzer:
             if type(output) is tuple:
                 output = output[0]
             ori = output.cpu()
-            ori[:,self.hook_param[1],:,:] = self.hook_param[2]
+            shape = ori.shape
+            for z in range(shape[0]):
+                for i in range(10):
+                    x = np.random.randint(shape[2])
+                    y = np.random.randint(shape[3])
+                    ori[z,self.hook_param[1],x,y] = self.hook_param[2]
             return ori.cuda()
         return hook
 
@@ -450,9 +455,10 @@ class NeuronAnalyzer:
         ct = [0]*self.n_classes
         for i in range(len(self.pred_init)):
             z = self.pred_init[i]
-            if ct[z] < 5:
+            if ct[z] < BATCH_SIZE:
                 trim_idx[i] = True
                 ct[z] += 1
+        print(ct)
         self.pred_init = self.pred_init[trim_idx]
         self.logits_init = self.logits_init[trim_idx]
         self.images = self.images[trim_idx]
@@ -539,13 +545,15 @@ class NeuronAnalyzer:
                 if (abs(tv) < EPS):
                     continue
 
-                self.hook_param = (k,i,max_v*2)
+                self.hook_param = (k,i,max_v*1)
 
                 logits, preds = self._run_once_epoch(self.images)
 
                 pair = self._check_preds_backdoor(preds)
                 if pair is not None:
                     candi_list.append((self.hook_param, pair))
+            if (len(candi_list) > BATCH_SIZE):
+                break
 
         print(candi_list)
 
@@ -571,10 +579,22 @@ class NeuronAnalyzer:
             pca = PCA(n_components=KEEP_DIM, svd_solver='full')
             pca.fit(reprs)
 
+            '''
+            a = pca.transform(good_repr)
+            np.save('gb_reprs', a)
+            b = self.preds_all
+            np.save('gb_labels',b)
+
+            a = pca.transform(reprs)
+            np.save('lc_reprs', a)
+            b = labels
+            np.save('lc_labels',b)
+            '''
+
             gb_model = dealer.build_global_model(pca.transform(good_repr), self.preds_all, self.n_classes)
             lc_model = dealer.build_local_model(pca.transform(reprs), labels, gb_model, self.n_classes)
             sc = dealer.calc_final_score(lc_model)
-            sc_list.append(max(sc))
+            sc_list.append(sc[pair[1]])
             print(sc)
 
 

@@ -1,42 +1,54 @@
 import os
+import csv
 import numpy as np
 from utils import mad_detection
 
 def read_gt(filepath):
-  rst = dict()
-  with open(filepath,'r') as f:
-    for l in f:
-      sl = l.split()
-      if len(sl) == 3:
-        rst[sl[0]] = (sl[1],sl[2])
+  rst = list()
+  with open(filepath,'r',newline='') as csvfile:
+    csvreader = csv.DictReader(csvfile)
+    for row in csvreader:
+      rst.append(row)
+  return rst
+
+
+def trim_gt(gt_csv, t_dict):
+  rst = list()
+  for row in gt_csv:
+    ok = True
+    for key in t_dict:
+      ok = False
+      for d in t_dict[key]:
+        if d in row[key]:
+          ok = True
+      if not ok:
+        break
+    if ok:
+      rst.append(row)
+  print(rst[0])
   return rst
 
 
 def draw_roc(out_dir, gt_dict):
-  lb_list = []
-  sc_list = []
+  lb_list = list()
+  sc_list = list()
 
-
-  files = os.listdir(out_dir)
-  for fn in files:
-    if not fn.endswith('.npy'):
-      continue
-
-    na = fn.split('.')[0]
-    if na not in gt_dict:
+  for row in gt_dict:
+    fn = row['model_name']
+    full_fn = os.path.join(out_dir,fn+'.npy')
+    if not os.path.exists(full_fn):
       continue
 
     print(fn)
 
-    if gt_dict[na][0].lower() == 'true':
-      true_lb = 1
+    lb = row['poisoned']
+    if lb.lower() == 'true':
+      lb_list.append(1)
     else:
-      true_lb = 0
+      lb_list.append(0)
 
-    raw_list = np.load(os.path.join(out_dir,fn))
+    raw_list = np.load(full_fn)
     score = np.min(raw_list)
-
-    lb_list.append(true_lb)
     sc_list.append(score)
 
 
@@ -72,16 +84,10 @@ def draw_roc(out_dir, gt_dict):
   plt.show()
 
 if __name__ == '__main__':
-    rst = read_gt('/home/tdteach/data/trojai-round0-dataset/round0_train_gt.txt')
-    nrst = dict()
+    gt_csv = read_gt('/home/tdteach/data/round2-dataset-train/METADATA.csv')
     ac_list = ['resnet','inception','densenet']
-    #ac_list = ['densenet']
-    for key in rst:
-        for ac in ac_list:
-            if ac in rst[key][1]:
-                nrst[key] = rst[key]
-                break
-    draw_roc('output', nrst)
+    rst_csv = trim_gt(gt_csv, {'model_architecture':ac_list})
+    draw_roc('output', rst_csv)
 
 
 

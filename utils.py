@@ -1,5 +1,5 @@
 import os
-import cv2
+import skimage.io
 import numpy as np
 
 def read_example_images(examples_dirpath, example_img_format='png'):
@@ -17,8 +17,12 @@ def read_example_images(examples_dirpath, example_img_format='png'):
     cat_imgs[key] = []
     for fn in cat_fns[key]:
       full_fn = os.path.join(examples_dirpath,fn)
-      img = cv2.imread(full_fn,cv2.IMREAD_UNCHANGED)
-      img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
+      img = skimage.io.imread(full_fn)
+
+      h,w,c = img.shape
+      dx = int((w-224)/2)
+      dy = int((w-224)/2)
+      img = img[dy:dy+224, dx:dx+224, :]
 
       img = np.transpose(img,(2,0,1)) # to CHW
       #img = np.expand_dims(img,0) # to NCHW
