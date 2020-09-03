@@ -8,7 +8,7 @@ dirs = os.listdir(folder_root)
 
 k = 0
 for d in dirs:
-  if 'id-00000001' not in d:  #Inception3 #trojaned #2048*5*5 = 51,200
+  if 'id-00000002' not in d:  #Inception3 #trojaned #2048*5*5 = 51,200
     continue
   model_filepath=os.path.join(folder_root, d, 'model.pt')
   examples_dirpath=os.path.join(folder_root, d, 'example_data')
