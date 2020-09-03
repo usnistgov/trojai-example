@@ -16,7 +16,7 @@ from SCAn import *
 
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
-BATCH_SIZE = 2
+BATCH_SIZE = 32
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
 KEEP_DIM = 64
@@ -302,7 +302,7 @@ class PredictingThread(threading.Thread):
 
 
 class NeuronAnalyzer:
-    def __init__(self, model, n_classes=5):
+    def __init__(self, model, n_classes):
         self.model = model.cuda()
         self.model.eval()
 
@@ -341,12 +341,15 @@ class NeuronAnalyzer:
                 output = output[0]
             ori = output.cpu()
             shape = ori.shape
-            ns = min(10, int(shape[2]*shape[3]*0.1))
+            ns = min(100, int(shape[2]*shape[3]*0.5))
+            #ori[:,self.hook_param[1],:,:] = self.hook_param[2]
+            #'''
             for z in range(1):
                 for i in range(ns):
                     x = np.random.randint(shape[2])
                     y = np.random.randint(shape[3])
                     ori[:,self.hook_param[1],x,y] = self.hook_param[2]
+            #'''
             return ori.cuda()
         return hook
 
@@ -376,9 +379,9 @@ class NeuronAnalyzer:
             self.outputs.append([])
             self.md_child.append(0)
 
-        self.record_hook_handles = list()
+        self.hook_handles = list()
         for k,md in enumerate(self.convs):
-            self.record_hook_handles.append(md.register_forward_hook(self.get_record_hook(k)))
+            self.hook_handles.append(md.register_forward_hook(self.get_record_hook(k)))
 
 
     def _init_densenet(self):
@@ -397,7 +400,30 @@ class NeuronAnalyzer:
 
         for k,c in enumerate(self.childs):
             print('{} : {}'.format(k, type(c).__name__))
-            self.record_hook_handles.append(c.register_forward_pre_hook(self.get_pre_hook(k)))
+            self.hook_handles.append(c.register_forward_pre_hook(self.get_pre_hook(k)))
+            self.child_inputs.append([])
+
+
+    def _init_squeezenet(self):
+        self._init_general_md()
+
+        self.child_inputs = list()
+        self.current_child = -1
+        childs = list(self.model.children())
+        self.childs = list()
+        for i in range(len(childs)):
+            _name = type(childs[i]).__name__
+            if _name == 'Sequential':
+                _chs = list(childs[i].children())
+                for ch in _chs:
+                    self.childs.append(ch)
+            else:
+                self.childs.append(childs[i])
+        self.childs.append(torch.nn.Flatten(1))
+
+        for k,c in enumerate(self.childs):
+            print('{} : {}'.format(k, type(c).__name__))
+            self.hook_handles.append(c.register_forward_pre_hook(self.get_pre_hook(k)))
             self.child_inputs.append([])
 
 
@@ -416,13 +442,18 @@ class NeuronAnalyzer:
                     self.childs.append(ch)
             else:
                 self.childs.append(childs[i])
-        self.childs.append(torch.nn.AdaptiveAvgPool2d((1,1)))
+        if type(self.childs[-1]).__name__ == 'Dropout' and type(self.childs[-2]).__name__ == 'AdaptiveAvgPool2d':
+            pass
+        elif type(self.childs[-1]).__name__ == 'AdaptiveAvgPool2d':
+            pass
+        else:
+            self.childs.append(torch.nn.AdaptiveAvgPool2d((1,1)))
         self.childs.append(torch.nn.Flatten(1))
         self.childs.append(childs[-1])
 
         for k,c in enumerate(self.childs):
             print('{} : {}'.format(k, type(c).__name__))
-            self.record_hook_handles.append(c.register_forward_pre_hook(self.get_pre_hook(k)))
+            self.hook_handles.append(c.register_forward_pre_hook(self.get_pre_hook(k)))
             self.child_inputs.append([])
 
 
@@ -536,7 +567,7 @@ class NeuronAnalyzer:
             if (len(self.child_inputs[i]) < 1): continue
             self.child_inputs[i] = np.concatenate(self.child_inputs[i])
 
-        for handle in self.record_hook_handles:
+        for handle in self.hook_handles:
             handle.remove()
 
 
@@ -568,6 +599,7 @@ class NeuronAnalyzer:
             model = self.model
         else:
             model = self._get_partial_model(st_child)
+        model.eval()
 
         tn = len(images_all)
         for st in range(0,tn, BATCH_SIZE):
@@ -617,7 +649,7 @@ class NeuronAnalyzer:
         candi_list = list()
         for k, md in enumerate(self.convs):
             shape = self.outputs[k].shape
-            print(shape)
+            print('Conv {}: {}'.format(k,shape))
             tn = shape[0]
             max_v = np.max(self.outputs[k])
             for i in range(shape[1]):
@@ -629,8 +661,8 @@ class NeuronAnalyzer:
                 self.hook_param = (k,i,max_v*1.0)
 
                 st_child = self.md_child[k]
-                #logits, preds = self._run_once_epoch(self.child_inputs[st_child], st_child)
-                logits, preds = self._run_once_epoch(self.images)
+                logits, preds = self._run_once_epoch(self.child_inputs[st_child], st_child)
+                #logits, preds = self._run_once_epoch(self.images)
 
                 '''
                 print(self.logits_init.shape)
@@ -643,16 +675,16 @@ class NeuronAnalyzer:
                 pair = self._check_preds_backdoor(preds)
                 if pair is not None:
                     candi_list.append((self.hook_param, pair))
-                if run_ct > 10000:
-                    break
-            if len(candi_list) > BATCH_SIZE:
+
+            print(len(candi_list))
+            if len(candi_list) > 1000:
                 break
             if run_ct > 10000:
                 break
 
         stop = timeit.default_timer()
+        print('Time used to select neuron: ', stop-start)
 
-        print('Time: ', stop-start)
         print(candi_list)
 
         self.register_representation_record_hook()
@@ -662,6 +694,8 @@ class NeuronAnalyzer:
 
         dealer = SCAn()
 
+        start = timeit.default_timer()
+
         sc_list = list()
         for param, pair in candi_list:
             select_idx = (self.preds_all == pair[0])
@@ -669,6 +703,13 @@ class NeuronAnalyzer:
             self.reprs = list()
             logits, preds = self._run_once_epoch(self.images_all[select_idx])
             pos_repr = np.concatenate(self.reprs)
+
+            att_acc = np.sum(preds==pair[1])
+            if att_acc < len(preds)-1:
+                sc_list.append(0)
+                continue
+
+            print(param, pair,att_acc/len(preds))
 
             reprs = np.concatenate([good_repr, pos_repr])
             labels = np.concatenate([self.preds_all, preds])
@@ -692,6 +733,9 @@ class NeuronAnalyzer:
             lc_model = dealer.build_local_model(pca.transform(reprs), labels, gb_model, self.n_classes)
             sc = dealer.calc_final_score(lc_model)
             sc_list.append(sc[pair[1]])
+
+        stop = timeit.default_timer()
+        print('Time used by SCAn: ', stop-start)
 
         if len(sc_list) == 0:
             return 0
