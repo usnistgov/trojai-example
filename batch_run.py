@@ -20,18 +20,10 @@ for d in dirs:
   #  continue
   #if 'id-00000000' not in d:  #densenet #benign
   #  continue
-  if 'id-00000002' not in d:  #resnet #benign
+  #if 'id-00000002' not in d:  #resnet #benign
+  #  continue
+  if 'id-00000414' not in d:  #resnet #trojaned
     continue
-  model_filepath=os.path.join(folder_root, d, 'model.pt')
-  examples_dirpath=os.path.join(folder_root, d, 'example_data')
-
-  cmmd = 'python3 trojan_detector.py --model_filepath='+model_filepath+' --examples_dirpath='+examples_dirpath
-
-  print(cmmd)
-  os.system(cmmd)
-
-  k = k+1
-  break
   model_filepath=os.path.join(folder_root, d, 'model.pt')
   examples_dirpath=os.path.join(folder_root, d, 'example_data')
 

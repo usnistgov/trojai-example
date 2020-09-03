@@ -16,7 +16,7 @@ from SCAn import *
 
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
 KEEP_DIM = 64
@@ -334,6 +334,8 @@ class NeuronAnalyzer:
 
 
     def get_modify_hook(self, k_layer):
+        lr = 0.1
+        rr = 0.5
         def hook(model, input, output):
             if k_layer != self.hook_param[0]:
                 return
@@ -341,7 +343,9 @@ class NeuronAnalyzer:
                 output = output[0]
             ori = output.cpu()
             shape = ori.shape
-            ns = min(100, int(shape[2]*shape[3]*0.5))
+            ratio = rr - (k_layer+1)/len(self.convs)*(rr-lr)
+
+            ns = min(500, int(shape[2]*shape[3]*ratio))
             #ori[:,self.hook_param[1],:,:] = self.hook_param[2]
             #'''
             for z in range(1):
@@ -635,6 +639,15 @@ class NeuronAnalyzer:
         return None
 
 
+    def score_to_prob(self, score):
+        print(score)
+        a = 1.0
+        b = -5
+        z = np.log(score)
+        w = np.tanh(a*z+b)
+        return w
+
+
     def analyse(self, dataloader):
         self.get_init_values(dataloader)
 
@@ -648,8 +661,9 @@ class NeuronAnalyzer:
         run_ct = 0
         candi_list = list()
         for k, md in enumerate(self.convs):
+            if k*2 > len(self.convs):
+                break
             shape = self.outputs[k].shape
-            print('Conv {}: {}'.format(k,shape))
             tn = shape[0]
             max_v = np.max(self.outputs[k])
             for i in range(shape[1]):
@@ -676,7 +690,7 @@ class NeuronAnalyzer:
                 if pair is not None:
                     candi_list.append((self.hook_param, pair))
 
-            print(len(candi_list))
+            print('Conv {}: {}, n candi: {}'.format(k,shape,len(candi_list)))
             if len(candi_list) > 1000:
                 break
             if run_ct > 10000:
@@ -740,7 +754,7 @@ class NeuronAnalyzer:
         if len(sc_list) == 0:
             return 0
 
-        return max(sc_list)
+        return self.score_to_prob(max(sc_list))
 
 
 def process_run(k, idx, init_x, init_y, pipes, n_classes):
