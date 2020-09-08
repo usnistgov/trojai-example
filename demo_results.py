@@ -32,6 +32,7 @@ def trim_gt(gt_csv, t_dict):
 def draw_roc(out_dir, gt_dict):
   lb_list = list()
   sc_list = list()
+  fn_list = list()
 
   for row in gt_dict:
     fn = row['model_name']
@@ -40,6 +41,7 @@ def draw_roc(out_dir, gt_dict):
       continue
 
     print(fn)
+    fn_list.append(fn)
 
     lb = row['poisoned']
     if lb.lower() == 'true':
@@ -61,17 +63,25 @@ def draw_roc(out_dir, gt_dict):
   print(sc_list)
 
   gt_pos = 0
-  cover_loss = 0
+  gt_neg = 0
+  f_neg = 0
+  f_pos = 0
 
-  for x,y in zip(lb_list,sc_list):
+  for fn,x,y in zip(fn_list,lb_list,sc_list):
       #if x == 0 and y > 0:
       #    print((x,y))
       if x > 0:
           gt_pos += 1
-          if y < 1-1e-3:
-              cover_loss += 1
-              print((x,y))
-  print(cover_loss/gt_pos)
+      else:
+          gt_neg += 1
+      if x > 0 and y < 0.5:
+          f_neg += 1
+          #print(fn, (x,y))
+      if x == 0 and y > 0.5:
+          f_pos += 1
+          print(fn, (x,y))
+  print('false negative rate (cover rate)', f_neg/gt_pos)
+  print('false positive rate', f_pos/gt_pos)
 
 
   tpr, fpr, thr = roc_curve(lb_list,sc_list)
@@ -85,8 +95,10 @@ def draw_roc(out_dir, gt_dict):
 
 if __name__ == '__main__':
     gt_csv = read_gt('/home/tdteach/data/round2-dataset-train/METADATA.csv')
-    ac_list = ['resnet','inception','densenet']
-    rst_csv = trim_gt(gt_csv, {'model_architecture':ac_list})
+    ac_list = ['resnet']
+    #ac_list = ['resnet','inception','densenet']
+    #rst_csv = trim_gt(gt_csv, {'model_architecture':ac_list})
+    rst_csv = trim_gt(gt_csv, {})
     draw_roc('output', rst_csv)
 
 

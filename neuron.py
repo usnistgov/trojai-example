@@ -305,6 +305,7 @@ class NeuronAnalyzer:
     def __init__(self, model, n_classes):
         self.model = model.cuda()
         self.model.eval()
+        torch.no_grad()
 
         self.hook_activate = False
 
@@ -341,13 +342,17 @@ class NeuronAnalyzer:
                 return
             if type(output) is tuple:
                 output = output[0]
-            ori = output.cpu()
+            #ori = output.cpu()
+            ori = output
             shape = ori.shape
             ratio = rr - (k_layer+1)/len(self.convs)*(rr-lr)
 
             ns = min(500, int(shape[2]*shape[3]*ratio))
+            mask = self.hook_param[3]
+
+            ori[:,self.hook_param[1],:,:] = ori[:,self.hook_param[1],:,:]*(1-mask)+mask*self.hook_param[2]
             #ori[:,self.hook_param[1],:,:] = self.hook_param[2]
-            #'''
+            '''
             for z in range(1):
                 for i in range(ns):
                     x = np.random.randint(shape[2])
@@ -373,6 +378,7 @@ class NeuronAnalyzer:
         self.convs = list()
         self.inputs = list()
         self.outputs = list()
+        self.conv_weights = list()
         self.md_child = list()
         for md in mds:
             na = type(md).__name__
@@ -381,6 +387,7 @@ class NeuronAnalyzer:
             self.convs.append(md)
             self.inputs.append([])
             self.outputs.append([])
+            self.conv_weights.append(md.weight.cpu().detach().numpy())
             self.md_child.append(0)
 
         self.hook_handles = list()
@@ -544,18 +551,6 @@ class NeuronAnalyzer:
         self.logits_all = self.logits_init
         self.images_all = self.images
 
-        trim_idx = self.pred_init<0
-        ct = [0]*self.n_classes
-        for i in range(len(self.pred_init)):
-            z = self.pred_init[i]
-            if ct[z] < 5:
-                trim_idx[i] = True
-                ct[z] += 1
-        print(ct)
-        self.pred_init = self.pred_init[trim_idx]
-        self.logits_init = self.logits_init[trim_idx]
-        self.images = self.images[trim_idx]
-
         init_f()
         self._run_once_epoch(self.images)
         print(self.md_child)
@@ -568,8 +563,32 @@ class NeuronAnalyzer:
         print('total channels '+str(out_channel_sum))
 
         for i in range(len(self.childs)):
-            if (len(self.child_inputs[i]) < 1): continue
+            if (len(self.child_inputs[i]) < 1):
+                continue
             self.child_inputs[i] = np.concatenate(self.child_inputs[i])
+
+
+        #trim samples
+        trim_idx = self.pred_init<0
+        ct = [0]*self.n_classes
+        for i in range(len(self.pred_init)):
+            z = self.pred_init[i]
+            if ct[z] < 5:
+                trim_idx[i] = True
+                ct[z] += 1
+        print(ct)
+        self.pred_init = self.pred_init[trim_idx]
+        self.logits_init = self.logits_init[trim_idx]
+        self.images = self.images[trim_idx]
+        #for i in range(len(self.inputs)):
+        #    self.inputs[i] = self.inputs[i][trim_idx]
+        #    self.outputs[i] = self.outputs[i][trim_idx]
+
+        for i in range(len(self.childs)):
+            if (len(self.child_inputs[i]) < 1):
+                continue
+            self.child_inputs[i] = self.child_inputs[i][trim_idx]
+
 
         for handle in self.hook_handles:
             handle.remove()
@@ -580,6 +599,8 @@ class NeuronAnalyzer:
         md = childs[-1]
 
         def hook(model, input, output):
+            if not self.record_reprs:
+                return
             if type(input) is tuple:
                 input = input[0]
             self.reprs.append(input.cpu().detach().numpy())
@@ -604,6 +625,7 @@ class NeuronAnalyzer:
         else:
             model = self._get_partial_model(st_child)
         model.eval()
+        torch.no_grad()
 
         tn = len(images_all)
         for st in range(0,tn, BATCH_SIZE):
@@ -635,8 +657,9 @@ class NeuronAnalyzer:
                 if i == j:
                     continue
                 if mat[i][j] > 0.9:
-                    return (i,j)
-        return None
+                    return (i,j), mat
+
+        return None, mat
 
 
     def score_to_prob(self, score):
@@ -645,7 +668,35 @@ class NeuronAnalyzer:
         b = -5
         z = np.log(score)
         w = np.tanh(a*z+b)
-        return w
+        w = w/2.0+0.5
+        return 1-w
+
+
+    def check_neuron(self, param, pair):
+        select_idx = (self.preds_all == pair[0])
+        self.hook_param = param
+
+        self.reprs = list()
+        self.record_reprs = True
+        logits, preds = self._run_once_epoch(self.images_all[select_idx])
+        self.record_reprs = False
+        pos_repr = np.concatenate(self.reprs)
+
+        att_acc = np.sum(preds==pair[1])
+        #print(param[0:2], pair,att_acc/len(preds))
+        #if att_acc < len(preds)-1:
+        #    return 0
+
+        reprs = np.concatenate([self.good_repr, pos_repr])
+        labels = np.concatenate([self.preds_all, preds])
+        pca = PCA(n_components=KEEP_DIM, svd_solver='full')
+        pca.fit(reprs)
+
+        gb_model = self.dealer.build_global_model(pca.transform(self.good_repr), self.preds_all, self.n_classes)
+        lc_model = self.dealer.build_local_model(pca.transform(reprs), labels, gb_model, self.n_classes)
+        sc = self.dealer.calc_final_score(lc_model)
+        print(param[0:2], pair,att_acc/len(preds), sc)
+        return sc[pair[1]]
 
 
     def analyse(self, dataloader):
@@ -655,24 +706,50 @@ class NeuronAnalyzer:
         for k,md in enumerate(self.convs):
             md.register_forward_hook(self.get_modify_hook(k))
 
+        self.record_reprs = True
+        self.register_representation_record_hook()
+        self.reprs = list()
+        self._run_once_epoch(self.images_all)
+        self.record_reprs = False
+        self.good_repr = np.concatenate(self.reprs)
 
         start = timeit.default_timer()
 
         run_ct = 0
         candi_list = list()
+        self.dealer = SCAn()
+        sc_list = list()
         for k, md in enumerate(self.convs):
             if k*2 > len(self.convs):
                 break
             shape = self.outputs[k].shape
             tn = shape[0]
             max_v = np.max(self.outputs[k])
+
+            this_candi = list()
             for i in range(shape[1]):
                 run_ct += 1
                 tv = np.max(self.outputs[k][:,i, :, :])
-                if (abs(tv) < EPS):
+
+                '''
+                max_in_theory = 0
+                for j in range(self.inputs[k].shape[1]):
+                    w = np.max(self.inputs[k][:,j,:,:])
+                    w = 1
+                    max_in_theory += w * np.sum(np.abs(self.conv_weights[k][i,j,:,:]))
+
+                #print(tv, max_in_theory, max_v)
+                '''
+
+                if (tv < EPS):
                     continue
 
-                self.hook_param = (k,i,max_v*1.0)
+                mask = np.random.rand(shape[2], shape[3])
+                ratio = min(0.5, 100/(shape[2]*shape[3]))
+                mask = mask<ratio
+                mask = mask.astype(np.float32)
+                mask_tensor = torch.from_numpy(mask)
+                self.hook_param = (k, i, max_v*1.0, mask_tensor.cuda())
 
                 st_child = self.md_child[k]
                 logits, preds = self._run_once_epoch(self.child_inputs[st_child], st_child)
@@ -686,70 +763,36 @@ class NeuronAnalyzer:
                 exit(0)
                 '''
 
-                pair = self._check_preds_backdoor(preds)
+                pair, mat = self._check_preds_backdoor(preds)
                 if pair is not None:
+                    #print(mat)
                     candi_list.append((self.hook_param, pair))
+                    this_candi.append((self.hook_param, pair))
 
+            for param, pair in this_candi:
+                sc_list.append(self.check_neuron(param, pair))
+
+            '''
+            mxv_list = list()
+            for tgt in range(self.n_classes):
+                idx = (self.preds_all==tgt)
+                z = np.max(self.outputs[k][idx], axis=(0,2,3))
+                mxv_list.append(z)
+
+            for param, pair in this_candi:
+                print(pair, (mxv_list[pair[1]][param[1]]/max_v, mxv_list[pair[0]][param[1]]/max_v))
             print('Conv {}: {}, n candi: {}'.format(k,shape,len(candi_list)))
-            if len(candi_list) > 1000:
+            '''
+
+            if len(sc_list) > 1000:
                 break
             if run_ct > 10000:
+                break
+            if k > 10:
                 break
 
         stop = timeit.default_timer()
         print('Time used to select neuron: ', stop-start)
-
-        print(candi_list)
-
-        self.register_representation_record_hook()
-        self.reprs = list()
-        self._run_once_epoch(self.images_all)
-        good_repr = np.concatenate(self.reprs)
-
-        dealer = SCAn()
-
-        start = timeit.default_timer()
-
-        sc_list = list()
-        for param, pair in candi_list:
-            select_idx = (self.preds_all == pair[0])
-            self.hook_param = param
-            self.reprs = list()
-            logits, preds = self._run_once_epoch(self.images_all[select_idx])
-            pos_repr = np.concatenate(self.reprs)
-
-            att_acc = np.sum(preds==pair[1])
-            if att_acc < len(preds)-1:
-                sc_list.append(0)
-                continue
-
-            print(param, pair,att_acc/len(preds))
-
-            reprs = np.concatenate([good_repr, pos_repr])
-            labels = np.concatenate([self.preds_all, preds])
-
-            pca = PCA(n_components=KEEP_DIM, svd_solver='full')
-            pca.fit(reprs)
-
-            '''
-            a = pca.transform(good_repr)
-            np.save('gb_reprs', a)
-            b = self.preds_all
-            np.save('gb_labels',b)
-
-            a = pca.transform(reprs)
-            np.save('lc_reprs', a)
-            b = labels
-            np.save('lc_labels',b)
-            '''
-
-            gb_model = dealer.build_global_model(pca.transform(good_repr), self.preds_all, self.n_classes)
-            lc_model = dealer.build_local_model(pca.transform(reprs), labels, gb_model, self.n_classes)
-            sc = dealer.calc_final_score(lc_model)
-            sc_list.append(sc[pair[1]])
-
-        stop = timeit.default_timer()
-        print('Time used by SCAn: ', stop-start)
 
         if len(sc_list) == 0:
             return 0
