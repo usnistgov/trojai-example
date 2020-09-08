@@ -16,7 +16,7 @@ from SCAn import *
 
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
 KEEP_DIM = 64
