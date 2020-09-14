@@ -1,4 +1,5 @@
 import os
+import csv
 
 home = os.environ['HOME']
 #folder_root = os.path.join(home,'data/trojai-round0-dataset')
@@ -6,31 +7,54 @@ home = os.environ['HOME']
 folder_root = os.path.join(home,'data/round2-dataset-train/')
 dirs = os.listdir(folder_root)
 
+
+id_arch = dict()
+
+def read_gt(filepath):
+    rst = list()
+    with open(filepath,'r',newline='') as csvfile:
+        csvreader = csv.DictReader(csvfile)
+        for row in csvreader:
+            rst.append(row)
+    return rst
+
+gt_path = '/home/tangdi/data/round2-dataset-train/METADATA.csv'
+gt_csv = read_gt(gt_path)
+for row in gt_csv:
+    id_arch[row['model_name']] = row['model_architecture']
+
 k = 0
-for d in dirs:
-  #if 'id-00000001' not in d:  #shufflenet #trojaned
-  #  continue
-  #if 'id-00000272' not in d:  #squeezenet #trojaned
-  #  continue
-  #if 'id-00000006' not in d:  #vgg #benign
-  #  continue
-  #if 'id-00000008' not in d:  #googlenet #trojaned
-  #  continue
-  #if 'id-00000024' not in d:  #mobilenet #trojaned
-  #  continue
-  #if 'id-00000000' not in d:  #densenet #benign
-  #  continue
-  #if 'id-00000002' not in d:  #resnet #benign
-  #  continue
-  if 'id-00000414' not in d:  #resnet #trojaned
+for i,d in enumerate(dirs):
+  if not os.path.isdir(os.path.join(folder_root,d)):
     continue
+  md_name = d.split('.')[0]
+
+  #if not md_name == 'id-00000046': #benign 
+  #    continue
+  #if not md_name == 'id-00000124': #trojaned
+  #    continue
+  if not md_name == 'id-00000899': #benign
+      continue
+  if id_arch[md_name] != 'resnet34':
+      continue
+
+
+  fn = d.split('.')[0]
+  num_str = fn.split('-')[1]
+  num = int(num_str)
   model_filepath=os.path.join(folder_root, d, 'model.pt')
   examples_dirpath=os.path.join(folder_root, d, 'example_data')
 
-  cmmd = 'python3 trojan_detector.py --model_filepath='+model_filepath+' --examples_dirpath='+examples_dirpath
-
-  print(cmmd)
-  os.system(cmmd)
+  cmmd = 'CUDA_VISIBLE_DEVICES=1 python3 trojan_detector.py --model_filepath='+model_filepath+' --examples_dirpath='+examples_dirpath
 
   k = k+1
-  break
+
+  #if k <= 6:
+  #    continue
+
+  print(k)
+  print('folder ',i)
+  print(cmmd)
+  os.system(cmmd)
+  #break
+

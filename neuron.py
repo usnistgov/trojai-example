@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import threading, queue
 import timeit
 import numpy as np
+import pickle
 from scipy.special import softmax
 from sklearn.decomposition import PCA
 
@@ -16,7 +17,7 @@ from SCAn import *
 
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
-BATCH_SIZE = 32
+BATCH_SIZE = 24
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
 KEEP_DIM = 64
@@ -36,6 +37,7 @@ class SingleNeuronAnalyzer:
 
         self.turn_x = list()
         self.turn_y = list()
+
 
     def _f(self, k, x):
         self.x_list.append(x)
@@ -92,7 +94,7 @@ class SingleNeuronAnalyzer:
 
 
     def find_bound(self, init_x, init_y, init_delta):
-        scale = 1.1
+        scale = 1.1 
         delta = init_delta
         ix, iy = init_x, init_y
         ok = False
@@ -317,9 +319,11 @@ class NeuronAnalyzer:
         self.n_classes = n_classes
 
         self.results = list()
-        #self.manager = MP.Manager()
 
-        self.output_queue = queue.Queue()
+        #self.manager = MP.Manager()
+        #self.output_queue = queue.Queue()
+
+        self.batch_size = BATCH_SIZE
 
 
     def get_record_hook(self, k_layer):
@@ -328,6 +332,8 @@ class NeuronAnalyzer:
                 input = input[0]
             if type(output) is tuple:
                 output = output[0]
+            if not self.record_conv:
+                return
             self.inputs[k_layer].append(input.cpu().detach().numpy())
             self.outputs[k_layer].append(output.cpu().detach().numpy())
             self.md_child[k_layer] = self.current_child
@@ -342,16 +348,26 @@ class NeuronAnalyzer:
                 return
             if type(output) is tuple:
                 output = output[0]
-            #ori = output.cpu()
-            ori = output
-            shape = ori.shape
-            ratio = rr - (k_layer+1)/len(self.convs)*(rr-lr)
 
-            ns = min(500, int(shape[2]*shape[3]*ratio))
+            chnn = self.hook_param[1]
+            v = self.hook_param[2]
             mask = self.hook_param[3]
 
-            ori[:,self.hook_param[1],:,:] = ori[:,self.hook_param[1],:,:]*(1-mask)+mask*self.hook_param[2]
-            #ori[:,self.hook_param[1],:,:] = self.hook_param[2]
+            #ori = output.cpu()
+            ori = output
+
+            #shape = ori.shape
+            #ratio = rr - (k_layer+1)/len(self.convs)*(rr-lr)
+            #ns = min(500, int(shape[2]*shape[3]*ratio))
+
+            #rep = self.poisoned_template[k_layer][0]
+            #rep = torch.from_numpy(rep)
+            #ori[:,:,:,:] = rep.cuda()
+
+            #mask = self.hook_param[3].cuda()
+            #ori[:,chnn,:,:] = ori[:,chnn,:,:]*(1-mask)+mask*v
+            ori[:,chnn,:,:] = v
+            #ori[:,chnn,:,:] = mask
             '''
             for z in range(1):
                 for i in range(ns):
@@ -368,6 +384,8 @@ class NeuronAnalyzer:
             self.current_child = k_layer
             if type(input) is tuple:
                 input = input[0]
+            if not self.record_child:
+                return 
             self.child_inputs[k_layer].append(input.cpu().detach().numpy())
         return hook
 
@@ -390,6 +408,7 @@ class NeuronAnalyzer:
             self.conv_weights.append(md.weight.cpu().detach().numpy())
             self.md_child.append(0)
 
+        self.record_conv = False
         self.hook_handles = list()
         for k,md in enumerate(self.convs):
             self.hook_handles.append(md.register_forward_hook(self.get_record_hook(k)))
@@ -409,8 +428,9 @@ class NeuronAnalyzer:
 
         self.childs.append(_childs[1])
 
+        self.record_child = False
         for k,c in enumerate(self.childs):
-            print('{} : {}'.format(k, type(c).__name__))
+            #print('{} : {}'.format(k, type(c).__name__))
             self.hook_handles.append(c.register_forward_pre_hook(self.get_pre_hook(k)))
             self.child_inputs.append([])
 
@@ -432,8 +452,9 @@ class NeuronAnalyzer:
                 self.childs.append(childs[i])
         self.childs.append(torch.nn.Flatten(1))
 
+        self.record_child = False
         for k,c in enumerate(self.childs):
-            print('{} : {}'.format(k, type(c).__name__))
+            #print('{} : {}'.format(k, type(c).__name__))
             self.hook_handles.append(c.register_forward_pre_hook(self.get_pre_hook(k)))
             self.child_inputs.append([])
 
@@ -462,8 +483,9 @@ class NeuronAnalyzer:
         self.childs.append(torch.nn.Flatten(1))
         self.childs.append(childs[-1])
 
+        self.record_child = False
         for k,c in enumerate(self.childs):
-            print('{} : {}'.format(k, type(c).__name__))
+            #print('{} : {}'.format(k, type(c).__name__))
             self.hook_handles.append(c.register_forward_pre_hook(self.get_pre_hook(k)))
             self.child_inputs.append([])
 
@@ -534,6 +556,8 @@ class NeuronAnalyzer:
             pred = np.argmax(logits,axis=1)
 
             correct_idx = (lbs==pred)
+            #correct_idx = (pred==pred)
+            #correct_idx = (pred==5)
             acc_ct += sum(correct_idx)
 
             self.pred_init.append(pred[correct_idx])
@@ -552,51 +576,152 @@ class NeuronAnalyzer:
         self.images_all = self.images
 
         init_f()
+        last_md = self.childs[-1]
+        if type(last_md).__name__ == 'Linear':
+            self.n_classes = last_md.out_features
+        else:
+            self.n_classes = self.convs[-1].out_channels
+        print('n_classes',self.n_classes)
+        if self.model_name == 'resnet' and self.convs[-1].in_channels > 1000 and len(self.convs) > 100:
+            self.batch_size //= 2 #wideresnet101
+        elif self.model_name == 'densenet' and len(self.convs) > 150:
+            self.batch_size //= 2 #densenet161
+
+        self.record_conv = True
+        self.record_child = False
         self._run_once_epoch(self.images)
         print(self.md_child)
 
+
+        '''
+        out_list = list()
+        for ot in self.outputs:
+            out_list.append(ot[0])
+        with open('poisoned_outputs_007.pkl','wb') as f:
+            pickle.dump(out_list, f)
+        exit(0)
+        #'''
+
+        with open('poisoned_outputs_007.pkl','rb') as f:
+            self.poisoned_template = pickle.load(f)
+
+
+        self.channel_max = list()
+        self.channel_min = list()
+        self.channel_std = list()
+        self.channel_mean = list()
+        self.tensor_max = list()
+        self.tensor_min = list()
+        self.tensor_mean = list()
         out_channel_sum = 0
-        for i in range(len(self.inputs)):
-            self.inputs[i] = np.concatenate(self.inputs[i])
-            self.outputs[i] = np.concatenate(self.outputs[i])
-            out_channel_sum += self.outputs[i].shape[1]
+        for i in range(len(self.outputs)):
+            ttmp = list()
+            mtmp = list()
+            ztmp = list()
+            for ot in self.outputs[i]:
+                tmat = np.max(ot,(2,3))
+                mmat = np.mean(ot,(2,3))
+                zmat = np.min(ot,(2,3))
+                ttmp.append(tmat)
+                mtmp.append(mmat)
+                ztmp.append(zmat)
+            ttmp = np.concatenate(ttmp)
+            mtmp = np.concatenate(mtmp)
+            ztmp = np.concatenate(ztmp)
+            self.channel_max.append(np.max(ttmp,0))
+            self.channel_min.append(np.min(ztmp,0))
+            self.channel_mean.append(np.mean(mtmp,0))
+
+            if i>=0:
+                nttmp = np.max(ttmp,axis=1)
+                #print(nttmp.shape)
+                sttmp = np.sort(nttmp)
+                nn = len(sttmp)
+                #print(sttmp[int(nn*0.95)])
+                #self.tensor_max.append(sttmp[int(nn*0.975)])
+
+            self.tensor_max.append(np.max(ttmp))
+            self.tensor_min.append(np.min(ztmp))
+            self.tensor_mean.append(np.mean(ttmp))
+            n_chnn = ttmp.shape[1]
+            out_channel_sum += n_chnn
+
+            '''
+            data_list = list()
+            for c in range(n_chnn):
+                data_list.append([])
+            for ot in self.outputs[i]:
+                for z in range(ot.shape[0]):
+                    for c in range(n_chnn):
+                        tmp = ot[z][c]
+                        data_list[c].append(tmp.flatten())
+            for c in range(n_chnn):
+                data_list[c] = np.concatenate(data_list[c])
+
+            self.channel_std.append([])
+            self.channel_mean.append([])
+            for c in range(n_chnn):
+                self.channel_std[i].append(np.std(data_list[c]))
+                self.channel_mean[i].append(np.mean(data_list[c]))
+            #'''
+
+            self.inputs[i] = []
+            self.outputs[i] = []
         print('total channels '+str(out_channel_sum))
 
-        for i in range(len(self.childs)):
-            if (len(self.child_inputs[i]) < 1):
-                continue
-            self.child_inputs[i] = np.concatenate(self.child_inputs[i])
 
+
+        '''
+        phase='poisoned'
+        with open(phase+'_mean.pkl','wb') as f:
+            pickle.dump(self.channel_mean, f)
+        with open(phase+'_std.pkl','wb') as f:
+            pickle.dump(self.channel_std, f)
+        with open(phase+'_max.pkl','wb') as f:
+            pickle.dump(self.channel_max, f)
+        with open(phase+'_min.pkl','wb') as f:
+            pickle.dump(self.channel_min, f)
+        exit(0)
+        #'''
 
         #trim samples
         trim_idx = self.pred_init<0
-        ct = [0]*self.n_classes
+        ct = [0]*(np.max(self.pred_init)+1)
         for i in range(len(self.pred_init)):
             z = self.pred_init[i]
             if ct[z] < 5:
                 trim_idx[i] = True
                 ct[z] += 1
-        print(ct)
+        print('examples count', ct)
         self.pred_init = self.pred_init[trim_idx]
         self.logits_init = self.logits_init[trim_idx]
         self.images = self.images[trim_idx]
-        #for i in range(len(self.inputs)):
-        #    self.inputs[i] = self.inputs[i][trim_idx]
-        #    self.outputs[i] = self.outputs[i][trim_idx]
 
+        self.record_conv = True
+        self.record_child = True
+        self._run_once_epoch(self.images)
+
+        for i in range(len(self.inputs)):
+            self.inputs[i] = np.concatenate(self.inputs[i])
+            self.outputs[i] = np.concatenate(self.outputs[i])
         for i in range(len(self.childs)):
             if (len(self.child_inputs[i]) < 1):
                 continue
-            self.child_inputs[i] = self.child_inputs[i][trim_idx]
-
+            self.child_inputs[i] = np.concatenate(self.child_inputs[i])
+            #print(i, self.child_inputs[i].shape)
 
         for handle in self.hook_handles:
             handle.remove()
+        self.record_conv = False
+        self.record_child = False
 
 
     def register_representation_record_hook(self):
         childs = list(self.model.children())
         md = childs[-1]
+        #if self.model_name == 'squeezenet':
+        #    md = self.childs[-2]
+        #    print(self.convs[-1])
 
         def hook(model, input, output):
             if not self.record_reprs:
@@ -628,8 +753,8 @@ class NeuronAnalyzer:
         torch.no_grad()
 
         tn = len(images_all)
-        for st in range(0,tn, BATCH_SIZE):
-            imgs = images_all[st:min(st+BATCH_SIZE,tn)]
+        for st in range(0,tn, self.batch_size):
+            imgs = images_all[st:min(st+self.batch_size,tn)]
             imgs_tensor = torch.from_numpy(imgs)
             y_tensor = model(imgs_tensor.cuda())
             y = y_tensor.cpu().detach().numpy()
@@ -652,24 +777,36 @@ class NeuronAnalyzer:
         for i in range(m):
             mat[i][:] /= np.sum(mat[i][:])
 
+        tgt = [0]*m
+        max_pair = None
+        max_prob = 0
         for i in range(m):
             for j in range(m):
                 if i == j:
                     continue
-                if mat[i][j] > 0.9:
-                    return (i,j), mat
+                if mat[i][j] < 0.9:
+                    continue
+                tgt[j] = max(tgt[j], mat[i][j])
+                if mat[i][j] > max_prob:
+                    max_pair = (i,j)
+                    max_prob = mat[i][j]
+
+        arg = np.argsort(tgt)
+        if tgt[arg[-1]] - tgt[arg[-2]] > 0.8:
+            return max_pair, mat
 
         return None, mat
 
 
     def score_to_prob(self, score):
+        return score
         print(score)
         a = 1.0
         b = -5
         z = np.log(score)
         w = np.tanh(a*z+b)
         w = w/2.0+0.5
-        return 1-w
+        return w
 
 
     def check_neuron(self, param, pair):
@@ -681,22 +818,60 @@ class NeuronAnalyzer:
         logits, preds = self._run_once_epoch(self.images_all[select_idx])
         self.record_reprs = False
         pos_repr = np.concatenate(self.reprs)
+        pos_repr = self.regular_features(pos_repr)
 
         att_acc = np.sum(preds==pair[1])
-        #print(param[0:2], pair,att_acc/len(preds))
-        #if att_acc < len(preds)-1:
-        #    return 0
+        if att_acc/len(preds) < 0.8:
+            return 0
 
         reprs = np.concatenate([self.good_repr, pos_repr])
         labels = np.concatenate([self.preds_all, preds])
-        pca = PCA(n_components=KEEP_DIM, svd_solver='full')
+
+        #'''
+        dim_keep = min(KEEP_DIM, len(reprs))
+        pca = PCA(n_components=dim_keep, svd_solver='full')
         pca.fit(reprs)
 
         gb_model = self.dealer.build_global_model(pca.transform(self.good_repr), self.preds_all, self.n_classes)
         lc_model = self.dealer.build_local_model(pca.transform(reprs), labels, gb_model, self.n_classes)
+        #'''
+
+        #gb_model = self.dealer.build_global_model(self.good_repr, self.preds_all, self.n_classes)
+        #lc_model = self.dealer.build_local_model(reprs, labels, gb_model, self.n_classes)
+
         sc = self.dealer.calc_final_score(lc_model)
-        print(param[0:2], pair,att_acc/len(preds), sc)
+        if np.argmax(sc) != pair[1]:
+            return 0
+
+        print(param[0:3], pair,att_acc/len(preds), self.channel_max[param[0]][param[1]]/param[2])
         return sc[pair[1]]
+
+
+    def regular_features(self, fe):
+        shape = fe.shape
+        if len(shape) > 2:
+            fe = np.average(fe,axis=(2,3))
+        return fe
+
+
+    def test_one_channel(self, k, i, try_v, shape, candi_list):
+        mask = np.random.rand(shape[2], shape[3])
+        ratio = min(0.5, 500/(shape[2]*shape[3]))
+        ratio = 0.5
+        mask = mask<ratio
+        mask = mask.astype(np.float32)
+
+        #mask = self.poisoned_template[k][0][i]
+
+        mask_tensor = torch.from_numpy(mask)
+        self.hook_param = (k, i, try_v, mask_tensor)
+
+        st_child = self.md_child[k]
+        logits, preds = self._run_once_epoch(self.child_inputs[st_child], st_child)
+
+        pair, mat = self._check_preds_backdoor(preds)
+        if pair is not None:
+            candi_list.append((self.hook_param, pair))
 
 
     def analyse(self, dataloader):
@@ -712,24 +887,50 @@ class NeuronAnalyzer:
         self._run_once_epoch(self.images_all)
         self.record_reprs = False
         self.good_repr = np.concatenate(self.reprs)
+        self.good_repr = self.regular_features(self.good_repr)
 
         start = timeit.default_timer()
 
         run_ct = 0
-        candi_list = list()
         self.dealer = SCAn()
         sc_list = list()
+        n_conv = len(self.convs)
+
+
+        tgt_ct = [0]*self.n_classes
+        tgt_list = list()
+
+        layer_candi = None
+        if self.model_name == 'googlenet':
+            layer_candi = [8,12,20]
         for k, md in enumerate(self.convs):
-            if k*2 > len(self.convs):
-                break
+            #if k > 10:
+            #    continue
+           
+            #if k < 5:
+            #if n_conv-7 <= k and k < n_conv:
+            #if 8 == k or 12 == k or 20 == k: # for googlenet [8,12,20] * 1, %83
+            #    pass
+            #else:
+            #    continue
+            if layer_candi is not None and not k in layer_candi:
+                continue
+
             shape = self.outputs[k].shape
-            tn = shape[0]
-            max_v = np.max(self.outputs[k])
+            tmax = self.tensor_max[k]
+            tmean = self.tensor_mean[k]
+            print('conv: ', k, shape, tmax, tmean)
+
+            if tmean*10 < tmax:
+                test_v = tmax*1.0
+            else:
+                test_v = tmax*2.0
+
 
             this_candi = list()
             for i in range(shape[1]):
                 run_ct += 1
-                tv = np.max(self.outputs[k][:,i, :, :])
+                tv = self.channel_max[k][i]
 
                 '''
                 max_in_theory = 0
@@ -741,36 +942,25 @@ class NeuronAnalyzer:
                 #print(tv, max_in_theory, max_v)
                 '''
 
-                if (tv < EPS):
+                if tv < EPS or tv > self.tensor_mean[k]:
                     continue
 
-                mask = np.random.rand(shape[2], shape[3])
-                ratio = min(0.5, 100/(shape[2]*shape[3]))
-                mask = mask<ratio
-                mask = mask.astype(np.float32)
-                mask_tensor = torch.from_numpy(mask)
-                self.hook_param = (k, i, max_v*1.0, mask_tensor.cuda())
+                #if (tv/test_v > 0.1):
+                #    continue
 
-                st_child = self.md_child[k]
-                logits, preds = self._run_once_epoch(self.child_inputs[st_child], st_child)
-                #logits, preds = self._run_once_epoch(self.images)
+                self.test_one_channel(k,i, test_v, shape, this_candi)
+                #self.test_one_channel(k,i,self.tensor_max[k]*-2.0,shape, this_candi)
+                #self.test_one_channel(k,i,self.tensor_min[k]*1.0,shape, this_candi)
+                #self.test_one_channel(k,i,self.tensor_min[k]*-1.0,shape, this_candi)
 
-                '''
-                print(self.logits_init.shape)
-                print(logits.shape)
-                print(self.logits_init[0])
-                print(logits[0])
-                exit(0)
-                '''
-
-                pair, mat = self._check_preds_backdoor(preds)
-                if pair is not None:
-                    #print(mat)
-                    candi_list.append((self.hook_param, pair))
-                    this_candi.append((self.hook_param, pair))
 
             for param, pair in this_candi:
-                sc_list.append(self.check_neuron(param, pair))
+                sc = self.check_neuron(param,pair)
+                if sc < EPS:
+                    continue
+                tgt_ct[pair[1]] += 1
+                tgt_list.append(pair[1])
+                sc_list.append(sc)
 
             '''
             mxv_list = list()
@@ -784,20 +974,24 @@ class NeuronAnalyzer:
             print('Conv {}: {}, n candi: {}'.format(k,shape,len(candi_list)))
             '''
 
-            if len(sc_list) > 1000:
-                break
-            if run_ct > 10000:
-                break
-            if k > 10:
-                break
-
         stop = timeit.default_timer()
         print('Time used to select neuron: ', stop-start)
 
         if len(sc_list) == 0:
             return 0
+        tgt_ct /= np.sum(tgt_ct)
+        print(tgt_ct)
+        sorted_tgt = np.sort(tgt_ct)
+        if sorted_tgt[-1]-sorted_tgt[-2] < 0.1:
+            return 0
+        tgt_lb = np.argmax(tgt_ct)
+        tgt_list = np.asarray(tgt_list)
+        tgt_idx = (tgt_list==tgt_lb)
 
-        return self.score_to_prob(max(sc_list))
+        sc_list = np.asarray(sc_list)
+        rst_list = sc_list[tgt_idx]
+
+        return self.score_to_prob(np.max(rst_list))
 
 
 def process_run(k, idx, init_x, init_y, pipes, n_classes):
