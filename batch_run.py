@@ -18,7 +18,8 @@ def read_gt(filepath):
             rst.append(row)
     return rst
 
-gt_path = '/home/tangdi/data/round2-dataset-train/METADATA.csv'
+home = os.getenv('HOME')
+gt_path = os.path.join(home,'data/round2-dataset-train/METADATA.csv')
 gt_csv = read_gt(gt_path)
 for row in gt_csv:
     id_arch[row['model_name']] = row['model_architecture']
@@ -29,13 +30,13 @@ for i,d in enumerate(dirs):
     continue
   md_name = d.split('.')[0]
 
-  #if not md_name == 'id-00000046': #benign 
+  #if not md_name == 'id-00000046': #benign
   #    continue
   #if not md_name == 'id-00000124': #trojaned
   #    continue
-  if not md_name == 'id-00000899': #benign
-      continue
-  if id_arch[md_name] != 'resnet34':
+  #if not md_name == 'id-00000204': #benign
+  #    continue
+  if id_arch[md_name] != 'resnet18':
       continue
 
 
@@ -45,7 +46,7 @@ for i,d in enumerate(dirs):
   model_filepath=os.path.join(folder_root, d, 'model.pt')
   examples_dirpath=os.path.join(folder_root, d, 'example_data')
 
-  cmmd = 'CUDA_VISIBLE_DEVICES=1 python3 trojan_detector.py --model_filepath='+model_filepath+' --examples_dirpath='+examples_dirpath
+  cmmd = 'CUDA_VISIBLE_DEVICES=0 python3 trojan_detector.py --model_filepath='+model_filepath+' --examples_dirpath='+examples_dirpath
 
   k = k+1
 

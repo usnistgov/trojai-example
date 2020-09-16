@@ -6,6 +6,7 @@ From: pytorch/pytorch:latest
     ./neuron.py /
     ./SCAn.py /
     ./utils.py /
+    ./pytorch_ssim.py /
 
 %post
     /opt/conda/bin/conda install scikit-image

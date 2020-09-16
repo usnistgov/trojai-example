@@ -5,7 +5,6 @@ from utils import mad_detection
 import sklearn.metrics
 
 
-
 def gen_confusion_matrix(targets, predictions):
     targets = np.asarray(targets)
     predictions = np.asarray(predictions)
@@ -45,8 +44,6 @@ def gen_confusion_matrix(targets, predictions):
     FPR = np.asarray(FPR).reshape(-1)
     thresholds = np.asarray(thresholds).reshape(-1)
     return TP_counts, FP_counts, FN_counts, TN_counts, TPR, FPR, thresholds
-
-
 
 
 def read_gt(filepath):
@@ -167,21 +164,21 @@ def draw_roc(out_dir, gt_dict):
   #plt.figure()
   #plt.plot(FPR,TPR)
   #plt.show()
-  exit(0)
+  #exit(0)
 
   tpr, fpr, thr = roc_curve(lb_list,sc_list)
-  print(fpr)
-  print(tpr)
-  print(thr)
+  #print(fpr)
+  #print(tpr)
+  #print(thr)
   print(auc(fpr,tpr))
-  plt.figure()
-  plt.plot(fpr,tpr)
-  plt.show()
+  #plt.figure()
+  #plt.plot(fpr,tpr)
+  #plt.show()
 
 if __name__ == '__main__':
     gt_csv = read_gt('/home/tdteach/data/round2-dataset-train/METADATA.csv')
-    #ac_list = ['inceptionv3']
-    ac_list = ['resnet34']
+    ac_list = ['googlenet']
+    #ac_list = ['resnet34']
     #ac_list = ['resnet','inception','densenet']
     rst_csv = trim_gt(gt_csv, {'model_architecture':ac_list})
     #rst_csv = trim_gt(gt_csv, {})

@@ -14,10 +14,13 @@ from sklearn.decomposition import PCA
 #import multiprocessing as MP
 
 from SCAn import *
+import pytorch_ssim
+
+from torch.autograd import Variable
 
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
-BATCH_SIZE = 24
+BATCH_SIZE = 16
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
 KEEP_DIM = 64
@@ -94,7 +97,7 @@ class SingleNeuronAnalyzer:
 
 
     def find_bound(self, init_x, init_y, init_delta):
-        scale = 1.1 
+        scale = 1.1
         delta = init_delta
         ix, iy = init_x, init_y
         ok = False
@@ -307,7 +310,7 @@ class NeuronAnalyzer:
     def __init__(self, model, n_classes):
         self.model = model.cuda()
         self.model.eval()
-        torch.no_grad()
+        #torch.no_grad()
 
         self.hook_activate = False
 
@@ -385,7 +388,7 @@ class NeuronAnalyzer:
             if type(input) is tuple:
                 input = input[0]
             if not self.record_child:
-                return 
+                return
             self.child_inputs[k_layer].append(input.cpu().detach().numpy())
         return hook
 
@@ -602,8 +605,8 @@ class NeuronAnalyzer:
         exit(0)
         #'''
 
-        with open('poisoned_outputs_007.pkl','rb') as f:
-            self.poisoned_template = pickle.load(f)
+        #with open('poisoned_outputs_007.pkl','rb') as f:
+        #    self.poisoned_template = pickle.load(f)
 
 
         self.channel_max = list()
@@ -614,6 +617,7 @@ class NeuronAnalyzer:
         self.tensor_min = list()
         self.tensor_mean = list()
         out_channel_sum = 0
+        self.channel_in_max = list()
         for i in range(len(self.outputs)):
             ttmp = list()
             mtmp = list()
@@ -632,19 +636,18 @@ class NeuronAnalyzer:
             self.channel_min.append(np.min(ztmp,0))
             self.channel_mean.append(np.mean(mtmp,0))
 
-            if i>=0:
-                nttmp = np.max(ttmp,axis=1)
-                #print(nttmp.shape)
-                sttmp = np.sort(nttmp)
-                nn = len(sttmp)
-                #print(sttmp[int(nn*0.95)])
-                #self.tensor_max.append(sttmp[int(nn*0.975)])
-
             self.tensor_max.append(np.max(ttmp))
             self.tensor_min.append(np.min(ztmp))
-            self.tensor_mean.append(np.mean(ttmp))
+            self.tensor_mean.append(np.mean(np.max(ttmp,1)))
             n_chnn = ttmp.shape[1]
             out_channel_sum += n_chnn
+
+            itmp = list()
+            for it in self.inputs[i]:
+                imat = np.max(it,(2,3))
+                itmp.append(imat)
+            itmp = np.concatenate(itmp)
+            self.channel_in_max.append(np.max(itmp,0))
 
             '''
             data_list = list()
@@ -733,9 +736,11 @@ class NeuronAnalyzer:
         md.register_forward_hook(hook)
 
 
-    def _get_partial_model(self, st_child):
+    def _get_partial_model(self, st_child, ed_child=None):
+        if ed_child is None:
+            ed_child = len(self.childs)
         childs = list()
-        for k in range(st_child, len(self.childs)):
+        for k in range(st_child, ed_child):
             childs.append(self.childs[k])
         model = torch.nn.Sequential(*childs)
         return model
@@ -749,8 +754,9 @@ class NeuronAnalyzer:
             model = self.model
         else:
             model = self._get_partial_model(st_child)
+
         model.eval()
-        torch.no_grad()
+        #torch.no_grad()
 
         tn = len(images_all)
         for st in range(0,tn, self.batch_size):
@@ -799,14 +805,13 @@ class NeuronAnalyzer:
 
 
     def score_to_prob(self, score):
-        return score
         print(score)
         a = 1.0
         b = -5
         z = np.log(score)
         w = np.tanh(a*z+b)
         w = w/2.0+0.5
-        return w
+        return max(EPS, w)
 
 
     def check_neuron(self, param, pair):
@@ -861,8 +866,6 @@ class NeuronAnalyzer:
         mask = mask<ratio
         mask = mask.astype(np.float32)
 
-        #mask = self.poisoned_template[k][0][i]
-
         mask_tensor = torch.from_numpy(mask)
         self.hook_param = (k, i, try_v, mask_tensor)
 
@@ -872,6 +875,27 @@ class NeuronAnalyzer:
         pair, mat = self._check_preds_backdoor(preds)
         if pair is not None:
             candi_list.append((self.hook_param, pair))
+
+
+    def reverse_trigger(self, param, pair):
+        k, i, try_v, _ = param
+        u, v = pair
+
+        idx = (self.preds_all==u)
+        images = self.images_all[idx]
+
+        ed_child = self.md_child[k]+1
+        model = self._get_partial_model(st_child=0, ed_child=ed_child)
+        model.eval()
+
+        reverser = Reverser(model, param)
+        poisoned_images = reverser.reverse(images)
+
+        self.hook_param = param
+        logits, preds = self._run_once_epoch(poisoned_images)
+
+        att_acc = np.sum(preds==v)/len(poisoned_images)
+        return att_acc, poisoned_images
 
 
     def analyse(self, dataloader):
@@ -896,23 +920,16 @@ class NeuronAnalyzer:
         sc_list = list()
         n_conv = len(self.convs)
 
-
         tgt_ct = [0]*self.n_classes
         tgt_list = list()
+        candi_list = list()
 
         layer_candi = None
         if self.model_name == 'googlenet':
             layer_candi = [8,12,20]
+
+
         for k, md in enumerate(self.convs):
-            #if k > 10:
-            #    continue
-           
-            #if k < 5:
-            #if n_conv-7 <= k and k < n_conv:
-            #if 8 == k or 12 == k or 20 == k: # for googlenet [8,12,20] * 1, %83
-            #    pass
-            #else:
-            #    continue
             if layer_candi is not None and not k in layer_candi:
                 continue
 
@@ -926,33 +943,24 @@ class NeuronAnalyzer:
             else:
                 test_v = tmax*2.0
 
+            for p in self.convs[k].parameters():
+                weights = p.cpu().detach().numpy()
+                break
+            weights = np.abs(weights)
+            weights_sum = np.sum(weights,(2,3))
+            o_max = np.matmul(weights_sum, self.channel_in_max[k])
 
             this_candi = list()
             for i in range(shape[1]):
                 run_ct += 1
                 tv = self.channel_max[k][i]
 
-                '''
-                max_in_theory = 0
-                for j in range(self.inputs[k].shape[1]):
-                    w = np.max(self.inputs[k][:,j,:,:])
-                    w = 1
-                    max_in_theory += w * np.sum(np.abs(self.conv_weights[k][i,j,:,:]))
-
-                #print(tv, max_in_theory, max_v)
-                '''
-
-                if tv < EPS or tv > self.tensor_mean[k]:
+                if tv > self.tensor_mean[k]:
                     continue
 
-                #if (tv/test_v > 0.1):
-                #    continue
+                test_v = o_max[i]*1.0
 
                 self.test_one_channel(k,i, test_v, shape, this_candi)
-                #self.test_one_channel(k,i,self.tensor_max[k]*-2.0,shape, this_candi)
-                #self.test_one_channel(k,i,self.tensor_min[k]*1.0,shape, this_candi)
-                #self.test_one_channel(k,i,self.tensor_min[k]*-1.0,shape, this_candi)
-
 
             for param, pair in this_candi:
                 sc = self.check_neuron(param,pair)
@@ -961,37 +969,203 @@ class NeuronAnalyzer:
                 tgt_ct[pair[1]] += 1
                 tgt_list.append(pair[1])
                 sc_list.append(sc)
+                candi_list.append((param, pair))
 
-            '''
-            mxv_list = list()
-            for tgt in range(self.n_classes):
-                idx = (self.preds_all==tgt)
-                z = np.max(self.outputs[k][idx], axis=(0,2,3))
-                mxv_list.append(z)
+            break
 
-            for param, pair in this_candi:
-                print(pair, (mxv_list[pair[1]][param[1]]/max_v, mxv_list[pair[0]][param[1]]/max_v))
-            print('Conv {}: {}, n candi: {}'.format(k,shape,len(candi_list)))
-            '''
 
         stop = timeit.default_timer()
         print('Time used to select neuron: ', stop-start)
 
         if len(sc_list) == 0:
-            return 0
+            return EPS
         tgt_ct /= np.sum(tgt_ct)
         print(tgt_ct)
         sorted_tgt = np.sort(tgt_ct)
         if sorted_tgt[-1]-sorted_tgt[-2] < 0.1:
-            return 0
+            return EPS
         tgt_lb = np.argmax(tgt_ct)
-        tgt_list = np.asarray(tgt_list)
-        tgt_idx = (tgt_list==tgt_lb)
 
-        sc_list = np.asarray(sc_list)
-        rst_list = sc_list[tgt_idx]
 
-        return self.score_to_prob(np.max(rst_list))
+
+        _sc_list = list()
+        _candi_list = list()
+        for tgt, sc, candi in zip(tgt_list, sc_list, candi_list):
+            if tgt != tgt_lb:
+                continue
+            _sc_list.append(sc)
+            _candi_list.append(candi)
+
+        max_id = np.argmax(_sc_list)
+        param, pair = _candi_list[max_id]
+        #att_acc, poisoned_images = self.reverse_trigger(param, pair)
+        #print('recovered trigger attack acc: ', att_acc)
+
+        return self.score_to_prob(np.max(_sc_list))
+
+
+class Reverser:
+    def __init__(self, model, param):
+        self.model = model
+        self.param = param
+        self.layer_k, self.channel_i, self.try_v, _ = param
+
+        self.convs = list()
+        mds = list(self.model.modules())
+        for md in mds:
+            na = type(md).__name__
+            if na != 'Conv2d':
+                continue
+            self.convs.append(md)
+        self.hook_handle = self.convs[self.layer_k].register_forward_hook(self.get_hook())
+
+        self.ssim_loss_fn = pytorch_ssim.SSIM()
+
+        self.epsilon = 1e-6
+        self.keep_ratio = 0
+        self.init_lr = 1.0
+
+
+    def get_hook(self):
+        def hook(model, input, output):
+            if type(output) is tuple:
+                output = output[0]
+            self.current_output = output
+        return hook
+
+
+    def forward(self, input_tensor):
+        self.x_adv_tensor = (self.reverse_mask_tensor * input_tensor +
+                        self.mask_tensor * self.pattern_tensor)
+
+        self.model(self.x_adv_tensor)
+
+        output_tensor = self.current_output
+
+        masked_output = output_tensor * self.reverse_channel_mask_tensor
+        masked_init_output = self.init_output_tensor * self.reverse_channel_mask_tensor
+        self.keep_loss = F.mse_loss(masked_output, masked_init_output)
+
+        channel_output = (self.try_v-output_tensor) * self.channel_mask_tensor
+        channel_loss = torch.sum(F.relu(channel_output), (1,2,3))
+        self.channel_loss = torch.mean(channel_loss)
+
+        self.mask_loss = torch.sum(torch.abs(self.mask_tensor)) / self.image_channel
+
+        self.ssim_loss = self.ssim_loss_fn(self.x_adv_tensor, self.init_image_tensor)
+
+        #self.loss = self.keep_loss + self.channel_loss + self.mask_loss - self.ssim_loss
+        self.loss = self.keep_ratio * self.keep_loss + self.channel_loss
+
+        return self.keep_loss.cpu().detach().numpy(), \
+               self.channel_loss.cpu().detach().numpy(), \
+               self.mask_loss.cpu().detach().numpy(), \
+               self.ssim_loss.cpu().detach().numpy()
+
+
+    def backward(self):
+        self.opt.zero_grad()
+        self.loss.backward()
+        self.opt.step()
+        self._upd_trigger()
+
+
+    def _upd_trigger(self):
+        mask_tensor_unrepeat = (torch.tanh(self.mask_tanh_tensor.cuda()) / 2 + 0.5)
+        mask_tensor_unexpand = mask_tensor_unrepeat.repeat(self.image_shape[0],1,1)
+        self.mask_tensor = mask_tensor_unexpand.unsqueeze(0)
+        self.reverse_mask_tensor = (torch.ones_like(self.mask_tensor.cuda()) - self.mask_tensor)
+
+        self.pattern_tensor = (torch.tanh(self.pattern_tanh_tensor.cuda()) / 2 + 0.5)
+        self.pattern_tensor = self.pattern_tensor.unsqueeze(0)
+
+
+    def reverse(self, images):
+        self.image_shape = images.shape[1:]
+        self.image_channel = self.image_shape[0]
+
+        mask = np.zeros(self.image_shape[1:], dtype=np.float32)
+        pattern = np.zeros(self.image_shape, dtype=np.float32)
+
+        mask_tanh = np.zeros_like(mask)
+        pattern_tanh = np.zeros_like(pattern)
+        #pattern_tanh = np.arctanh((images-0.5)*2-self.epsilon)
+
+        self.mask_tanh_tensor = Variable(torch.from_numpy(mask_tanh), requires_grad=True)
+        self.pattern_tanh_tensor = Variable(torch.from_numpy(pattern_tanh), requires_grad=True)
+
+        self._upd_trigger()
+        self.opt = torch.optim.Adam([self.pattern_tanh_tensor, self.mask_tanh_tensor], lr=self.init_lr, betas=(0.5,0.9))
+        #self.opt = torch.optim.SGD([self.pattern_tanh_tensor, self.mask_tanh_tensor], lr=self.init_lr, momentum=0.9)
+
+        self.init_image_tensor = torch.from_numpy(images).cuda()
+        self.model(self.init_image_tensor)
+        init_output = self.current_output.cpu().detach().numpy()
+        self.init_output_tensor = torch.from_numpy(init_output).cuda()
+
+        channel_mask = np.zeros(init_output.shape[1:])
+        channel_mask[self.channel_i] = 1.0
+        reverse_channel_mask = np.ones(init_output.shape[1:])-channel_mask
+
+        self.channel_mask_tensor = torch.from_numpy(channel_mask).cuda()
+        self.reverse_channel_mask_tensor = torch.from_numpy(reverse_channel_mask).cuda()
+
+
+        keep_loss, channel_loss, mask_loss, ssim_loss = self.forward(self.init_image_tensor)
+        print('initial: keep_loss: {}, channel_loss: {}, mask_loss: {}, ssim_loss: {}'.format(keep_loss, channel_loss, mask_loss, ssim_loss))
+
+
+        ratio_set_counter = 0
+        ratio_up_counter = 0
+        ratio_down_counter = 0
+        patience_iters = 5
+        self.init_ratio = 1.0
+        self.ratio_up_multiplier = 1.1
+
+        best_images = None
+        best_keep_loss = float('inf')
+        best_channel_loss = float('inf')
+
+        self.keep_ratio = 0
+        max_steps = 100
+        for step in range(max_steps):
+            self.backward()
+            keep_loss, channel_loss, mask_loss, ssim_loss = self.forward(self.init_image_tensor)
+
+            print('step {}: keep_loss: {}, channel_loss: {}, mask_loss: {}, ssim_loss: {}'.format(step, keep_loss, channel_loss, mask_loss, ssim_loss))
+
+            if channel_loss < EPS and keep_loss < best_keep_loss:
+                best_images = self.x_adv_tensor.cpu().detach().numpy()
+                best_keep_loss = keep_loss
+            elif channel_loss < best_channel_loss:
+                best_channel_loss = channel_loss
+                best_images = self.x_adv_tensor.cpu().detach().numpy()
+
+            if self.keep_ratio == 0 and channel_loss < EPS:
+                ratio_set_counter += 1
+                if ratio_set_counter >= patience_iters:
+                    self.keep_ratio = self.init_ratio
+                    print('init ratio to %.2E'%Decimal(self.keep_ratio))
+            else:
+                ratio_set_counter = 0
+                self.keep_ratio = 1.0
+
+            if channel_loss < EPS:
+                ratio_up_counter += 1
+                ratio_down_counter = 0
+            else:
+                ratio_up_counter = 0
+                ratio_down_counter += 1
+
+            if ratio_up_counter >= patience_iters:
+                ratio_up_counter = 0
+                self.keep_ratio *= self.ratio_up_multiplier
+            elif ratio_down_counter >= patience_iters:
+                ratio_down_counter = 0
+                self.keep_ratio /= self.ratio_up_multiplier
+
+        return best_images
+
 
 
 def process_run(k, idx, init_x, init_y, pipes, n_classes):
