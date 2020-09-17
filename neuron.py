@@ -17,6 +17,8 @@ from SCAn import *
 import pytorch_ssim
 
 from torch.autograd import Variable
+from decimal import Decimal
+import utils
 
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
@@ -548,13 +550,22 @@ class NeuronAnalyzer:
         acc_ct = 0
         tot_n = 0
         self.images = list()
+        self.raw_images = list()
         self.pred_init = list()
         self.logits_init = list()
         for step, data in enumerate(dataloader):
-            imgs, lbs = data
+            raw_imgs, lbs = data
+            np_raw_imgs = raw_imgs.numpy()
+
+            #normalize to [0,1]
+            np_imgs = np_raw_imgs-np_raw_imgs.min((1,2,3), keepdims=True)
+            np_imgs = np_imgs/np_imgs.max((1,2,3), keepdims=True)
+
             tot_n += len(lbs)
             lbs = lbs.numpy().squeeze(axis=-1)
-            y_tensor = self.model(imgs.cuda())
+
+            imgs_tensor = torch.from_numpy(np_imgs)
+            y_tensor = self.model(imgs_tensor.cuda())
             logits = y_tensor.cpu().detach().numpy()
             pred = np.argmax(logits,axis=1)
 
@@ -565,14 +576,15 @@ class NeuronAnalyzer:
 
             self.pred_init.append(pred[correct_idx])
             self.logits_init.append(logits[correct_idx])
-            np_imgs = imgs.numpy()
             self.images.append(np_imgs[correct_idx])
+            self.raw_images.append(np_raw_imgs[correct_idx])
 
         print(acc_ct/tot_n)
 
         self.pred_init = np.concatenate(self.pred_init)
         self.logits_init = np.concatenate(self.logits_init)
         self.images = np.concatenate(self.images)
+        self.raw_images = np. concatenate(self.raw_images)
 
         self.preds_all = self.pred_init
         self.logits_all = self.logits_init
@@ -882,20 +894,20 @@ class NeuronAnalyzer:
         u, v = pair
 
         idx = (self.preds_all==u)
-        images = self.images_all[idx]
+        raw_images = self.raw_images[idx]
 
         ed_child = self.md_child[k]+1
         model = self._get_partial_model(st_child=0, ed_child=ed_child)
         model.eval()
 
         reverser = Reverser(model, param)
-        poisoned_images = reverser.reverse(images)
+        poisoned_images, raw_poisoned_images = reverser.reverse(raw_images)
 
         self.hook_param = param
         logits, preds = self._run_once_epoch(poisoned_images)
 
         att_acc = np.sum(preds==v)/len(poisoned_images)
-        return att_acc, poisoned_images
+        return att_acc, raw_poisoned_images, raw_images
 
 
     def analyse(self, dataloader):
@@ -927,8 +939,8 @@ class NeuronAnalyzer:
         layer_candi = None
         if self.model_name == 'googlenet':
             layer_candi = [8,12,20]
-        elif self.model_name == 'resnet' and len(self.convs) < 20:
-            layer_candi = [0]
+        #elif self.model_name == 'resnet' and len(self.convs) < 20:
+        #    layer_candi = [0]
 
 
         for k, md in enumerate(self.convs):
@@ -960,6 +972,7 @@ class NeuronAnalyzer:
                 if tv > self.tensor_mean[k]:
                     continue
 
+                #test_v = min(o_max[i], test_v)*1.0
                 test_v = o_max[i]*1.0
 
                 self.test_one_channel(k,i, test_v, shape, this_candi)
@@ -972,8 +985,11 @@ class NeuronAnalyzer:
                 tgt_list.append(pair[1])
                 sc_list.append(sc)
                 candi_list.append((param, pair))
+                i = param[1]
+                print(self.channel_mean[k][k], self.channel_max[k][i], self.channel_min[k][i])
 
             break
+
 
 
         stop = timeit.default_timer()
@@ -1000,8 +1016,15 @@ class NeuronAnalyzer:
 
         max_id = np.argmax(_sc_list)
         param, pair = _candi_list[max_id]
-        #att_acc, poisoned_images = self.reverse_trigger(param, pair)
-        #print('recovered trigger attack acc: ', att_acc)
+        att_acc, poisoned_images, benign_images = self.reverse_trigger(param, pair)
+        print('recovered trigger attack acc: ', att_acc)
+
+        if (att_acc < 0.9):
+            return EPS
+
+        print(poisoned_images.shape)
+
+        utils.save_poisoned_images(pair, poisoned_images, benign_images)
 
         return self.score_to_prob(np.max(_sc_list))
 
@@ -1011,6 +1034,7 @@ class Reverser:
         self.model = model
         self.param = param
         self.layer_k, self.channel_i, self.try_v, _ = param
+        print('Reverser: ', param[0], param[1], param[2])
 
         self.convs = list()
         mds = list(self.model.modules())
@@ -1025,7 +1049,7 @@ class Reverser:
 
         self.epsilon = 1e-6
         self.keep_ratio = 0
-        self.init_lr = 1.0
+        self.init_lr = 0.2
 
 
     def get_hook(self):
@@ -1036,21 +1060,41 @@ class Reverser:
         return hook
 
 
-    def forward(self, input_tensor):
-        self.x_adv_tensor = (self.reverse_mask_tensor * input_tensor +
-                        self.mask_tensor * self.pattern_tensor)
+    def run_model(self, input_raw_tensor):
+        _min_values = torch.min(torch.flatten(input_raw_tensor,start_dim=1), dim=1, keepdim=True).values
+        _min_values = _min_values.unsqueeze(-1)
+        _min_values = _min_values.unsqueeze(-1)
+        x_tensor = input_raw_tensor - _min_values
 
-        self.model(self.x_adv_tensor)
+        _max_values = torch.max(torch.flatten(x_tensor,start_dim=1), dim=1, keepdim=True).values
+        _max_values = _max_values.unsqueeze(-1)
+        _max_values = _max_values.unsqueeze(-1)
+        x_tensor = x_tensor / _max_values
+
+        self.model(x_tensor)
+
+        return x_tensor
+
+
+    def forward(self, input_raw_tensor):
+        x_adv_raw_tensor = (self.reverse_mask_tensor * input_raw_tensor +
+                        self.mask_tensor * self.pattern_raw_tensor)
+        self.x_adv_raw_tensor = x_adv_raw_tensor
+
+        self.x_adv_tensor = self.run_model(self.x_adv_raw_tensor)
 
         output_tensor = self.current_output
 
-        masked_output = output_tensor * self.reverse_channel_mask_tensor
-        masked_init_output = self.init_output_tensor * self.reverse_channel_mask_tensor
-        self.keep_loss = F.mse_loss(masked_output, masked_init_output)
+        shape = output_tensor.shape
+        self.keep_loss = 0
+        if self.channel_i > 0:
+            self.keep_loss += F.mse_loss(output_tensor[:, :self.channel_i], self.init_output_tensor[:, :self.channel_i], reduction='sum')
+        if self.channel_i < shape[1]-1:
+            self.keep_loss += F.mse_loss(output_tensor[:, self.channel_i+1:], self.init_output_tensor[:, self.channel_i+1:], reduction='sum')
+        self.keep_loss /= shape[0]*(shape[1]-1)*shape[2]*shape[3]
 
-        channel_output = (self.try_v-output_tensor) * self.channel_mask_tensor
-        channel_loss = torch.sum(F.relu(channel_output), (1,2,3))
-        self.channel_loss = torch.mean(channel_loss)
+        channel_output = (self.try_v - output_tensor[:, self.channel_i])
+        self.channel_loss = torch.mean(F.relu(channel_output))
 
         self.mask_loss = torch.sum(torch.abs(self.mask_tensor)) / self.image_channel
 
@@ -1078,8 +1122,8 @@ class Reverser:
         self.mask_tensor = mask_tensor_unexpand.unsqueeze(0)
         self.reverse_mask_tensor = (torch.ones_like(self.mask_tensor.cuda()) - self.mask_tensor)
 
-        self.pattern_tensor = (torch.tanh(self.pattern_tanh_tensor.cuda()) / 2 + 0.5)
-        self.pattern_tensor = self.pattern_tensor.unsqueeze(0)
+        self.pattern_raw_tensor = ((torch.tanh(self.pattern_tanh_tensor.cuda()) / 2 + 0.5) * 255.0)
+        self.pattern_raw_tensor = self.pattern_raw_tensor.unsqueeze(0)
 
 
     def reverse(self, images):
@@ -1101,16 +1145,9 @@ class Reverser:
         #self.opt = torch.optim.SGD([self.pattern_tanh_tensor, self.mask_tanh_tensor], lr=self.init_lr, momentum=0.9)
 
         self.init_image_tensor = torch.from_numpy(images).cuda()
-        self.model(self.init_image_tensor)
+        self.run_model(self.init_image_tensor)
         init_output = self.current_output.cpu().detach().numpy()
         self.init_output_tensor = torch.from_numpy(init_output).cuda()
-
-        channel_mask = np.zeros(init_output.shape[1:])
-        channel_mask[self.channel_i] = 1.0
-        reverse_channel_mask = np.ones(init_output.shape[1:])-channel_mask
-
-        self.channel_mask_tensor = torch.from_numpy(channel_mask).cuda()
-        self.reverse_channel_mask_tensor = torch.from_numpy(reverse_channel_mask).cuda()
 
 
         keep_loss, channel_loss, mask_loss, ssim_loss = self.forward(self.init_image_tensor)
@@ -1125,10 +1162,11 @@ class Reverser:
         self.ratio_up_multiplier = 1.1
 
         best_images = None
+        best_raw_images = None
         best_keep_loss = float('inf')
         best_channel_loss = float('inf')
 
-        self.keep_ratio = 0
+        self.keep_ratio = 0.0
         max_steps = 100
         for step in range(max_steps):
             self.backward()
@@ -1137,10 +1175,12 @@ class Reverser:
             print('step {}: keep_loss: {}, channel_loss: {}, mask_loss: {}, ssim_loss: {}'.format(step, keep_loss, channel_loss, mask_loss, ssim_loss))
 
             if channel_loss < EPS and keep_loss < best_keep_loss:
+                best_raw_images = self.x_adv_raw_tensor.cpu().detach().numpy()
                 best_images = self.x_adv_tensor.cpu().detach().numpy()
                 best_keep_loss = keep_loss
             elif channel_loss < best_channel_loss:
                 best_channel_loss = channel_loss
+                best_raw_images = self.x_adv_raw_tensor.cpu().detach().numpy()
                 best_images = self.x_adv_tensor.cpu().detach().numpy()
 
             if self.keep_ratio == 0 and channel_loss < EPS:
@@ -1166,7 +1206,7 @@ class Reverser:
                 ratio_down_counter = 0
                 self.keep_ratio /= self.ratio_up_multiplier
 
-        return best_images
+        return best_images, best_raw_images
 
 
 

@@ -2,6 +2,18 @@ import os
 import skimage.io
 import numpy as np
 
+RELEASE = False
+current_model_name = None
+
+def set_model_name(model_filepath):
+  if RELEASE:
+      return
+
+  model_name = model_filepath.split('/')[-2]
+  global current_model_name
+  current_model_name = model_name
+
+
 def read_example_images(examples_dirpath, example_img_format='png'):
   fns = [fn for fn in os.listdir(examples_dirpath) if fn.endswith(example_img_format)]
 
@@ -28,8 +40,8 @@ def read_example_images(examples_dirpath, example_img_format='png'):
       #img = np.expand_dims(img,0) # to NCHW
 
       # normalize to [0,1]
-      img = img - np.min(img)
-      img = img / np.max(img)
+      #img = img - np.min(img)
+      #img = img / np.max(img)
 
       cat_imgs[key].append(img)
 
@@ -37,9 +49,54 @@ def read_example_images(examples_dirpath, example_img_format='png'):
   cat_batch = {}
   for key in cat_imgs:
     cat_batch[key] = {'images':np.asarray(cat_imgs[key], dtype=np.float32), 'labels':np.ones([len(cat_imgs[key]),1])*key}
-    print('label {} : {}'.format(key, cat_batch[key]['images'].shape))
+    #print('label {} : {}'.format(key, cat_batch[key]['images'].shape))
 
   return cat_batch
+
+
+def save_poisoned_images(pair, poisoned_images, benign_images, folder='recovered_images'):
+  if RELEASE:
+      return
+
+  folder = os.path.join(folder,current_model_name)
+  if not os.path.exists(folder):
+    os.makedirs(folder)
+
+  fn_template = 'poisoned_from_{}_to_{}.jpg'.format(pair[0],pair[1])
+  fn_template = 'example_{}_'+fn_template
+  for i in range(len(poisoned_images)):
+    img = poisoned_images[i]
+    img = np.transpose(img,(1,2,0)) # to CHW->HWC
+    fn = fn_template.format(i)
+    fpath = os.path.join(folder, fn)
+    img_save = img.astype(np.uint8)
+    skimage.io.imsave(fpath,img_save)
+
+  fn_template = 'benign_from_{}.jpg'.format(pair[0])
+  fn_template = 'example_{}_'+fn_template
+  for i in range(len(benign_images)):
+    img = benign_images[i]
+    img = np.transpose(img,(1,2,0)) # to CHW->HWC
+    fn = fn_template.format(i)
+    fpath = os.path.join(folder, fn)
+    img_save = img.astype(np.uint8)
+    skimage.io.imsave(fpath,img_save)
+
+
+  print(np.max(benign_images))
+  print(np.max(poisoned_images))
+
+
+def save_results(results, folder='output'):
+  if RELEASE:
+    return
+
+  if not os.path.exists(folder):
+    os.makedirs(folder)
+
+  folder = 'output'
+  fpath = os.path.join('output', current_model_name)
+  np.save(fpath, results)
 
 
 

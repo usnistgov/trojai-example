@@ -31,6 +31,8 @@ def build_data_loader(X,Y, batch_size=2):
 
 def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examples_dirpath, example_img_format='png'):
 
+    utils.set_model_name(model_filepath)
+
     print('model_filepath = {}'.format(model_filepath))
     print('result_filepath = {}'.format(result_filepath))
     print('scratch_dirpath = {}'.format(scratch_dirpath))
@@ -52,64 +54,7 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     with open(result_filepath, 'w') as fh:
         fh.write("{}".format(trojan_probability))
 
-    #model_name = model_filepath.split('/')[-2]
-    #np.save(os.path.join('output/', model_name), np.asarray(sc))
-
-    exit(0)
-
-    #visualizer = Visualizer(model, init_cost=1e-3, lr=0.1, \
-    #                        num_classes=num_classes, tmp_dir=scratch_dirpath)
-
-    rst_l1_norm = np.zeros((num_classes,num_classes))
-
-    all_x = [cat_batch[i] for i in range(num_classes)]
-    big_batch = np.concatenate(all_x, axis=0)
-
-    #for source_lb in range(num_classes):
-    source_lb = 0
-    for target_lb in range(num_classes):
-        #if target_lb==source_lb:
-        #  continue
-        pattern = np.random.random([3,224,224])*255.0
-        mask = np.random.random([224,224])
-        #dataloader = build_data_loader(cat_batch[source_lb])
-        dataloader = build_data_loader(big_batch)
-
-        visualize_start_time = time.time()
-
-        #pattern, mask, mask_upsample, logs = visualizer.visualize(dataloader, y_target=target_lb, pattern_init=pattern, mask_init=mask, max_steps=1000, num_batches_per_step=9)
-        #pattern, mask, mask_upsample, logs = visualizer.visualize(dataloader, y_target=target_lb, pattern_init=pattern, mask_init=mask, max_steps=1000, num_batches_per_step=16)
-
-        visualize_end_time = time.time()
-
-        # meta data about the generated mask
-        print('pattern, shape: %s, min: %f, max: %f' %
-              (str(pattern.shape), np.min(pattern), np.max(pattern)))
-        print('mask, shape: %s, min: %f, max: %f' %
-              (str(mask.shape), np.min(mask), np.max(mask)))
-        print('mask norm of %d to %d: %f' %
-              (source_lb, target_lb, np.sum(np.abs(mask_upsample))))
-
-        print('visualization cost %f seconds' %
-              (visualize_end_time - visualize_start_time))
-
-        #utils.save_pattern(pattern, mask_upsample, source_lb, target_lb, scratch_dirpath)
-
-        l1_norm = np.sum(np.abs(mask))
-        print('src: %d, tgt: %d, l1-norm: %f'%(source_lb,target_lb,l1_norm))
-        rst_l1_norm[source_lb][target_lb] = l1_norm
-
-    print(rst_l1_norm)
-    #model_name = model_filepath.split('/')[-2]
-    #np.save(os.path.join('output/', model_name), rst_l1_norm)
-
-
-    #trojan_probability = np.random.rand()
-    trojan_probability = 1-np.min(rst_l1_norm[0])/np.max(rst_l1_norm[0])
-    print('Trojan Probability: {}'.format(trojan_probability))
-
-    #with open(result_filepath, 'w') as fh:
-    #    fh.write("{}".format(trojan_probability))
+    utils.save_results(np.asarray(sc))
 
 
 if __name__ == "__main__":
