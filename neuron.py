@@ -22,7 +22,7 @@ import utils
 
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
 KEEP_DIM = 64
@@ -943,9 +943,13 @@ class NeuronAnalyzer:
         #    layer_candi = [0]
 
 
+        count_k = 0
+
         for k, md in enumerate(self.convs):
             if layer_candi is not None and not k in layer_candi:
                 continue
+
+            count_k += 1
 
             shape = self.outputs[k].shape
             tmax = self.tensor_max[k]
@@ -988,7 +992,8 @@ class NeuronAnalyzer:
                 i = param[1]
                 print(self.channel_mean[k][k], self.channel_max[k][i], self.channel_min[k][i])
 
-            break
+            if count_k >= 5:
+                break
 
 
 

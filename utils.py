@@ -2,7 +2,7 @@ import os
 import skimage.io
 import numpy as np
 
-RELEASE = False
+RELEASE = True
 current_model_name = None
 
 def set_model_name(model_filepath):
