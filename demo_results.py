@@ -177,8 +177,8 @@ def draw_roc(out_dir, gt_dict):
 
 if __name__ == '__main__':
     gt_csv = read_gt('/home/tdteach/data/round2-dataset-train/METADATA.csv')
-    ac_list = ['googlenet']
-    #ac_list = ['resnet34']
+    #ac_list = ['googlenet']
+    ac_list = ['resnet18']
     #ac_list = ['resnet','inception','densenet']
     rst_csv = trim_gt(gt_csv, {'model_architecture':ac_list})
     #rst_csv = trim_gt(gt_csv, {})
