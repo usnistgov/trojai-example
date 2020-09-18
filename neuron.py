@@ -414,6 +414,8 @@ class NeuronAnalyzer:
             self.conv_weights.append(md.weight.cpu().detach().numpy())
             self.md_child.append(0)
 
+        print(self.model_name, len(self.convs), 'convs')
+
         self.record_conv = False
         self.hook_handles = list()
         for k,md in enumerate(self.convs):
@@ -464,7 +466,6 @@ class NeuronAnalyzer:
             self.hook_handles.append(c.register_forward_pre_hook(self.get_pre_hook(k)))
             self.child_inputs.append([])
 
-
     def _init_general(self):
         self._init_general_md()
 
@@ -487,7 +488,13 @@ class NeuronAnalyzer:
         else:
             self.childs.append(torch.nn.AdaptiveAvgPool2d((1,1)))
         self.childs.append(torch.nn.Flatten(1))
-        self.childs.append(childs[-1])
+        _name = type(childs[-1]).__name__
+        if _name == 'Sequential':
+            _chs = list(childs[-1].children())
+            for ch in _chs:
+                self.childs.append(ch)
+        else:
+            self.childs.append(childs[-1])
 
         self.record_child = False
         for k,c in enumerate(self.childs):
@@ -600,6 +607,8 @@ class NeuronAnalyzer:
         print('n_classes',self.n_classes)
         if self.model_name == 'resnet' and self.convs[-1].in_channels > 1000 and len(self.convs) > 100:
             self.batch_size //= 2 #wideresnet101
+        elif self.model_name == 'resnet' and len(self.convs) > 150:
+            self.batch_size //= 2 #resnet152
         elif self.model_name == 'densenet' and len(self.convs) > 150:
             self.batch_size //= 2 #densenet161
 
@@ -966,7 +975,7 @@ class NeuronAnalyzer:
             weight_list = list()
             for p in self.convs[k].parameters():
                 weight_list.append(p.cpu().detach().numpy())
-            weights = weight_list[-1]
+            weights = weight_list[0]
             weights = np.abs(weights)
             weights_sum = np.sum(weights,(2,3))
 
@@ -986,6 +995,9 @@ class NeuronAnalyzer:
             else:
                 o_max = np.matmul(weights_sum, self.channel_in_max[k])
 
+            if len(weight_list) > 1:
+                o_max += weight_list[1]
+
             this_candi = list()
             for i in range(shape[1]):
                 run_ct += 1
@@ -994,8 +1006,8 @@ class NeuronAnalyzer:
                 if tv > self.tensor_mean[k]:
                     continue
 
-                #test_v = min(o_max[i], test_v)*1.0
-                test_v = o_max[i]*1.0
+                test_v = min(o_max[i], test_v)*1.0
+                #test_v = o_max[i]*1.0
 
                 self.test_one_channel(k,i, test_v, shape, this_candi)
 
@@ -1195,7 +1207,8 @@ class Reverser:
             self.backward()
             keep_loss, channel_loss, mask_loss, ssim_loss = self.forward(self.init_image_tensor)
 
-            print('step {}: keep_loss: {}, channel_loss: {}, mask_loss: {}, ssim_loss: {}'.format(step, keep_loss, channel_loss, mask_loss, ssim_loss))
+            if step%10 == 0:
+                print('step {}: keep_loss: {}, channel_loss: {}, mask_loss: {}, ssim_loss: {}'.format(step, keep_loss, channel_loss, mask_loss, ssim_loss))
 
             if channel_loss < EPS and keep_loss < best_keep_loss:
                 best_raw_images = self.x_adv_raw_tensor.cpu().detach().numpy()
