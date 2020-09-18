@@ -34,10 +34,10 @@ for i,d in enumerate(dirs):
   #    continue
   #if not md_name == 'id-00000124': #trojaned
   #    continue
-  #if not md_name == 'id-00000003': #benign
-  #    continue
-  if id_arch[md_name] != 'resnet18':
+  if not md_name == 'id-00000001': #benign
       continue
+  #if id_arch[md_name] != 'resnet18':
+  #    continue
 
 
   fn = d.split('.')[0]

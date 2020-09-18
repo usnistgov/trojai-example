@@ -317,6 +317,7 @@ class NeuronAnalyzer:
         self.hook_activate = False
 
         mds = list(self.model.modules())
+        #print(mds)
         self.model_name = type(mds[0]).__name__
         self.model_name = self.model_name.lower()
         print(self.model_name)
@@ -954,6 +955,7 @@ class NeuronAnalyzer:
             shape = self.outputs[k].shape
             tmax = self.tensor_max[k]
             tmean = self.tensor_mean[k]
+
             print('conv: ', k, shape, tmax, tmean)
 
             if tmean*10 < tmax:
@@ -961,12 +963,28 @@ class NeuronAnalyzer:
             else:
                 test_v = tmax*2.0
 
+            weight_list = list()
             for p in self.convs[k].parameters():
-                weights = p.cpu().detach().numpy()
-                break
+                weight_list.append(p.cpu().detach().numpy())
+            weights = weight_list[-1]
             weights = np.abs(weights)
             weights_sum = np.sum(weights,(2,3))
-            o_max = np.matmul(weights_sum, self.channel_in_max[k])
+
+            if self.convs[k].groups > 1:
+                o_max = list()
+                g = self.convs[k].groups
+                inc = self.convs[k].in_channels
+                ouc = self.convs[k].out_channels
+
+                in_d = inc//g
+                ou_d = ouc//g
+                for i in range(g):
+                    max_mat = self.channel_in_max[k][i*in_d:i*in_d+in_d]
+                    wet_mat = weights_sum[i*ou_d:i*ou_d+ou_d]
+                    o_max.append(np.matmul(wet_mat, max_mat))
+                o_max = np.concatenate(o_max)
+            else:
+                o_max = np.matmul(weights_sum, self.channel_in_max[k])
 
             this_candi = list()
             for i in range(shape[1]):
