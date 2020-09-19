@@ -21,8 +21,13 @@ from decimal import Decimal
 import utils
 
 
+RELEASE = True
+
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
-BATCH_SIZE = 32
+if RELEASE:
+    BATCH_SIZE = 64
+else:
+    BATCH_SIZE = 32
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
 KEEP_DIM = 64
@@ -1021,9 +1026,6 @@ class NeuronAnalyzer:
                 candi_list.append((param, pair))
                 i = param[1]
                 print(self.channel_mean[k][k], self.channel_max[k][i], self.channel_min[k][i])
-
-            if count_k >= 5:
-                break
 
 
 

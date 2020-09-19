@@ -1,8 +1,9 @@
 import os
 import skimage.io
 import numpy as np
+from neuron import RELEASE as neuron_release
 
-RELEASE = True
+RELEASE = neuron_release
 current_model_name = None
 
 def set_model_name(model_filepath):
