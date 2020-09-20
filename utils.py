@@ -2,9 +2,11 @@ import os
 import skimage.io
 import numpy as np
 from neuron import RELEASE as neuron_release
+import pickle
+import csv
 
 RELEASE = neuron_release
-current_model_name = None
+current_modeave_name = None
 
 def set_model_name(model_filepath):
   if RELEASE:
@@ -88,6 +90,19 @@ def save_poisoned_images(pair, poisoned_images, benign_images, folder='recovered
   print(np.max(poisoned_images))
 
 
+def save_pkl_results(data, save_name='', folder='scratch'):
+    if RELEASE:
+        return
+
+    print('save out results')
+    if len(save_name) > 0:
+        save_name = '_'+save_name
+    fpath = os.path.join(folder, current_model_name+save_name+'.pkl')
+    with open(fpath,'wb') as f:
+        pickle.dump(data,f)
+
+
+
 def save_results(results, folder='output'):
   if RELEASE:
     return
@@ -96,7 +111,7 @@ def save_results(results, folder='output'):
     os.makedirs(folder)
 
   folder = 'output'
-  fpath = os.path.join('output', current_model_name)
+  fpath = os.path.join(folder, current_model_name)
   np.save(fpath, results)
 
 
@@ -161,6 +176,14 @@ def mad_detection(l1_norm_list, crosp_lb):
 
   return min_idx, a_idx
 
+
+def read_gt_csv(filepath):
+  rst = list()
+  with open(filepath,'r',newline='') as csvfile:
+    csvreader = csv.DictReader(csvfile)
+    for row in csvreader:
+      rst.append(row)
+  return rst
 
 
 

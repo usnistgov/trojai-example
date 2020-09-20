@@ -37,14 +37,14 @@ arch_ct = dict()
 for na in arch_list:
   arch_ct[na] = 0
 
-'''
-arch_ct['resnet18'] = -1
+#'''
+arch_ct['resnet18'] = 0
 arch_ct['resnet34'] = -1
 arch_ct['resnet50'] = -1
 arch_ct['resnet101'] = -1
-arch_ct['resnet152'] = -1 #OOM
+arch_ct['resnet152'] = -1
 arch_ct['wideresnet50'] = -1
-arch_ct['wideresnet101'] = -1 
+arch_ct['wideresnet101'] = -1
 arch_ct['densenet121'] = -1
 arch_ct['densenet161'] = -1
 arch_ct['densenet169'] = -1
@@ -80,8 +80,8 @@ for i,d in enumerate(dirs):
   #    continue
 
   md_arch = id_arch[md_name]
-  if arch_ct[md_arch] > 0:
-    continue
+  #if arch_ct[md_arch] > 0:
+  #  continue
   if arch_ct[md_arch] < 0:
     continue
   arch_ct[md_arch] += 1
@@ -105,5 +105,4 @@ for i,d in enumerate(dirs):
   print(cmmd)
   print('model architecture: ', md_arch)
   os.system(cmmd)
-  #break
 

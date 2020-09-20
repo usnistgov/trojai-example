@@ -21,7 +21,7 @@ from decimal import Decimal
 import utils
 
 
-RELEASE = True
+RELEASE = False
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
 if RELEASE:
@@ -958,6 +958,9 @@ class NeuronAnalyzer:
         #    layer_candi = [0]
 
 
+        candi_ct = list()
+        candi_mat = np.zeros([self.n_classes, self.n_classes])
+
         count_k = 0
 
         for k, md in enumerate(self.convs):
@@ -975,7 +978,7 @@ class NeuronAnalyzer:
             if tmean*10 < tmax:
                 test_v = tmax*1.0
             else:
-                test_v = tmax*2.0
+                test_v = tmax*1.0
 
             weight_list = list()
             for p in self.convs[k].parameters():
@@ -1016,10 +1019,17 @@ class NeuronAnalyzer:
 
                 self.test_one_channel(k,i, test_v, shape, this_candi)
 
+
+            candi_ct.append(0)
+
             for param, pair in this_candi:
                 sc = self.check_neuron(param,pair)
                 if sc < EPS:
                     continue
+
+                candi_mat[pair[0]][pair[1]] += 1
+                candi_ct[-1] += 1
+
                 tgt_ct[pair[1]] += 1
                 tgt_list.append(pair[1])
                 sc_list.append(sc)
@@ -1028,9 +1038,11 @@ class NeuronAnalyzer:
                 print(self.channel_mean[k][k], self.channel_max[k][i], self.channel_min[k][i])
 
 
-
         stop = timeit.default_timer()
         print('Time used to select neuron: ', stop-start)
+
+        out_data = {'candi_ct':candi_ct, 'candi_mat':candi_mat}
+        utils.save_pkl_results(out_data)
 
         if len(sc_list) == 0:
             return EPS

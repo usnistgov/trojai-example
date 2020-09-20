@@ -1,7 +1,7 @@
 import os
 import csv
 import numpy as np
-from utils import mad_detection
+import utils
 import sklearn.metrics
 
 
@@ -44,15 +44,6 @@ def gen_confusion_matrix(targets, predictions):
     FPR = np.asarray(FPR).reshape(-1)
     thresholds = np.asarray(thresholds).reshape(-1)
     return TP_counts, FP_counts, FN_counts, TN_counts, TPR, FPR, thresholds
-
-
-def read_gt(filepath):
-  rst = list()
-  with open(filepath,'r',newline='') as csvfile:
-    csvreader = csv.DictReader(csvfile)
-    for row in csvreader:
-      rst.append(row)
-  return rst
 
 
 def trim_gt(gt_csv, t_dict):
@@ -176,7 +167,7 @@ def draw_roc(out_dir, gt_dict):
   #plt.show()
 
 if __name__ == '__main__':
-    gt_csv = read_gt('/home/tdteach/data/round2-dataset-train/METADATA.csv')
+    gt_csv = utils.read_gt_csv('/home/tdteach/data/round2-dataset-train/METADATA.csv')
     #ac_list = ['googlenet']
     ac_list = ['resnet18']
     #ac_list = ['resnet','inception','densenet']
