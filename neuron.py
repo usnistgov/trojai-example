@@ -952,8 +952,8 @@ class NeuronAnalyzer:
         candi_list = list()
 
         layer_candi = None
-        if self.model_name == 'googlenet':
-            layer_candi = [8,12,20]
+        #if self.model_name == 'googlenet':
+        #    layer_candi = [8,12,20]
         #elif self.model_name == 'resnet' and len(self.convs) < 20:
         #    layer_candi = [0]
 

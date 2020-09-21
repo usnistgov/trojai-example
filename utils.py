@@ -94,6 +94,9 @@ def save_pkl_results(data, save_name='', folder='scratch'):
     if RELEASE:
         return
 
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
     print('save out results')
     if len(save_name) > 0:
         save_name = '_'+save_name
@@ -110,7 +113,6 @@ def save_results(results, folder='output'):
   if not os.path.exists(folder):
     os.makedirs(folder)
 
-  folder = 'output'
   fpath = os.path.join(folder, current_model_name)
   np.save(fpath, results)
 
