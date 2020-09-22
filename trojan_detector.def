@@ -1,6 +1,9 @@
 Bootstrap: docker
 From: pytorch/pytorch:latest
 
+%setup
+    cp -R ./svm_models ${SINGULARITY_ROOTFS}/svm_models
+
 %files
     ./trojan_detector.py /
     ./neuron.py /

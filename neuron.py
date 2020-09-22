@@ -7,6 +7,7 @@ import threading, queue
 import timeit
 import numpy as np
 import pickle
+import os
 from scipy.special import softmax
 from sklearn.decomposition import PCA
 
@@ -21,7 +22,7 @@ from decimal import Decimal
 import utils
 
 
-RELEASE = False
+RELEASE = True
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
 if RELEASE:
@@ -322,7 +323,7 @@ class NeuronAnalyzer:
         self.hook_activate = False
 
         mds = list(self.model.modules())
-        #print(mds)
+
         self.model_name = type(mds[0]).__name__
         self.model_name = self.model_name.lower()
         print(self.model_name)
@@ -604,18 +605,17 @@ class NeuronAnalyzer:
         self.images_all = self.images
 
         init_f()
+        self.arch_name = self.get_arch_name()
+        print('model architecture:', self.arch_name)
         last_md = self.childs[-1]
         if type(last_md).__name__ == 'Linear':
             self.n_classes = last_md.out_features
         else:
             self.n_classes = self.convs[-1].out_channels
         print('n_classes',self.n_classes)
-        if self.model_name == 'resnet' and self.convs[-1].in_channels > 1000 and len(self.convs) > 100:
-            self.batch_size //= 2 #wideresnet101
-        elif self.model_name == 'resnet' and len(self.convs) > 150:
-            self.batch_size //= 2 #resnet152
-        elif self.model_name == 'densenet' and len(self.convs) > 150:
-            self.batch_size //= 2 #densenet161
+
+        if self.arch_name in ['wideresnet101','resnet152','densenet161','densenet169','densenet201']:
+            self.batch_size //= 2
 
         self.record_conv = True
         self.record_child = False
@@ -925,6 +925,60 @@ class NeuronAnalyzer:
         return att_acc, raw_poisoned_images, raw_images
 
 
+    def get_arch_name(self):
+        arch = None
+        nconv = len(self.convs)
+        if self.model_name == 'resnet':
+            if self.convs[-1].in_channels > 1000:
+                arch = 'wideresnet'
+            else:
+                arch = 'resnet'
+            if nconv == 20:
+                arch+='18'
+            elif nconv == 36:
+                arch+='34'
+            elif nconv == 53:
+                arch+='50'
+            elif nconv == '104':
+                arch+='101'
+            elif nconv == '155':
+                arch+='152'
+            else:
+                arch = None
+        elif self.model_name == 'densenet':
+            arch = 'densenet'+str(nconv+1)
+        elif self.model_name == 'googlenet':
+            arch = 'googlenet'
+        elif self.model_name == 'inception3':
+            arch = 'inceptionv3'
+        elif 'squeezenet' in self.model_name:
+            arch='squeezenet'
+            if self.convs[0].out_channels==96:
+                arch+='v1_0'
+            elif self.convs[0].out_channels == 64:
+                arch+='v1_1'
+            else:
+                arch = None
+        elif self.model_name == 'mobilenetv2':
+            arch='mobilenetv2'
+        elif 'shufflenet' in self.model_name:
+            arch='shufflenet'
+            if self.convs[-1].in_channels == 464:
+                arch+='1_0'
+            elif self.convs[-1].in_channels == 704:
+                arch+='1_5'
+            elif self.convs[-1].in_channels == 976:
+                arch+='2_0'
+            else:
+                arch = None
+        elif self.model_name == 'vgg':
+            arch='vgg'+str(nconv+3)+'bn'
+        else:
+            arch = None
+        return arch
+
+
+
     def analyse(self, dataloader):
         self.get_init_values(dataloader)
 
@@ -952,10 +1006,18 @@ class NeuronAnalyzer:
         candi_list = list()
 
         layer_candi = None
-        #if self.model_name == 'googlenet':
-        #    layer_candi = [8,12,20]
-        #elif self.model_name == 'resnet' and len(self.convs) < 20:
-        #    layer_candi = [0]
+        self.svm_model = None
+        self.loss_model = None
+        model_path = os.path.join('svm_models',self.arch_name+'_svm.pkl')
+        if os.path.exists(model_path):
+            with open(model_path,'rb') as f:
+                svm_model = pickle.load(f)
+            layer_candi = svm_model['layer_candi']
+            self.svm_model = svm_model['svm_model']
+
+            loss_model_path = os.path.join('svm_models','loss_model.pkl')
+            with open(loss_model_path,'rb') as f:
+                self.loss_model = pickle.load(f)
 
 
         candi_ct = list()
@@ -1035,14 +1097,25 @@ class NeuronAnalyzer:
                 sc_list.append(sc)
                 candi_list.append((param, pair))
                 i = param[1]
-                print(self.channel_mean[k][k], self.channel_max[k][i], self.channel_min[k][i])
+                print(self.channel_mean[k][i], self.channel_max[k][i], self.channel_min[k][i])
 
 
         stop = timeit.default_timer()
         print('Time used to select neuron: ', stop-start)
 
+
         out_data = {'candi_ct':candi_ct, 'candi_mat':candi_mat}
         utils.save_pkl_results(out_data)
+
+        if self.svm_model is not None:
+            sc = np.sum(self.svm_model.coef_[0]*candi_ct)+self.svm_model.intercept_
+            alpha, beta = self.loss_model[self.arch_name]
+            p = sc*alpha+beta
+            p = 1.0/(1.0+np.exp(-p))
+            print(sc, p)
+
+            return p[0]
+
 
         if len(sc_list) == 0:
             return EPS

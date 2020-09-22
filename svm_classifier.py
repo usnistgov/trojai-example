@@ -1,3 +1,5 @@
+import sklearn
+from demo_results import gen_confusion_matrix
 from sklearn.svm import LinearSVC
 import pickle
 import csv
@@ -6,7 +8,7 @@ import os
 import numpy as np
 import pickle
 
-
+svm_folder = 'svm_models'
 
 def get_data(arch):
     home = os.environ['HOME']
@@ -52,6 +54,8 @@ def try_svm(arch):
 
     nX = len(X)
     split_p = int(nX*0.8)
+    print(nX)
+
 
     best_all_acc = 0
     best_ft_idx = None
@@ -121,7 +125,7 @@ def try_svm(arch):
     return best_all_acc, best_ft_idx
 
 
-def svm_all(arch, ft_idx):
+def save_svm_model(arch, ft_idx):
     X, Y = get_data(arch)
 
     clf = LinearSVC()
@@ -132,29 +136,124 @@ def svm_all(arch, ft_idx):
     acc = clf.score(XX,Y)
     print('all acc: ', acc)
 
-    save_name = arch+'_svm.pkl'
+    model = {'layer_candi':ft_idx, 'svm_model':clf}
+    save_name = os.path.join(svm_folder,arch+'_svm.pkl')
     with open(save_name,'wb') as f:
-        pickle.dump(clf,f)
+        pickle.dump(model,f)
 
-    clf = None
+    model = None
     with open(save_name,'rb') as f:
-        clf = pickle.load(f)
+        model = pickle.load(f)
+    clf = model['svm_model']
+    ft_idx = model['layer_candi']
 
-    acc = clf.score(XX,Y)
+    acc = clf.score(X[:,ft_idx],Y)
     print('loading acc: ', acc)
 
 
     coef = clf.coef_[0]
-    print(coef, clf.intercept_)
     sc = np.matmul(XX, coef)+clf.intercept_
+    print(coef, clf.intercept_, sc>0)
+
+
+def calc_auc(y,x):
+    TP_counts, FP_counts, FN_counts, TN_counts, TPR, FPR, thresholds = gen_confusion_matrix(y,x)
+    roc_auc = sklearn.metrics.auc(FPR,TPR)
+    print('auc: ', roc_auc)
+
+
+def build_loss_model(arch_lsit):
+    all_x = list()
+    all_y = list()
+    for arch in arch_list:
+        print(arch)
+        X, Y = get_data(arch)
+        
+        model_path = os.path.join('svm_models',arch+'_svm.pkl')
+        with open(model_path,'rb') as f:
+            model = pickle.load(f)
+        clf = model['svm_model']
+        ft_idx = model['layer_candi']
+
+        coef = clf.coef_[0]
+        intr = clf.intercept_
+        
+        XX = X[:,ft_idx]
+        sc = np.matmul(XX,coef)+intr
+
+        all_x.append(sc)
+        all_y.append(Y)
+
+
+    all_coef = {}
+    for arch,X,Y in zip(arch_list, all_x, all_y):
+        lr = 0.1
+        alpha = 1.0
+        beta = 0.0
+
+        for step in range(10000):
+            sc = X*alpha+beta
+            sigmoid_sc = 1.0/(1.0+np.exp(-sc))
+
+            sigmoid_sc = np.minimum(1.0-1e-12, np.maximum(0.0+1e-12, sigmoid_sc))
+
+            loss = -(Y*np.log(sigmoid_sc)+(1-Y)*np.log(1-sigmoid_sc))
+
+            g_beta = sigmoid_sc-Y
+            g_alpha = g_beta*X
+
+            alpha -= lr*np.mean(g_alpha)
+            beta -= lr*np.mean(g_beta)
+
+        print(arch)
+        print('loss:', np.mean(loss))
+        calc_auc(Y,sigmoid_sc)
+
+        all_coef[arch] = (alpha,beta)
+
+
+    print(all_coef)
+
+
+    all_loss = list()
+    all_sc = list()
+    for X,Y in zip(all_x,all_y):
+        sc = X*alpha+beta
+        sigmoid_sc = 1.0/(1.0+np.exp(-sc))
+
+        sigmoid_sc = np.minimum(1.0-1e-12, np.maximum(0.0+1e-12, sigmoid_sc))
+
+        loss = -(Y*np.log(sigmoid_sc)+(1-Y)*np.log(1-sigmoid_sc))
+        all_loss.append(loss)
+        all_sc.append(sigmoid_sc)
+
+    all_loss = np.concatenate(all_loss)
+    all_y = np.concatenate(all_y)
+    all_sc = np.concatenate(all_sc)
+    print('all loss:', np.mean(all_loss))
+    calc_auc(all_y,all_sc)
+
+
+    model_path = os.path.join(svm_folder,'loss_model.pkl')
+    with open(model_path,'wb') as f:
+        pickle.dump(all_coef, f)
+
+
+
 
 
 
 if __name__ == '__main__':
-    arch = 'shufflenet1_5'
-    #ft_idx = [4,16,25,33,36]
-    acc, ft_idx = try_svm(arch)
-    svm_all(arch,ft_idx)
+    '''
+    arch = 'mobilenetv2'
+    ft_idx = [10,17,18,41]
+    #acc, ft_idx = try_svm(arch)
+    save_svm_model(arch,ft_idx)
+    exit(0)
+    #'''
+
+    arch_list = ['resnet18','resnet34','resnet50','googlenet','inceptionv3','squeezenetv1_0','squeezenetv1_1','mobilenetv2','shufflenet1_0','shufflenet1_5','shufflenet2_0','vgg11bn','vgg13bn']
+    build_loss_model(arch_list)
 
 
 
