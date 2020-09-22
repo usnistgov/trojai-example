@@ -24,6 +24,8 @@ From: pytorch/pytorch:latest
     ./svm_models/squeezenetv1_1_svm.pkl /svm_models/.
     ./svm_models/vgg11bn_svm.pkl        /svm_models/.
     ./svm_models/vgg13bn_svm.pkl        /svm_models/.
+    ./svm_models/vgg16bn_svm.pkl        /svm_models/.
+    ./svm_models/vgg19bn_svm.pkl        /svm_models/.
 
 %post
     /opt/conda/bin/conda install scikit-image
