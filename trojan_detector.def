@@ -2,7 +2,7 @@ Bootstrap: docker
 From: pytorch/pytorch:latest
 
 %setup
-    cp -R ./svm_models ${SINGULARITY_ROOTFS}/svm_models
+    mkdir -p /svm_models
 
 %files
     ./trojan_detector.py /
@@ -10,6 +10,20 @@ From: pytorch/pytorch:latest
     ./SCAn.py /
     ./utils.py /
     ./pytorch_ssim.py /
+    ./svm_models/loss_model.pkl
+    ./svm_models/mobilenetv2_svm.pkl
+    ./svm_models/googlenet_svm.pkl
+    ./svm_models/inceptionv3_svm.pkl
+    ./svm_models/resnet18_svm.pkl
+    ./svm_models/resnet34_svm.pkl
+    ./svm_models/resnet50_svm.pkl
+    ./svm_models/shufflenet1_0_svm.pkl
+    ./svm_models/shufflenet1_5_svm.pkl
+    ./svm_models/shufflenet2_0_svm.pkl
+    ./svm_models/squeezenetv1_0_svm.pkl
+    ./svm_models/squeezenetv1_1_svm.pkl
+    ./svm_models/vgg11bn_svm.pkl
+    ./svm_models/vgg13bn_svm.pkl
 
 %post
     /opt/conda/bin/conda install scikit-image
