@@ -153,7 +153,7 @@ def save_svm_model(arch, ft_idx):
 
     coef = clf.coef_[0]
     sc = np.matmul(XX, coef)+clf.intercept_
-    print(coef, clf.intercept_, sc>0)
+    print(coef, clf.intercept_)
 
 
 def calc_auc(y,x):
@@ -244,15 +244,15 @@ def build_loss_model(arch_lsit):
 
 
 if __name__ == '__main__':
-    '''
-    arch = 'mobilenetv2'
-    ft_idx = [10,17,18,41]
-    #acc, ft_idx = try_svm(arch)
+    #'''
+    arch = 'densenet161'
+    #ft_idx = [21,23,40,54,56,72,78]
+    acc, ft_idx = try_svm(arch)
     save_svm_model(arch,ft_idx)
     exit(0)
     #'''
 
-    arch_list = ['resnet18','resnet34','resnet50','googlenet','inceptionv3','squeezenetv1_0','squeezenetv1_1','mobilenetv2','shufflenet1_0','shufflenet1_5','shufflenet2_0','vgg11bn','vgg13bn']
+    arch_list = ['resnet18','resnet34','resnet50','googlenet','inceptionv3','squeezenetv1_0','squeezenetv1_1','mobilenetv2','shufflenet1_0','shufflenet1_5','shufflenet2_0','vgg11bn','vgg13bn','vgg16bn','vgg19bn','densenet121']
     build_loss_model(arch_list)
 
 

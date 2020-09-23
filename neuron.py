@@ -22,7 +22,7 @@ from decimal import Decimal
 import utils
 
 
-RELEASE = True
+RELEASE = False
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
 if RELEASE:
@@ -939,9 +939,9 @@ class NeuronAnalyzer:
                 arch+='34'
             elif nconv == 53:
                 arch+='50'
-            elif nconv == '104':
+            elif nconv == 104:
                 arch+='101'
-            elif nconv == '155':
+            elif nconv == 155:
                 arch+='152'
             else:
                 arch = None
@@ -1118,12 +1118,12 @@ class NeuronAnalyzer:
 
 
         if len(sc_list) == 0:
-            return EPS
+            return 0
         tgt_ct /= np.sum(tgt_ct)
         print(tgt_ct)
         sorted_tgt = np.sort(tgt_ct)
         if sorted_tgt[-1]-sorted_tgt[-2] < 0.1:
-            return EPS
+            return 0
         tgt_lb = np.argmax(tgt_ct)
 
 
@@ -1142,7 +1142,7 @@ class NeuronAnalyzer:
         print('recovered trigger attack acc: ', att_acc)
 
         if (att_acc < 0.9):
-            return EPS
+            return 0
 
         print(poisoned_images.shape)
 
