@@ -10,6 +10,7 @@ import pickle
 import os
 from scipy.special import softmax
 from sklearn.decomposition import PCA
+import sklearn
 
 #from concurrent.futures import ProcessPoolExecutor
 #import multiprocessing as MP
@@ -27,8 +28,10 @@ RELEASE = False
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
 if RELEASE:
     BATCH_SIZE = 64
+    SVM_FOLDER = '/svm_models'
 else:
     BATCH_SIZE = 32
+    SVM_FOLDER = 'svm_models'
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
 KEEP_DIM = 64
@@ -1008,14 +1011,15 @@ class NeuronAnalyzer:
         layer_candi = None
         self.svm_model = None
         self.loss_model = None
-        model_path = os.path.join('svm_models',self.arch_name+'_svm.pkl')
+        model_path = os.path.join(SVM_FOLDER,self.arch_name+'_svm.pkl')
         if os.path.exists(model_path):
+            print(model_path)
             with open(model_path,'rb') as f:
                 svm_model = pickle.load(f)
             layer_candi = svm_model['layer_candi']
             self.svm_model = svm_model['svm_model']
 
-            loss_model_path = os.path.join('svm_models','loss_model.pkl')
+            loss_model_path = os.path.join(SVM_FOLDER,'loss_model.pkl')
             with open(loss_model_path,'rb') as f:
                 self.loss_model = pickle.load(f)
 
@@ -1030,6 +1034,9 @@ class NeuronAnalyzer:
                 continue
 
             count_k += 1
+
+            if count_k > 50:
+                break
 
             shape = self.outputs[k].shape
             tmax = self.tensor_max[k]

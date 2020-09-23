@@ -56,7 +56,7 @@ arch_ct['squeezenetv1_1'] = -1 #0.758 0.857 [5,8,9]// 0.89 0.875 [1,5,13,14,15] 
 arch_ct['mobilenetv2'] = -1 #0.795 0.857 [10 17 18 41] 0.803
 arch_ct['shufflenet1_0'] = -1 #0.756 1.0 [4,5,7,33,51] 0.808
 arch_ct['shufflenet1_5'] = -1 #0.714 0.9 [4,16,25,36] 0.762 // 0.755 0.8 [0,4,14,17] 0.796
-arch_ct['shufflenet2_0'] = -1 #0.764 1.0 [4,14,20,32,39,46] 0.807
+arch_ct['shufflenet2_0'] = 0 #0.764 1.0 [4,14,20,32,39,46] 0.807
 arch_ct['vgg11bn'] = -1 #0.84 0.8 [0,3,4] 0.83
 arch_ct['vgg13bn'] = -1 #0.842 0.888 [0,2,3,4] 0.87
 arch_ct['vgg16bn'] = -1 #0.866 0.857 [1,2,5,7] 0.86
@@ -70,8 +70,8 @@ for i,d in enumerate(dirs):
     continue
   md_name = d.split('.')[0]
 
-  #if not md_name == 'id-00000046': #benign
-  #    continue
+  if not md_name == 'id-00000001': #benign
+      continue
   #if not md_name == 'id-00000124': #trojaned
   #    continue
   #if not md_name == 'id-00000001': #benign
@@ -106,5 +106,5 @@ for i,d in enumerate(dirs):
   print('model architecture: ', md_arch)
   os.system(cmmd)
 
-  #break
+  break
 
