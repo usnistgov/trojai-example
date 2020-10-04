@@ -11,17 +11,25 @@ From: pytorch/pytorch:latest
     ./utils.py /
     ./pytorch_ssim.py /
     ./svm_models/loss_model.pkl         /svm_models/.
-    ./svm_models/mobilenetv2_svm.pkl    /svm_models/.
-    ./svm_models/googlenet_svm.pkl      /svm_models/.
-    ./svm_models/inceptionv3_svm.pkl    /svm_models/.
     ./svm_models/resnet18_svm.pkl       /svm_models/.
     ./svm_models/resnet34_svm.pkl       /svm_models/.
     ./svm_models/resnet50_svm.pkl       /svm_models/.
+    ./svm_models/resnet101_svm.pkl       /svm_models/.
+    ./svm_models/resnet152_svm.pkl       /svm_models/.
+    ./svm_models/wideresnet50_svm.pkl       /svm_models/.
+    ./svm_models/wideresnet101_svm.pkl       /svm_models/.
+    ./svm_models/densenet121_svm.pkl       /svm_models/.
+    ./svm_models/densenet161_svm.pkl       /svm_models/.
+    ./svm_models/densenet169_svm.pkl       /svm_models/.
+    ./svm_models/densenet201_svm.pkl       /svm_models/.
+    ./svm_models/googlenet_svm.pkl      /svm_models/.
+    ./svm_models/inceptionv3_svm.pkl    /svm_models/.
+    ./svm_models/squeezenetv1_0_svm.pkl /svm_models/.
+    ./svm_models/squeezenetv1_1_svm.pkl /svm_models/.
+    ./svm_models/mobilenetv2_svm.pkl    /svm_models/.
     ./svm_models/shufflenet1_0_svm.pkl  /svm_models/.
     ./svm_models/shufflenet1_5_svm.pkl  /svm_models/.
     ./svm_models/shufflenet2_0_svm.pkl  /svm_models/.
-    ./svm_models/squeezenetv1_0_svm.pkl /svm_models/.
-    ./svm_models/squeezenetv1_1_svm.pkl /svm_models/.
     ./svm_models/vgg11bn_svm.pkl        /svm_models/.
     ./svm_models/vgg13bn_svm.pkl        /svm_models/.
     ./svm_models/vgg16bn_svm.pkl        /svm_models/.

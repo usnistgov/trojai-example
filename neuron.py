@@ -11,6 +11,8 @@ import os
 from scipy.special import softmax
 from sklearn.decomposition import PCA
 import sklearn
+import math
+
 
 #from concurrent.futures import ProcessPoolExecutor
 #import multiprocessing as MP
@@ -23,11 +25,11 @@ from decimal import Decimal
 import utils
 
 
-RELEASE = False
+RELEASE = True
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
 if RELEASE:
-    BATCH_SIZE = 64
+    BATCH_SIZE = 32
     SVM_FOLDER = '/svm_models'
 else:
     BATCH_SIZE = 32
@@ -356,8 +358,6 @@ class NeuronAnalyzer:
 
 
     def get_modify_hook(self, k_layer):
-        lr = 0.1
-        rr = 0.5
         def hook(model, input, output):
             if k_layer != self.hook_param[0]:
                 return
@@ -366,30 +366,10 @@ class NeuronAnalyzer:
 
             chnn = self.hook_param[1]
             v = self.hook_param[2]
-            mask = self.hook_param[3]
 
-            #ori = output.cpu()
             ori = output
-
-            #shape = ori.shape
-            #ratio = rr - (k_layer+1)/len(self.convs)*(rr-lr)
-            #ns = min(500, int(shape[2]*shape[3]*ratio))
-
-            #rep = self.poisoned_template[k_layer][0]
-            #rep = torch.from_numpy(rep)
-            #ori[:,:,:,:] = rep.cuda()
-
-            #mask = self.hook_param[3].cuda()
-            #ori[:,chnn,:,:] = ori[:,chnn,:,:]*(1-mask)+mask*v
             ori[:,chnn,:,:] = v
-            #ori[:,chnn,:,:] = mask
-            '''
-            for z in range(1):
-                for i in range(ns):
-                    x = np.random.randint(shape[2])
-                    y = np.random.randint(shape[3])
-                    ori[:,self.hook_param[1],x,y] = self.hook_param[2]
-            #'''
+
             return ori.cuda()
         return hook
 
@@ -587,8 +567,6 @@ class NeuronAnalyzer:
             pred = np.argmax(logits,axis=1)
 
             correct_idx = (lbs==pred)
-            #correct_idx = (pred==pred)
-            #correct_idx = (pred==5)
             acc_ct += sum(correct_idx)
 
             self.pred_init.append(pred[correct_idx])
@@ -606,6 +584,12 @@ class NeuronAnalyzer:
         self.preds_all = self.pred_init
         self.logits_all = self.logits_init
         self.images_all = self.images
+
+        cat_cnt = [0]*self.n_classes
+        for lb in range(self.n_classes):
+            cat_cnt[lb] = np.sum(self.preds_all == lb)
+        for lb in range(self.n_classes):
+            cat_cnt[lb] = math.ceil(0.1*cat_cnt[lb])*2+1
 
         init_f()
         self.arch_name = self.get_arch_name()
@@ -625,20 +609,49 @@ class NeuronAnalyzer:
         self._run_once_epoch(self.images)
         print(self.md_child)
 
+        self._extract_statistical_data()
 
-        '''
-        out_list = list()
-        for ot in self.outputs:
-            out_list.append(ot[0])
-        with open('poisoned_outputs_007.pkl','wb') as f:
-            pickle.dump(out_list, f)
-        exit(0)
+        #'''
+        #trim samples
+        trim_idx = self.pred_init<0
+        ct = [0]*self.n_classes
+        for i in range(len(self.pred_init)):
+            lb = self.pred_init[i]
+            if ct[lb] < cat_cnt[lb]:
+                trim_idx[i] = True
+                ct[lb] += 1
+        print('examples count', ct)
+        self.pred_init = self.pred_init[trim_idx]
+        self.logits_init = self.logits_init[trim_idx]
+        self.images = self.images[trim_idx]
         #'''
 
-        #with open('poisoned_outputs_007.pkl','rb') as f:
-        #    self.poisoned_template = pickle.load(f)
+        self.record_conv = True
+        self.record_child = True
+        self._run_once_epoch(self.images)
+
+        for i in range(len(self.inputs)):
+            self.inputs[i] = np.concatenate(self.inputs[i])
+            self.outputs[i] = np.concatenate(self.outputs[i])
+        for i in range(len(self.childs)):
+            if (len(self.child_inputs[i]) < 1):
+                continue
+            self.child_inputs[i] = np.concatenate(self.child_inputs[i])
+            #print(i, self.child_inputs[i].shape)
+
+        for handle in self.hook_handles:
+            handle.remove()
+        self.record_conv = False
+        self.record_child = False
 
 
+
+    def _extract_statistical_data(self):
+        lb_idx = list()
+        for lb in range(self.n_classes):
+            lb_idx.append(self.preds_all==lb)
+
+        self.lb_channel_max = list()
         self.channel_max = list()
         self.channel_min = list()
         self.channel_std = list()
@@ -662,6 +675,12 @@ class NeuronAnalyzer:
             ttmp = np.concatenate(ttmp)
             mtmp = np.concatenate(mtmp)
             ztmp = np.concatenate(ztmp)
+
+            max_lb = list()
+            for lb in range(self.n_classes):
+                max_lb.append(np.max(ttmp[lb_idx[lb]],0))
+            self.lb_channel_max.append(max_lb)
+
             self.channel_max.append(np.max(ttmp,0))
             self.channel_min.append(np.min(ztmp,0))
             self.channel_mean.append(np.mean(mtmp,0))
@@ -679,74 +698,10 @@ class NeuronAnalyzer:
             itmp = np.concatenate(itmp)
             self.channel_in_max.append(np.max(itmp,0))
 
-            '''
-            data_list = list()
-            for c in range(n_chnn):
-                data_list.append([])
-            for ot in self.outputs[i]:
-                for z in range(ot.shape[0]):
-                    for c in range(n_chnn):
-                        tmp = ot[z][c]
-                        data_list[c].append(tmp.flatten())
-            for c in range(n_chnn):
-                data_list[c] = np.concatenate(data_list[c])
-
-            self.channel_std.append([])
-            self.channel_mean.append([])
-            for c in range(n_chnn):
-                self.channel_std[i].append(np.std(data_list[c]))
-                self.channel_mean[i].append(np.mean(data_list[c]))
-            #'''
-
             self.inputs[i] = []
             self.outputs[i] = []
         print('total channels '+str(out_channel_sum))
 
-
-
-        '''
-        phase='poisoned'
-        with open(phase+'_mean.pkl','wb') as f:
-            pickle.dump(self.channel_mean, f)
-        with open(phase+'_std.pkl','wb') as f:
-            pickle.dump(self.channel_std, f)
-        with open(phase+'_max.pkl','wb') as f:
-            pickle.dump(self.channel_max, f)
-        with open(phase+'_min.pkl','wb') as f:
-            pickle.dump(self.channel_min, f)
-        exit(0)
-        #'''
-
-        #trim samples
-        trim_idx = self.pred_init<0
-        ct = [0]*(np.max(self.pred_init)+1)
-        for i in range(len(self.pred_init)):
-            z = self.pred_init[i]
-            if ct[z] < 5:
-                trim_idx[i] = True
-                ct[z] += 1
-        print('examples count', ct)
-        self.pred_init = self.pred_init[trim_idx]
-        self.logits_init = self.logits_init[trim_idx]
-        self.images = self.images[trim_idx]
-
-        self.record_conv = True
-        self.record_child = True
-        self._run_once_epoch(self.images)
-
-        for i in range(len(self.inputs)):
-            self.inputs[i] = np.concatenate(self.inputs[i])
-            self.outputs[i] = np.concatenate(self.outputs[i])
-        for i in range(len(self.childs)):
-            if (len(self.child_inputs[i]) < 1):
-                continue
-            self.child_inputs[i] = np.concatenate(self.child_inputs[i])
-            #print(i, self.child_inputs[i].shape)
-
-        for handle in self.hook_handles:
-            handle.remove()
-        self.record_conv = False
-        self.record_child = False
 
 
     def register_representation_record_hook(self):
@@ -804,12 +759,12 @@ class NeuronAnalyzer:
         return (logits, preds)
 
 
-    def _check_preds_backdoor(self, v):
+    def _check_preds_backdoor(self, sv, v, thr):
         n = v.shape[0]
         m = self.n_classes
         mat = np.zeros((m,m))
         for i in range(n):
-            mat[self.pred_init[i]][v[i]] += 1
+            mat[sv[i]][v[i]] += 1
         for i in range(m):
             mat[i][:] /= np.sum(mat[i][:])
 
@@ -820,18 +775,16 @@ class NeuronAnalyzer:
             for j in range(m):
                 if i == j:
                     continue
-                if mat[i][j] < 0.9:
-                    continue
                 tgt[j] = max(tgt[j], mat[i][j])
                 if mat[i][j] > max_prob:
                     max_pair = (i,j)
                     max_prob = mat[i][j]
 
         arg = np.argsort(tgt)
-        if tgt[arg[-1]] - tgt[arg[-2]] > 0.8:
-            return max_pair, mat
+        if tgt[arg[-1]] - tgt[arg[-2]] >= thr:
+            return max_pair, mat, tgt[arg[-1]]
 
-        return None, mat
+        return None, mat, tgt[arg[-1]]
 
 
     def score_to_prob(self, score):
@@ -845,19 +798,23 @@ class NeuronAnalyzer:
 
 
     def check_neuron(self, param, pair):
-        select_idx = (self.preds_all == pair[0])
+        s_lb, t_lb = pair
         self.hook_param = param
 
         self.reprs = list()
         self.record_reprs = True
-        logits, preds = self._run_once_epoch(self.images_all[select_idx])
+        logits, preds = self._run_once_epoch(self.images_all)
         self.record_reprs = False
         pos_repr = np.concatenate(self.reprs)
         pos_repr = self.regular_features(pos_repr)
 
-        att_acc = np.sum(preds==pair[1])
-        if att_acc/len(preds) < 0.8:
-            return 0
+        _pair, _mat, att_acc = self._check_preds_backdoor(self.preds_all, preds, 0.9)
+        if _pair is None:
+            return -1
+
+        select_idx = (self.preds_all==s_lb)
+        pos_repr = pos_repr[select_idx]
+        preds = preds[select_idx]
 
         reprs = np.concatenate([self.good_repr, pos_repr])
         labels = np.concatenate([self.preds_all, preds])
@@ -876,9 +833,19 @@ class NeuronAnalyzer:
 
         sc = self.dealer.calc_final_score(lc_model)
         if np.argmax(sc) != pair[1]:
-            return 0
+            return -2
 
-        print(param[0:3], pair,att_acc/len(preds), self.channel_max[param[0]][param[1]]/param[2])
+        k,i,test_v = param[0], param[1], param[2]
+
+        mx_list = list()
+        for lb in range(self.n_classes):
+            mx_list.append(self.lb_channel_max[k][lb][i])
+        mx_list = np.asarray(mx_list)
+        if np.argmax(mx_list) == t_lb:
+            return -3
+
+        #print(mx_list)
+        print((k,i,test_v), pair,att_acc, self.channel_max[k][i]/test_v)
         return sc[pair[1]]
 
 
@@ -890,6 +857,7 @@ class NeuronAnalyzer:
 
 
     def test_one_channel(self, k, i, try_v, shape, candi_list):
+        '''
         mask = np.random.rand(shape[2], shape[3])
         ratio = min(0.5, 500/(shape[2]*shape[3]))
         ratio = 0.5
@@ -898,17 +866,21 @@ class NeuronAnalyzer:
 
         mask_tensor = torch.from_numpy(mask)
         self.hook_param = (k, i, try_v, mask_tensor)
+        '''
+        self.hook_param = (k, i, try_v)
 
         st_child = self.md_child[k]
         logits, preds = self._run_once_epoch(self.child_inputs[st_child], st_child)
 
-        pair, mat = self._check_preds_backdoor(preds)
+        pair, mat, att_acc = self._check_preds_backdoor(self.pred_init, preds, 0.5)
         if pair is not None:
             candi_list.append((self.hook_param, pair))
 
 
     def reverse_trigger(self, param, pair):
-        k, i, try_v, _ = param
+        print('reverse', param[0:3], pair)
+
+        k, i, try_v = param[0], param[1], param[2]
         u, v = pair
 
         idx = (self.preds_all==u)
@@ -918,7 +890,8 @@ class NeuronAnalyzer:
         model = self._get_partial_model(st_child=0, ed_child=ed_child)
         model.eval()
 
-        reverser = Reverser(model, param)
+        reverser = Reverser(self.model, param, pair)
+        #reverser = Reverser(model, param)
         poisoned_images, raw_poisoned_images = reverser.reverse(raw_images)
 
         self.hook_param = param
@@ -1029,14 +1002,15 @@ class NeuronAnalyzer:
 
         count_k = 0
 
+        #layer_candi = None
+        #self.svm_model = None
+        #self.loss_model = None
+
         for k, md in enumerate(self.convs):
             if layer_candi is not None and not k in layer_candi:
                 continue
 
             count_k += 1
-
-            if count_k > 50:
-                break
 
             shape = self.outputs[k].shape
             tmax = self.tensor_max[k]
@@ -1091,8 +1065,12 @@ class NeuronAnalyzer:
 
             candi_ct.append(0)
 
+            zz = 0
             for param, pair in this_candi:
                 sc = self.check_neuron(param,pair)
+
+                #print(zz, sc, param[:3], pair)
+                zz += 1
                 if sc < EPS:
                     continue
 
@@ -1104,17 +1082,18 @@ class NeuronAnalyzer:
                 sc_list.append(sc)
                 candi_list.append((param, pair))
                 i = param[1]
-                print(self.channel_mean[k][i], self.channel_max[k][i], self.channel_min[k][i])
+                #print(self.channel_mean[k][i], self.channel_max[k][i], self.channel_min[k][i])
 
 
+        print(candi_ct)
         stop = timeit.default_timer()
         print('Time used to select neuron: ', stop-start)
-
 
         out_data = {'candi_ct':candi_ct, 'candi_mat':candi_mat}
         utils.save_pkl_results(out_data)
 
         if self.svm_model is not None:
+            print(candi_ct)
             sc = np.sum(self.svm_model.coef_[0]*candi_ct)+self.svm_model.intercept_
             alpha, beta = self.loss_model[self.arch_name]
             p = sc*alpha+beta
@@ -1122,6 +1101,31 @@ class NeuronAnalyzer:
             print(sc, p)
 
             return p[0]
+
+        '''
+        param = (1, 28, 21.0024204)
+        pair = (14,6)
+        param = (1, 30, 21.0024204)
+        pair = (14,6)
+        param = (1, 41, 21.0024204)
+        pair = (14,6)
+        param = (6, 78, 16.6163940)
+        pair = (6,7)
+        param = (7, 39, 17.01759529)
+        pair = (6,7)
+        k,i,test_v = param[0], param[1], param[2]
+        mx_list = list()
+        for lb in range(self.n_classes):
+            mx_list.append(self.lb_channel_max[k][lb][i])
+        mx_list = np.asarray(mx_list)
+        print(mx_list)
+
+        att_acc, poisoned_images, benign_images = self.reverse_trigger(param, pair)
+        print('recovered trigger attack acc: ', att_acc)
+        utils.save_poisoned_images(pair, poisoned_images, benign_images)
+
+        exit(0)
+        #'''
 
 
         if len(sc_list) == 0:
@@ -1132,7 +1136,6 @@ class NeuronAnalyzer:
         if sorted_tgt[-1]-sorted_tgt[-2] < 0.1:
             return 0
         tgt_lb = np.argmax(tgt_ct)
-
 
 
         _sc_list = list()
@@ -1159,11 +1162,11 @@ class NeuronAnalyzer:
 
 
 class Reverser:
-    def __init__(self, model, param):
+    def __init__(self, model, param, pair):
         self.model = model
         self.param = param
-        self.layer_k, self.channel_i, self.try_v, _ = param
-        print('Reverser: ', param[0], param[1], param[2])
+        self.layer_k, self.channel_i, self.try_v = param[0], param[1], param[2]
+        self.src_lb, self.tgt_lb = pair
 
         self.convs = list()
         mds = list(self.model.modules())
@@ -1200,9 +1203,12 @@ class Reverser:
         _max_values = _max_values.unsqueeze(-1)
         x_tensor = x_tensor / _max_values
 
-        self.model(x_tensor)
+        y_tensor = self.model(x_tensor)
+        logits = y_tensor.cpu().detach().numpy()
+        pred = np.argmax(logits,axis=1)
+        att_acc = np.sum(pred==self.tgt_lb)/len(pred)
 
-        return x_tensor
+        return x_tensor, att_acc
 
 
     def forward(self, input_raw_tensor):
@@ -1210,7 +1216,7 @@ class Reverser:
                         self.mask_tensor * self.pattern_raw_tensor)
         self.x_adv_raw_tensor = x_adv_raw_tensor
 
-        self.x_adv_tensor = self.run_model(self.x_adv_raw_tensor)
+        self.x_adv_tensor, self.att_acc = self.run_model(self.x_adv_raw_tensor)
 
         output_tensor = self.current_output
 
@@ -1262,9 +1268,18 @@ class Reverser:
         mask = np.zeros(self.image_shape[1:], dtype=np.float32)
         pattern = np.zeros(self.image_shape, dtype=np.float32)
 
+        #initialize
         mask_tanh = np.zeros_like(mask)
         pattern_tanh = np.zeros_like(pattern)
-        #pattern_tanh = np.arctanh((images-0.5)*2-self.epsilon)
+
+        #mask_tanh = np.ones_like(mask)*(-3)
+        #limit = math.sqrt(1.0/3.0)
+        #pattern_tanh = np.random.uniform(-limit,limit,size=self.image_shape)
+        #pattern_tanh = pattern_tanh.astype(np.float32)
+        #print(pattern_tanh.shape)
+
+
+
 
         self.mask_tanh_tensor = Variable(torch.from_numpy(mask_tanh), requires_grad=True)
         self.pattern_tanh_tensor = Variable(torch.from_numpy(pattern_tanh), requires_grad=True)
@@ -1280,7 +1295,7 @@ class Reverser:
 
 
         keep_loss, channel_loss, mask_loss, ssim_loss = self.forward(self.init_image_tensor)
-        print('initial: keep_loss: {}, channel_loss: {}, mask_loss: {}, ssim_loss: {}'.format(keep_loss, channel_loss, mask_loss, ssim_loss))
+        print('initial: keep_loss: %.2f, channel_loss: %.2f, mask_loss: %.2f, ssim_loss: %.2f'%(keep_loss, channel_loss, mask_loss, ssim_loss))
 
 
         ratio_set_counter = 0
@@ -1302,9 +1317,9 @@ class Reverser:
             keep_loss, channel_loss, mask_loss, ssim_loss = self.forward(self.init_image_tensor)
 
             if step%10 == 0:
-                print('step {}: keep_loss: {}, channel_loss: {}, mask_loss: {}, ssim_loss: {}'.format(step, keep_loss, channel_loss, mask_loss, ssim_loss))
+                print('step %d: keep_loss: %.2f, channel_loss: %.2f, mask_loss: %.2f, ssim_loss: %.2f, att_acc: %.2f'%(step, keep_loss, channel_loss, mask_loss, ssim_loss, self.att_acc))
 
-            if channel_loss < EPS and keep_loss < best_keep_loss:
+            if self.att_acc > 0.9 and keep_loss < best_keep_loss:
                 best_raw_images = self.x_adv_raw_tensor.cpu().detach().numpy()
                 best_images = self.x_adv_tensor.cpu().detach().numpy()
                 best_keep_loss = keep_loss
@@ -1313,16 +1328,16 @@ class Reverser:
                 best_raw_images = self.x_adv_raw_tensor.cpu().detach().numpy()
                 best_images = self.x_adv_tensor.cpu().detach().numpy()
 
-            if self.keep_ratio == 0 and channel_loss < EPS:
+            if self.keep_ratio == 0 and self.att_acc > 0.9:
                 ratio_set_counter += 1
                 if ratio_set_counter >= patience_iters:
                     self.keep_ratio = self.init_ratio
                     print('init ratio to %.2E'%Decimal(self.keep_ratio))
             else:
                 ratio_set_counter = 0
-                self.keep_ratio = 1.0
+                #self.keep_ratio = 1.0
 
-            if channel_loss < EPS:
+            if self.att_acc > 0.9:
                 ratio_up_counter += 1
                 ratio_down_counter = 0
             else:
@@ -1332,9 +1347,11 @@ class Reverser:
             if ratio_up_counter >= patience_iters:
                 ratio_up_counter = 0
                 self.keep_ratio *= self.ratio_up_multiplier
+                print('keep_ratio up to: {}'.format(self.keep_ratio))
             elif ratio_down_counter >= patience_iters:
                 ratio_down_counter = 0
                 self.keep_ratio /= self.ratio_up_multiplier
+                print('keep_ratio down to: {}'.format(self.keep_ratio))
 
         return best_images, best_raw_images
 
