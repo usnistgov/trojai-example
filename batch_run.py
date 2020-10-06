@@ -38,7 +38,7 @@ for na in arch_list:
   arch_ct[na] = 0
 
 #'''
-arch_ct['resnet18'] = 0 #0.8 0.8 [0 2 3 4 6] 0.82 // 0.864 0.923 [0 1 3 4 5] 0.84
+arch_ct['resnet18'] = -1 #0.8 0.8 [0 2 3 4 6] 0.82 // 0.864 0.923 [0 1 3 4 5] 0.84
 arch_ct['resnet34'] = -1 #0.823 0.846 [3 4 7 8 12, 28] 0.82
 arch_ct['resnet50'] = -1 # 1.0 1.0 [6,9,11,28,35,48,50] 1.0 // 1.0 0.8 [6,11,28,48,50] 1.0
 arch_ct['resnet101'] = -1
@@ -64,14 +64,14 @@ arch_ct['vgg19bn'] = -1 #0.727 0.8 [1,3,5,6] 0.74
 #'''
 
 
-k = 0
+run_list = list()
 for i,d in enumerate(dirs):
   if not os.path.isdir(os.path.join(folder_root,d)):
     continue
   md_name = d.split('.')[0]
 
-  if not md_name == 'id-00000073': #benign
-      continue
+  #if not md_name == 'id-00000073': #benign
+  #    continue
 
   md_arch = id_arch[md_name]
   #if arch_ct[md_arch] > 0:
@@ -80,15 +80,16 @@ for i,d in enumerate(dirs):
     continue
   arch_ct[md_arch] += 1
 
+  run_list.append(d)
 
-  #if not os.path.exists('scratch/'+md_name+'.pkl'):
-  #    print(md_name)
+run_list.sort()
 
-  #continue
+k = 0
+for i,d in enumerate(run_list):
+  md_name = d.split('.')[0]
+  md_arch = id_arch[md_name]
 
-
-  fn = d.split('.')[0]
-  num_str = fn.split('-')[1]
+  num_str = md_name.split('-')[1]
   num = int(num_str)
   model_filepath=os.path.join(folder_root, d, 'model.pt')
   examples_dirpath=os.path.join(folder_root, d, 'example_data')
@@ -102,6 +103,6 @@ for i,d in enumerate(dirs):
   print(cmmd)
   print('model architecture: ', md_arch)
 
-  os.system(cmmd)
+  #os.system(cmmd)
   #break
 

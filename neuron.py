@@ -28,12 +28,11 @@ import utils
 RELEASE = True
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
+BATCH_SIZE = 128 #for 12G GPU-memory
+SVM_FOLDER = 'svm_models'
 if RELEASE:
-    BATCH_SIZE = 32
+    BATCH_SIZE *= 2
     SVM_FOLDER = '/svm_models'
-else:
-    BATCH_SIZE = 32
-    SVM_FOLDER = 'svm_models'
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
 KEEP_DIM = 64
@@ -601,8 +600,20 @@ class NeuronAnalyzer:
             self.n_classes = self.convs[-1].out_channels
         print('n_classes',self.n_classes)
 
-        if self.arch_name in ['wideresnet101','resnet152','densenet161','densenet169','densenet201']:
-            self.batch_size //= 2
+        #default batch_size = 128 on 12G GPU-memory server
+        if self.arch_name in ['googlenet','inceptionv3','mobilenetv2']:
+            self.batch_size //= 4
+            self.batch_size *= 3
+        elif self.arch_name in ['vgg11bn','vgg13bn','resnet50']:
+            self.batch_size //= 8
+            self.batch_size *= 3
+        elif self.arch_name in ['vgg16bn','vgg19bn','densenet121','resnet101','wideresnet50']:
+            self.batch_size //= 4
+        elif self.arch_name in ['densenet169','densenet201','resnet152','wideresnet101']:
+            self.batch_size //= 16
+            self.batch_size *= 3
+        elif self.arch_name in ['densenet161']:
+            self.batch_size //= 8
 
         self.record_conv = True
         self.record_child = False
@@ -828,12 +839,9 @@ class NeuronAnalyzer:
         lc_model = self.dealer.build_local_model(pca.transform(reprs), labels, gb_model, self.n_classes)
         #'''
 
-        #gb_model = self.dealer.build_global_model(self.good_repr, self.preds_all, self.n_classes)
-        #lc_model = self.dealer.build_local_model(reprs, labels, gb_model, self.n_classes)
-
         sc = self.dealer.calc_final_score(lc_model)
-        if np.argmax(sc) != pair[1]:
-            return -2
+        #if np.argmax(sc) != pair[1]:
+        #    return -2
 
         k,i,test_v = param[0], param[1], param[2]
 
@@ -843,6 +851,40 @@ class NeuronAnalyzer:
         mx_list = np.asarray(mx_list)
         if np.argmax(mx_list) == t_lb:
             return -3
+
+
+        #''' #sample vicinity
+        n_sample = 100
+        meanv = param[2]
+        stdv = param[2]/2.0
+        stdv = 10.0
+        testv_list = np.random.normal(meanv,stdv,[n_sample])
+        testv_list.sort()
+
+        logits_list = list()
+        preds_list = list()
+        for testv in testv_list:
+            _param = (param[0], param[1], testv)
+            self.hook_param = _param
+            self.record_reprs = False
+            logits, preds = self._run_once_epoch(self.images_all[select_idx])
+            logits_list.append(logits[:,t_lb])
+            preds_list.append(preds)
+
+        logits_mat = np.asarray(logits_list)
+        preds_mat = np.asarray(preds_list)
+
+        hit_mat = (preds_mat==t_lb)
+        print(np.sum(hit_mat,0))
+        #print(np.mean(logits_mat,1))
+        uni_cnt = [0]*preds_mat.shape[1]
+        for j in range(len(uni_cnt)):
+            uni_preds = np.unique(preds_mat[:,j])
+            uni_cnt[j] = len(uni_preds)
+        print(uni_cnt)
+        #'''
+
+
 
         #print(mx_list)
         print((k,i,test_v), pair,att_acc, self.channel_max[k][i]/test_v)
@@ -997,6 +1039,11 @@ class NeuronAnalyzer:
                 self.loss_model = pickle.load(f)
 
 
+
+        #if not self.arch_name in ['resnet18','resnet34','googlenet','inceptionv3','squeezenetv1_0','squeezenetv1_1','mobilenetv2','shufflenet1_0','shufflenet1_5','shufflenet2_0','vgg11bn','vgg13bn','vgg16bn','vgg19bn']:
+        if not self.arch_name in ['vgg11bn','vgg13bn','vgg16bn','vgg19bn']:
+            return None
+
         candi_ct = list()
         candi_mat = np.zeros([self.n_classes, self.n_classes])
 
@@ -1096,6 +1143,8 @@ class NeuronAnalyzer:
             print(candi_ct)
             sc = np.sum(self.svm_model.coef_[0]*candi_ct)+self.svm_model.intercept_
             alpha, beta = self.loss_model[self.arch_name]
+            alpha = 1.0
+            beta = 0.0
             p = sc*alpha+beta
             p = 1.0/(1.0+np.exp(-p))
             print(sc, p)
@@ -1146,17 +1195,17 @@ class NeuronAnalyzer:
             _sc_list.append(sc)
             _candi_list.append(candi)
 
+        '''
         max_id = np.argmax(_sc_list)
         param, pair = _candi_list[max_id]
         att_acc, poisoned_images, benign_images = self.reverse_trigger(param, pair)
         print('recovered trigger attack acc: ', att_acc)
-
         if (att_acc < 0.9):
             return 0
 
         print(poisoned_images.shape)
-
         utils.save_poisoned_images(pair, poisoned_images, benign_images)
+        #'''
 
         return self.score_to_prob(np.max(_sc_list))
 
