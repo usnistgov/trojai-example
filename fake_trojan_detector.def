@@ -6,6 +6,7 @@ From: pytorch/pytorch:latest
 
 %post
     /opt/conda/bin/conda install scikit-image
+    pip install advertorch
 
 %runscript
     exec python3 /fake_trojan_detector.py "$@"

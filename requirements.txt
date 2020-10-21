@@ -1,4 +1,5 @@
-numpy==1.19.1
-scikit-image==0.17.2
+numpy
+scikit-image
 torch==1.6.0
-torchvision==0.7.0
+torchvision==0.6.0
+advertorch
