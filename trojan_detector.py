@@ -21,12 +21,75 @@ from neuron import NeuronAnalyzer
 
 ava_model_type = ['ResNet', 'DenseNet','Inception3']
 
-def build_data_loader(X,Y, batch_size=2):
+def build_data_loader(X,Y, batch_size=32):
     tensor_X = torch.Tensor(X)
     tensor_Y = torch.Tensor(Y)
     dataset = TensorDataset(tensor_X, tensor_Y)
     loader = DataLoader(dataset,batch_size=batch_size,drop_last=False, shuffle=False)
     return loader
+
+def try_visualizer(model,cat_batch):
+    from scorecam import ScoreCam
+    from gradcam import GradCam
+    from guided_backprop import GuidedBackprop
+    from torch.autograd import Variable
+    from guided_gradcam import guided_grad_cam
+
+    s_lb = 4
+    raw_X = cat_batch[s_lb]['images']
+
+    index = 0
+    X = utils.regularize_numpy_images(raw_X)
+    for x, raw_x in zip(X,raw_X):
+        x_tensor = torch.from_numpy(x)
+        x_tensor.unsqueeze_(0)
+        x_var = Variable(x_tensor.cuda(), requires_grad=True)
+
+        file_name_to_export = 'benign_'+str(index)
+        index += 1
+
+        ''' #score cam  and grad cam
+        print('score_cam')
+        score_cam = ScoreCam(model, target_layer=8)
+        cam = score_cam.generate_cam(x_var)
+        #print('grad_cam')
+        #grad_cam = GradCam(model, target_layer=22)
+        #cam = grad_cam.generate_cam(x_var)
+        ori_input = utils.chg_img_fmt(raw_x,'HWC')
+        from misc_functions import save_class_activation_images
+        from PIL import Image
+        oim = Image.fromarray(ori_input)
+        save_class_activation_images(oim, cam,  file_name_to_export)
+        #'''
+
+        ''' #guided grad
+        print('guided_grad')
+        from misc_functions import (convert_to_grayscale,save_gradient_images,get_positive_negative_saliency)
+        GBP = GuidedBackprop(model)
+        guided_grads = GBP.generate_gradients(x_var)
+        save_gradient_images(guided_grads, file_name_to_export + '_Guided_BP_color')
+        grayscale_guided_grads = convert_to_grayscale(guided_grads)
+        save_gradient_images(grayscale_guided_grads, file_name_to_export + '_Guided_BP_gray')
+        pos_sal, neg_sal = get_positive_negative_saliency(guided_grads)
+        save_gradient_images(pos_sal, file_name_to_export + '_pos_sal')
+        save_gradient_images(neg_sal, file_name_to_export + '_neg_sal')
+        #'''
+
+        '''#guided grad cam
+        print('guided_grad_cam')
+        from misc_functions import (convert_to_grayscale,save_gradient_images)
+        gcv2 = GradCam(model,target_layer=22)
+        cam = gcv2.generate_cam(x_var)
+        GBP = GuidedBackprop(model)
+        guided_grads = GBP.generate_gradients(x_var)
+        cam_gb = guided_grad_cam(cam,guided_grads)
+        save_gradient_images(cam_gb, file_name_to_export + '_GGrad_Cam')
+        grayscale_cam_gb = convert_to_grayscale(cam_gb)
+        save_gradient_images(grayscale_cam_gb, file_name_to_export + '_GGrad_Cam_gray')
+        #'''
+
+
+
 
 
 def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examples_dirpath, example_img_format='png'):
@@ -43,11 +106,15 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     num_classes=len(cat_batch)
     model = torch.load(model_filepath)
     analyzer = NeuronAnalyzer(model, num_classes)
-    all_x = np.concatenate([cat_batch[i]['images'] for i in range(num_classes)])
-    all_y = np.concatenate([cat_batch[i]['labels'] for i in range(num_classes)])
+    all_x = np.concatenate([cat_batch[lb]['images'] for lb in cat_batch])
+    all_y = np.concatenate([cat_batch[lb]['labels'] for lb in cat_batch])
     dataloader = build_data_loader(all_x, all_y)
 
-    sc = analyzer.analyse(dataloader)
+    #try_visualizer(model, cat_batch)
+    #exit(0)
+
+    analyzer.set_out_folder(scratch_dirpath)
+    sc = analyzer.analyse(all_x, all_y)
     trojan_probability = np.min(sc)
 
     trojan_probability = min(max(trojan_probability,1e-12),1)

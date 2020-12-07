@@ -4,6 +4,8 @@ import numpy as np
 from neuron import RELEASE as neuron_release
 import pickle
 import csv
+from matplotlib import pyplot as plt
+from matplotlib.colors import ListedColormap
 
 RELEASE = neuron_release
 current_modeave_name = None
@@ -16,6 +18,26 @@ def set_model_name(model_filepath):
   global current_model_name
   current_model_name = model_name
 
+
+def regularize_numpy_images(np_raw_imgs):
+    scope = tuple(range(1, len(np_raw_imgs.shape)))
+    np_imgs = np_raw_imgs-np_raw_imgs.min(scope,keepdims=True)
+    np_imgs = np_imgs/(np_imgs.max(scope,keepdims=True)+1e-9)
+    return np_imgs
+
+def chg_img_fmt(img,fmt='CHW'):
+    shape = img.shape
+    assert(len(shape) ==3)
+    if img.dtype != np.uint8:
+        _img = img.astype(np.uint8)
+    else:
+        _img = img.copy()
+    if fmt=='CHW' and shape[0] > 3:
+        _img = np.transpose(_img,(2,0,1))
+    elif fmt=='HWC' and shape[-1] > 3:
+        _img = np.transpose(_img,(1,2,0))
+    return _img
+    
 
 def read_example_images(examples_dirpath, example_img_format='png'):
   fns = [fn for fn in os.listdir(examples_dirpath) if fn.endswith(example_img_format)]
@@ -33,6 +55,13 @@ def read_example_images(examples_dirpath, example_img_format='png'):
     for fn in cat_fns[key]:
       full_fn = os.path.join(examples_dirpath,fn)
       img = skimage.io.imread(full_fn)
+
+      ''' #for round1 rgb->bgr
+      r = img[:,:,0]
+      g = img[:,:,1]
+      b = img[:,:,2]
+      img = np.stack((b,g,r),axis=2)
+      #'''
 
       h,w,c = img.shape
       dx = int((w-224)/2)
@@ -64,6 +93,7 @@ def save_poisoned_images(pair, poisoned_images, benign_images, folder='recovered
   folder = os.path.join(folder,current_model_name)
   if not os.path.exists(folder):
     os.makedirs(folder)
+  print('save recovered images to',folder)
 
   fn_template = 'poisoned_from_{}_to_{}.jpg'.format(pair[0],pair[1])
   fn_template = 'example_{}_'+fn_template
@@ -161,20 +191,20 @@ def mad_detection(l1_norm_list, crosp_lb):
   #min_idx = np.max(a_idx)
   min_idx = np.min(l1_norm_list)/np.max(l1_norm_list)
 
-  print('median: %f, MAD: %f' % (median, mad))
-  print('min anomaly index: %f' % min_idx)
+  #print('median: %f, MAD: %f' % (median, mad))
+  #print('min anomaly index: %f' % min_idx)
 
   flag_list = []
   for sc, lb, ori in zip(a_idx, crosp_lb, l1_norm_list):
-    if sc > 2:
-      flag_list.append((lb,ori))
+    if sc > 2.0:
+      flag_list.append((lb,sc))
 
-  if len(flag_list) == 0:
-    print('flagged label list: None')
-  else:
-    print('flagged label list: %s' %
-          ', '.join(['%s: %2f' % (lb,sc)
-                     for lb,sc in flag_list]))
+  #if len(flag_list) == 0:
+  #  print('flagged label list: None')
+  #else:
+  #  print('flagged label list: %s' %
+  #        ', '.join(['%s: %2f' % (lb,sc)
+  #                   for lb,sc in flag_list]))
 
   return min_idx, a_idx
 
@@ -186,6 +216,27 @@ def read_gt_csv(filepath):
     for row in csvreader:
       rst.append(row)
   return rst
+
+
+def demo_heatmap(R, save_path):
+    R /= np.max(R)
+
+    sx = sy = 2.24
+    b = 10*((np.abs(R)**3.0).mean()**(1.0/3))
+
+    my_cmap = plt.cm.seismic(np.arange(plt.cm.seismic.N))
+    my_cmap[:,0:3] *= 0.85
+    my_cmap = ListedColormap(my_cmap)
+    plt.figure(figsize=(sx,sy))
+    #plt.figure(figsize=(sx,sy))
+    #plt.subplots_adjust(left=0,right=1,bottom=0,top=1)
+    plt.axis('off')
+    fig = plt.gcf()
+    plt.imshow(R,cmap=my_cmap,vmin=-b,vmax=b,interpolation='nearest')
+    #plt.show()
+    fig.savefig(save_path)
+
+
 
 
 

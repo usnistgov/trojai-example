@@ -59,7 +59,7 @@ def trim_gt(gt_csv, t_dict):
         break
     if ok:
       rst.append(row)
-  print('totoal :', len(rst))
+  print('total :', len(rst))
   return rst
 
 
@@ -67,6 +67,7 @@ def draw_roc(out_dir, gt_dict):
   lb_list = list()
   sc_list = list()
   fn_list = list()
+  number_classes_list = list()
 
   for row in gt_dict:
     fn = row['model_name']
@@ -75,6 +76,7 @@ def draw_roc(out_dir, gt_dict):
       continue
 
     fn_list.append(fn)
+    number_classes_list.append(int(row['number_classes']))
 
     lb = row['poisoned']
     if lb.lower() == 'true':
@@ -96,11 +98,13 @@ def draw_roc(out_dir, gt_dict):
 
     sc_list.append(score)
 
+  lb_list = np.asarray(lb_list)
+  sc_list = np.asarray(sc_list)
 
   from sklearn.metrics import roc_curve, auc
   import matplotlib.pyplot as plt
 
-  print(sum(lb_list))
+  print('total positive:', sum(lb_list))
 
   print(lb_list)
   print(sc_list)
@@ -152,24 +156,33 @@ def draw_roc(out_dir, gt_dict):
   print('min error: ({},{},{})'.format(min_rr, min_rr_fpr, min_rr_tpr))
 
 
-  #plt.figure()
-  #plt.plot(FPR,TPR)
-  #plt.show()
-  #exit(0)
+  '''
+  plt.figure()
+  plt.plot(FPR,TPR)
+  plt.show()
+  exit(0)
+  #'''
+
+  for fn,lb,sc in zip(fn_list,lb_list,sc_list):
+      print(fn,lb,sc)
 
   tpr, fpr, thr = roc_curve(lb_list,sc_list)
-  #print(fpr)
-  #print(tpr)
-  #print(thr)
+  print(fpr)
+  print(tpr)
+  print(thr)
   print(auc(fpr,tpr))
-  #plt.figure()
-  #plt.plot(fpr,tpr)
-  #plt.show()
+  plt.figure()
+  plt.plot(fpr,tpr)
+  plt.show()
 
 if __name__ == '__main__':
-    gt_csv = utils.read_gt_csv('/home/tdteach/data/round2-dataset-train/METADATA.csv')
+    home = os.environ['HOME']
+    csv_path = os.path.join(home,'data/round2-dataset-train/METADATA.csv')
+    gt_csv = utils.read_gt_csv(csv_path)
     #ac_list = ['googlenet']
-    ac_list = ['resnet18']
+    #ac_list = ['shufflenet1_5']
+    #ac_list = ['squeezenetv1_0']
+    ac_list = ['resnet50']
     #ac_list = ['resnet','inception','densenet']
     rst_csv = trim_gt(gt_csv, {'model_architecture':ac_list})
     #rst_csv = trim_gt(gt_csv, {})

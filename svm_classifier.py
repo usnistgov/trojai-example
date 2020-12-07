@@ -59,29 +59,17 @@ def get_data(arch):
     for d in data_list:
         candi_ct= d[1]['candi_ct']
         candi_ct = candi_ct[:min_fts]
-        mat = d[1]['candi_mat']
-        if np.sum(mat) == 0:
-            acc = [0]*5
-        else:
-            prob = np.sum(mat,0)/np.sum(mat)
-            prob.sort()
-            acc = prob[-5:]
-        #candi_ct.extend(acc)
-        #candi_ct = acc
-
         X.append(candi_ct)
         Y.append(d[0])
 
     X = np.asarray(X)
     Y = np.asarray(Y)
 
-    '''
-    for k,na in enumerate(na_list):
-        if na == 'id-00001089':
-            print(X[k])
-    exit(0)
-    #'''
 
+    for na,x,y in zip(na_list,X,Y):
+        if na=='id-00000035':
+            print(na,x,y)
+    exit(0)
 
     return X,Y,na_list
 
@@ -241,7 +229,7 @@ def try_svm(arch):
     best_all_idx = None
     step = 0
 
-    while step < 100 or (best_all_acc<0.7 and step<1000):
+    while best_all_acc<0.7 and step<1000:
       step += 1
       best_te_acc = 0
       best_ft_idx = None
@@ -319,9 +307,6 @@ def save_svm_model(arch, ft_idx):
     clf.fit(XX,Y)
     acc = clf.score(XX,Y)
     print('all acc: ', acc)
-
-    print(ft_idx)
-    print(clf.coef_[0], clf.intercept_)
 
 
     model = {'layer_candi':ft_idx, 'svm_model':clf}
@@ -446,7 +431,7 @@ def build_loss_model(arch_lsit):
 
 if __name__ == '__main__':
     #'''
-    arch = 'shufflenet2_0'
+    arch = 'resnet18'
     print(arch)
     #ft_idx = [19,20,85,86,89,91]
     acc, ft_idx = try_svm(arch)

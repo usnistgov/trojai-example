@@ -51,7 +51,7 @@ arch_ct['densenet169'] = -1
 arch_ct['densenet201'] = -1 # 0.75 0.81 [24,25,29,44,58,177] 0.784
 arch_ct['googlenet'] = -1 #0.804 0.888 [3,4,8,10,20,24,30,39] 0.82
 arch_ct['inceptionv3'] = -1 #0.763 0.800 [6 11 19 20 77 88] // 0.805 0.857 [6,11,19,20,85,86,88,91] 0.813
-arch_ct['squeezenetv1_0'] = -1 #0.709 0.800 [1 4 9 19] // 0.793 0.857 [1,2,4,7,9,16] 0.805
+arch_ct['squeezenetv1_0'] = 0 #0.709 0.800 [1 4 9 19] // 0.793 0.857 [1,2,4,7,9,16] 0.805
 arch_ct['squeezenetv1_1'] = -1 #0.758 0.857 [5,8,9]// 0.89 0.875 [1,5,13,14,15] 0.833
 arch_ct['mobilenetv2'] = -1 #0.795 0.857 [10 17 18 41] 0.803
 arch_ct['shufflenet1_0'] = -1 #0.756 1.0 [4,5,7,33,51] 0.808
@@ -64,13 +64,18 @@ arch_ct['vgg19bn'] = -1 #0.727 0.8 [1,3,5,6] 0.74
 #'''
 
 
-run_list = list()
+k = 0
 for i,d in enumerate(dirs):
   if not os.path.isdir(os.path.join(folder_root,d)):
     continue
   md_name = d.split('.')[0]
 
-  #if not md_name == 'id-00000073': #benign
+  #if not md_name == 'id-00000072': #trojaned
+  #if not md_name == 'id-00000258': #trojaned
+  #if not md_name == 'id-00000183': #trojaned
+  #if not md_name == 'id-00001033': #trojaned
+  #    continue
+  #if not md_name == 'id-00000466': #benign
   #    continue
 
   md_arch = id_arch[md_name]
@@ -80,21 +85,20 @@ for i,d in enumerate(dirs):
     continue
   arch_ct[md_arch] += 1
 
-  run_list.append(d)
 
-run_list.sort()
+  #if not os.path.exists('scratch/'+md_name+'.pkl'):
+  #    print(md_name)
 
-k = 0
-for i,d in enumerate(run_list):
-  md_name = d.split('.')[0]
-  md_arch = id_arch[md_name]
+  #continue
 
-  num_str = md_name.split('-')[1]
+
+  fn = d.split('.')[0]
+  num_str = fn.split('-')[1]
   num = int(num_str)
   model_filepath=os.path.join(folder_root, d, 'model.pt')
   examples_dirpath=os.path.join(folder_root, d, 'example_data')
 
-  cmmd = 'CUDA_VISIBLE_DEVICES=0 python3 trojan_detector.py --model_filepath='+model_filepath+' --examples_dirpath='+examples_dirpath
+  cmmd = 'CUDA_VISIBLE_DEVICES=1 python3 _trojan_detector.py --model_filepath='+model_filepath+' --examples_dirpath='+examples_dirpath
 
   k = k+1
 
@@ -103,6 +107,6 @@ for i,d in enumerate(run_list):
   print(cmmd)
   print('model architecture: ', md_arch)
 
-  #os.system(cmmd)
-  #break
+  os.system(cmmd)
+  break
 

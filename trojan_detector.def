@@ -1,44 +1,22 @@
 Bootstrap: docker
-From: pytorch/pytorch:latest
+From: pytorch/pytorch:1.5.1-cuda10.1-cudnn7-runtime
 
 %setup
     mkdir ${SINGULARITY_ROOTFS}/svm_models
 
 %files
+    ./heatmap_model.pt /
     ./trojan_detector.py /
     ./neuron.py /
     ./SCAn.py /
     ./utils.py /
     ./pytorch_ssim.py /
-    ./svm_models/loss_model.pkl         /svm_models/.
-    ./svm_models/resnet18_svm.pkl       /svm_models/.
-    ./svm_models/resnet34_svm.pkl       /svm_models/.
-    ./svm_models/resnet50_svm.pkl       /svm_models/.
-    ./svm_models/resnet101_svm.pkl       /svm_models/.
-    ./svm_models/resnet152_svm.pkl       /svm_models/.
-    ./svm_models/wideresnet50_svm.pkl       /svm_models/.
-    ./svm_models/wideresnet101_svm.pkl       /svm_models/.
-    ./svm_models/densenet121_svm.pkl       /svm_models/.
-    ./svm_models/densenet161_svm.pkl       /svm_models/.
-    ./svm_models/densenet169_svm.pkl       /svm_models/.
-    ./svm_models/densenet201_svm.pkl       /svm_models/.
-    ./svm_models/googlenet_svm.pkl      /svm_models/.
-    ./svm_models/inceptionv3_svm.pkl    /svm_models/.
-    ./svm_models/squeezenetv1_0_svm.pkl /svm_models/.
-    ./svm_models/squeezenetv1_1_svm.pkl /svm_models/.
-    ./svm_models/mobilenetv2_svm.pkl    /svm_models/.
-    ./svm_models/shufflenet1_0_svm.pkl  /svm_models/.
-    ./svm_models/shufflenet1_5_svm.pkl  /svm_models/.
-    ./svm_models/shufflenet2_0_svm.pkl  /svm_models/.
-    ./svm_models/vgg11bn_svm.pkl        /svm_models/.
-    ./svm_models/vgg13bn_svm.pkl        /svm_models/.
-    ./svm_models/vgg16bn_svm.pkl        /svm_models/.
-    ./svm_models/vgg19bn_svm.pkl        /svm_models/.
 
 %post
     /opt/conda/bin/conda install scikit-image
     /opt/conda/bin/conda install scikit-learn
     /opt/conda/bin/conda install -c anaconda scipy
+    /opt/conda/bin/conda install -c anaconda matplotlib
 
 %runscript
     exec python3 /trojan_detector.py "$@"
