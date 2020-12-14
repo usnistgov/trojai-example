@@ -37,7 +37,7 @@ def chg_img_fmt(img,fmt='CHW'):
     elif fmt=='HWC' and shape[-1] > 3:
         _img = np.transpose(_img,(1,2,0))
     return _img
-    
+
 
 def read_example_images(examples_dirpath, example_img_format='png'):
   fns = [fn for fn in os.listdir(examples_dirpath) if fn.endswith(example_img_format)]
@@ -52,6 +52,7 @@ def read_example_images(examples_dirpath, example_img_format='png'):
   cat_imgs = {}
   for key in cat_fns:
     cat_imgs[key] = []
+    cat_fns[key] = sorted(cat_fns[key])
     for fn in cat_fns[key]:
       full_fn = os.path.join(examples_dirpath,fn)
       img = skimage.io.imread(full_fn)

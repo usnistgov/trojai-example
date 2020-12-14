@@ -37,7 +37,8 @@ if RELEASE:
     SVM_FOLDER = '/svm_models'
     CLASSIFIER_MODELPATH = '/heatmap_model.pt'
 else:
-    BATCH_SIZE = (128*3//4)
+    #BATCH_SIZE = (128*3//4)
+    BATCH_SIZE = 128//4
     SVM_FOLDER = 'svm_models'
     CLASSIFIER_MODELPATH = 'heatmap_model.pt'
 NUM_WORKERS = BATCH_SIZE
@@ -49,7 +50,6 @@ SELECT_LAYER = 3
 PAIR_CANDI_NUM = 2
 HEATMAP_NEURON_NUM = 3
 HEATMAP_PER_NEURON = 5
-
 
 class SingleNeuronAnalyzer:
     def __init__(self, n_idx, init_x, init_y, pipe, n_classes):
@@ -460,7 +460,7 @@ class NeuronAnalyzer:
 
         childs = make_childs(self.model)
 
-       
+
         self.lrp = LRP(self.model)
         hook = None
         #hook = (childs[8],12,69) #for densenet161 0683.model
@@ -469,7 +469,7 @@ class NeuronAnalyzer:
         #hook = (childs[37],496,214) #for 5->6 0140.model vgg16bn poisoned
         #hook = (childs[34],299,165) #for 6->4 0165.model vgg16bn benign
         #hook = (chidls[34],299,165) #for 6->4 0167.model mobilenetv2 benign
-        heatmap = self.lrp.interpret(aimg, hook) 
+        heatmap = self.lrp.interpret(aimg, hook)
 
         #from LRP.lrp import LRP as oLRP
         #lrp = oLRP(self.model, 'z_plus', input_lowest=0)
@@ -482,17 +482,11 @@ class NeuronAnalyzer:
         exit(0)
         #'''
 
-
-
         self.hook_activate = False
-
 
         self.n_classes = n_classes
 
         self.results = list()
-
-        #self.manager = MP.Manager()
-        #self.output_queue = queue.Queue()
 
         self.batch_size = BATCH_SIZE
 
@@ -500,6 +494,8 @@ class NeuronAnalyzer:
 
 
     def set_out_folder(self, scratch_path):
+        if not os.path.exists(scratch_path):
+            os.makedirs(scratch_path)
         self.scratch_folder = scratch_path
 
 
@@ -647,11 +643,11 @@ class NeuronAnalyzer:
                 self.md_child.append(0)
             elif na == 'ReLU':
                 self.relus.append(md)
-            
+
         print(self.model_name, len(self.convs), 'convs')
 
 
- 
+
     def _init_hooks(self):
         self.record_conv = False
         self.hook_handles = list()
@@ -810,7 +806,7 @@ class NeuronAnalyzer:
         for lb in range(self.n_classes):
             cat_cnt[lb] = max(min(math.ceil(0.1*cat_cnt[lb])*2+1, 10),5)
 
-        
+
         self.record_conv = True
         self.record_child = False
         self._run_once_epoch(self.images)
@@ -1023,14 +1019,15 @@ class NeuronAnalyzer:
         return w
 
 
-    def test_layer(self, k_layer, test_conv=False, test_maxv=None):
+    def test_layer(self, k_layer, test_conv=False):
         self.clear_hook_trigger()
         self.batch_size = self.adjust_batchsize(BATCH_SIZE)
         if test_conv:
             st_child = self.md_child[k_layer]
             inner_outputs = self.child_inputs[st_child]
             inner_shape = self.outputs[k_layer].shape
-            
+            test_maxv = self.calc_channel_o_max(k_layer)
+
             _coef = min(1, 0.5*(1-k_layer/len(self.convs)))
             self.batch_size = int(self.batch_size/_coef)
 
@@ -1072,7 +1069,7 @@ class NeuronAnalyzer:
             else:
                 _testv = test_maxv
 
-            low_v, s_lb, t_lb = self.search_lower_bound(k_layer, i, _testv, inner_outputs, ori_labels, tail_model, logits_list, base_v, test_conv) 
+            low_v, s_lb, t_lb = self.search_lower_bound(k_layer, i, _testv, inner_outputs, ori_labels, tail_model, logits_list, base_v, test_conv)
 
             neuron_dict[(k_layer, i, low_v)] = (s_lb, t_lb)
 
@@ -1424,7 +1421,7 @@ class NeuronAnalyzer:
         select_idx = idx[:select_n]
         reverse_images = raw_images[select_idx]
 
-       
+
         self._clear_modify_hooks()
 
         if test_conv:
@@ -1629,7 +1626,7 @@ class NeuronAnalyzer:
 
         print(np.argmax(channel_importance,axis=1))
         print(np.max(channel_importance,axis=1))
-        
+
         thr = 0.9
         lb_matters=list()
         for lb in range(self.n_classes):
@@ -1642,7 +1639,7 @@ class NeuronAnalyzer:
                     lb_matters[lb].append(i)
         for lb in range(self.n_classes):
             print(lb, lb_matters[lb])
-        
+
         return channel_importance, lb_matters
 
 
@@ -1725,7 +1722,7 @@ class NeuronAnalyzer:
         if type(size) is tuple:
             return size
         return None
-            
+
     def reverse_maxpool2d_input(self, maxpool_md, output):
         kernel_size = self._expand_union_size(maxpool_md.kernel_size)
         dilation= self._expand_union_size(maxpool_md.dilation)
@@ -1996,94 +1993,7 @@ class NeuronAnalyzer:
 
         return ans
 
-
-    def analyse(self, all_X, all_Y):
-        #order = np.random.permutation(all_Y.shape[0])
-        #all_X = all_X[order]
-        #all_Y = all_Y[order]
-        self.get_init_values(all_X, all_Y)
-
-        #utils.save_pkl_results(self.mean_channel_max, 'poisoned_mean_channel_max','.')
-        #exit(0)
-
-        self.clear_hook_trigger()
-        self.modify_hook_handles = list()
-        for k,md in enumerate(self.convs):
-            self.modify_hook_handles.append(md.register_forward_hook(self.get_modify_hook(k)))
-
-        '''
-        self.record_reprs = True
-        self.register_representation_record_hook()
-        self.reprs = list()
-        self._run_once_epoch(self.images_all)
-        self.record_reprs = False
-        self.good_repr = np.concatenate(self.reprs)
-        self.good_repr = self.regular_features(self.good_repr)
-        '''
-
-        #start = timeit.default_timer()
-        start = time.time()
-
-        run_ct = 0
-        self.dealer = SCAn()
-        sc_list = list()
-        n_conv = len(self.convs)
-
-        tgt_ct = [0]*self.n_classes
-        tgt_list = list()
-        candi_list = list()
-
-        candi_ct = list()
-        candi_mat = np.zeros([self.n_classes, self.n_classes], dtype=np.int32)
-
-        count_k = 0
-
-        test_conv=False
-        layer_list = list()
-        child_list = sorted(set(self.md_child))
-        child_list.reverse()
-        if self.arch_name == 'mobilenetv2':
-            child_list = child_list[-11:]
-        for k in child_list:
-            if self.child_outputs[k].shape[1] == self.n_classes:
-                continue
-            layer_list.append(k)
-            if len(layer_list) >= SELECT_LAYER:
-                break
-
-        #test_conv = True
-        #layer_list = list(range(n_conv-10,n_conv))
-
-        ct_sum = np.zeros(self.n_classes)
-
-        if test_conv:
-            _md_list = self.convs
-        else:
-            _md_list = self.childs
-
-
-        global_chnn_rst = dict()
-        global_neuron_dict = dict()
-        for k in layer_list:
-            #if k != -1:
-            #if k < select_layer:
-            #    continue
-
-            if not test_conv:
-                print('child:', k, 'n_chnn:', self.child_outputs[k].shape[1])
-                print('abs selection test_conv',test_conv)
-                chnn_rst, lb_mat, neuron_dict = self.test_layer(k)
-
-                candi_mat = candi_mat+lb_mat
-                global_chnn_rst.update(chnn_rst)
-                global_neuron_dict.update(neuron_dict)
-
-                continue
-
-            #'''
-
-            count_k += 1
-
+    def calc_channel_o_max(self, k):
             shape = self.outputs[k].shape
             n_chnn = shape[1]
             tmax = self.tensor_max[k]
@@ -2128,140 +2038,58 @@ class NeuronAnalyzer:
 
             if len(weight_list) > 1:
                 o_max += weight_list[1]
+            return o_max
 
-            #'''
+
+
+    def analyse(self, all_X, all_Y):
+        #order = np.random.permutation(all_Y.shape[0])
+        #all_X = all_X[order]
+        #all_Y = all_Y[order]
+        self.get_init_values(all_X, all_Y)
+
+        #utils.save_pkl_results(self.mean_channel_max, 'poisoned_mean_channel_max','.')
+        #exit(0)
+
+        self.clear_hook_trigger()
+        self.modify_hook_handles = list()
+        for k,md in enumerate(self.convs):
+            self.modify_hook_handles.append(md.register_forward_hook(self.get_modify_hook(k)))
+
+        start = time.time()
+
+        candi_mat = np.zeros([self.n_classes, self.n_classes], dtype=np.int32)
+
+        test_conv=False
+        layer_list = list()
+        child_list = sorted(set(self.md_child))
+        child_list.reverse()
+        if self.arch_name == 'mobilenetv2':
+            child_list = child_list[-11:]
+        for k in child_list:
+            if self.child_outputs[k].shape[1] == self.n_classes:
+                continue
+            layer_list.append(k)
+            if len(layer_list) >= SELECT_LAYER:
+                break
+
+        if test_conv:
+            _md_list = self.convs
+        else:
+            _md_list = self.childs
+
+        global_chnn_rst = dict()
+        global_neuron_dict = dict()
+        for k in layer_list:
+            print('child:', k, 'n_chnn:', self.child_outputs[k].shape[1])
             print('abs selection test_conv',test_conv)
-            chnn_rst, lb_mat, neuron_dict = self.test_layer(k,test_conv=test_conv, test_maxv=o_max)
+            chnn_rst, lb_mat, neuron_dict = self.test_layer(k, test_conv=test_conv)
 
             candi_mat = candi_mat+lb_mat
             global_chnn_rst.update(chnn_rst)
             global_neuron_dict.update(neuron_dict)
-            print(len(global_chnn_rst))
 
             continue
-            #'''
-
-
-
-            self.calc_importance(k)
-            exit(0)
-
-            this_candi = list()
-            for i in range(n_chnn):
-                if i!=50:
-                    continue
-                run_ct += 1
-                tv = np.max(self.lb_channel_max[k][:,i])
-
-                #test_v = min(o_max[i], tv*2.0)*1.0
-                test_v = o_max[i]*1.0
-
-                self.start_record_conv_layers()
-                f_pair, s_pair = self.test_one_channel(k,i, test_v, this_candi)
-                print(i,f_pair)
-                self.stop_record_conv_layers()
-
-                '''
-                #outputs = self.conv_outputs[22][:,31,:,:]
-                outputs = self.conv_outputs[19][:,44,:,:]
-                outputs = np.maximum(outputs,0)
-                self.save_images(outputs)
-                exit(0)
-                #'''
-
-            print(len(this_candi)/64)
-
-            return len(this_candi)/64
-
-
-
-            candi_ct.append(0)
-
-            tgt_ct = np.zeros(self.n_classes)
-
-            zz = 0
-            rest_candi = list()
-            ct_mat = np.zeros((self.n_classes,self.n_classes))
-            for param, pair in this_candi:
-                #prob_diff, t_lb = self.check_neuron(param,pair,o_max[param[1]])
-                prob_diff, t_lb = self.check_neuron(param,pair,param[2])
-
-                zz += 1
-                print(param, prob_diff, '(%d vs %d)'%(t_lb, self.channel_lb[k][param[1]]))
-                if prob_diff < EPS:
-                    continue
-
-                #rv = self.search_lower_bound(param, t_lb, o_max[param[1]])
-                rv, s_lb = self.search_lower_bound(param, t_lb, param[2])
-                ct_mat[s_lb,t_lb] += 1
-                if rv < EPS:
-                    continue
-
-                _param = (param[0],param[1],rv*1.0)
-                candi_list.append((_param, pair))
-                rest_candi.append((_param,pair))
-
-                #'''
-                #candi_mat[pair[0]][pair[1]] += 1
-                #candi_ct[-1] += 1
-
-                tgt_ct[t_lb] += 1
-                #tgt_list.append(pair[1])
-                #'''
-
-            if np.sum(tgt_ct) > 0:
-                print('tgt_ct', tgt_ct/np.sum(tgt_ct))
-
-            if np.sum(ct_mat) > 0:
-                ct_mat /= np.sum(ct_mat)
-                ct_cs = np.sum(ct_mat,0)
-                ct_rs = np.sum(ct_mat,1)
-                print('column sum (tgt):',np.argmax(ct_cs),ct_cs)
-                print('row sum (src):',np.argmax(ct_rs),ct_rs)
-
-
-            #''' #dummy check
-            fn = 'id-00000369_l22_out.npy'
-            load_data = np.load(fn)
-            max_ans = 0
-            diff = np.zeros(self.n_classes)
-            _ct = np.zeros(self.n_classes)
-            for i in range(n_chnn):
-                test_v = load_data[3,6,:,:]
-                #test_v = self.dummy_data[0,i,:,:]
-
-                #self.guided_grad_test((22,7,test_v),(5,4))
-                self.guided_grad_test((-1,-1,-1),(5,4))
-
-                '''
-                self.clear_hook_trigger()
-                self.set_hook_trigger(k,i,test_v)
-                logits, preds = self._run_once_epoch(self.images_all)
-                self.clear_hook_trigger()
-
-                f_pair, s_pair, _, _ = self._check_preds_backdoor(self.preds_all, logits)
-                #'''
-                f_pair, s_pair = self.test_one_channel(k,i, test_v, this_candi)
-                lb = f_pair[0]
-                _ct[lb] += 1
-                diff[lb] += f_pair[1]-s_pair[1]
-                if f_pair[1] > 0.5:
-                    max_ans += 1
-                print((k,i), f_pair,s_pair, (np.argmax(self.lb_channel_mean[k][:,i]), np.max(self.lb_channel_mean[k][:,i])), self.lb_channel_mean[k][f_pair[0],i])
-
-
-                f_pair, s_pair = self.test_one_channel(k,i, o_max[i]*1.0, this_candi)
-
-                print((k,i), f_pair,s_pair, (np.argmax(self.lb_channel_mean[k][:,i]), np.max(self.lb_channel_mean[k][:,i])), self.lb_channel_mean[k][f_pair[0],i])
-
-                self.zero_test(k,i)
-
-            for lb in range(len(_ct)):
-                if _ct[lb] == 0:
-                    continue
-                diff[lb] /= _ct[lb]
-            print(diff)
-            #'''
 
 
         stop = time.time()
@@ -2283,14 +2111,12 @@ class NeuronAnalyzer:
         print(base)
         base = np.minimum(base/0.5, 1)*0.5
 
-
         print('save heatmaps png to', self.scratch_folder)
         for z,hm in enumerate(heatmaps):
             _p = os.path.join(self.scratch_folder, 'haha_%d'%z)
             utils.demo_heatmap(hm, _p)
 
         hmc = HeatMap_Classifier(CLASSIFIER_MODELPATH)
-        #hmc = HeatMap_Classifier('model2.pt')
         y = hmc.predict_folder(self.scratch_folder)
 
         y = np.sort(y)
@@ -2299,138 +2125,6 @@ class NeuronAnalyzer:
 
         #'''
 
-
-        ''' #try abs reverse
-        return self.abs_reverse(candi_mat, global_chnn_rst, test_conv)
-        #'''
-
-        #''' #reverse trigger
-        fn = 'id-00000369_l22_out.npy'
-        load_data = np.load(fn)
-        test_v = load_data[3,6,:,:]
-        param = (13,34,3) #for 555
-        #param = (19,59,14) #for 555
-        #hahav = test_v*(517/np.max(test_v))
-        #param = (22,7,1000) # for 555
-        pair = (5,4)
-        self.clear_hook_trigger() 
-        self.set_hook_trigger(param[0],param[1],param[2])
-        print(self.hook_layer)
-        print(self.hook_channels)
-        print(self.hook_values)
-        logits, preds = self._run_once_epoch(self.images_all)
-        probs = list()
-        for logit in logits:
-            probs.append(softmax(logit))
-        probs = np.asarray(probs)
-        probs_mean = np.mean(probs,0)
-        print(np.argmax(probs_mean), probs_mean)
-        print(preds)
-
-        att_acc, poisoned_images, benign_images, best_mask_loss, best_mask_nz = self.reverse_trigger(param, pair)
-        print(poisoned_images.shape)
-        print(pair, att_acc, best_mask_loss)
-        utils.save_poisoned_images(pair, poisoned_images, benign_images)
-        #'''
-
-        print('============================')
-        print(ct_sum)
-        print(np.sum(ct_sum))
-        ct_sum /= np.sum(ct_sum)
-        order = np.argsort(ct_sum)
-        order = np.flip(order) 
-        ct_sum = ct_sum*1000
-        ct_sum = ct_sum.astype(np.int32)
-        ct_sum = ct_sum/1000
-
-        print(ct_sum)
-        for o in order:
-            print(o,ct_sum[o])
-        return np.max(ct_sum)
-        
-
-
-
-
-        print(candi_ct)
-        #stop = timeit.default_timer()
-        stop = time.time()
-        print('Time used to select neuron: ', stop-start)
-
-        #out_data = {'candi_ct':candi_ct, 'candi_mat':candi_mat}
-        #utils.save_pkl_results(out_data)
-
-        if self.svm_model is not None:
-            print(candi_ct)
-            sc = np.sum(self.svm_model.coef_[0]*candi_ct)+self.svm_model.intercept_
-            alpha, beta = self.loss_model[self.arch_name]
-            p = sc*alpha+beta
-            p = 1.0/(1.0+np.exp(-p))
-            print(sc, p)
-
-            return p[0]
-
-        '''
-        param = (20, 138, 3.7742099)
-        pair = (11,13)
-        k,i,test_v = param[0], param[1], param[2]
-        mx_list = list()
-        for lb in range(self.n_classes):
-            mx_list.append(self.lb_channel_max[k][lb][i])
-        mx_list = np.asarray(mx_list)
-        print(mx_list)
-
-        att_acc, poisoned_images, benign_images = self.reverse_trigger(param, pair)
-        print('recovered trigger attack acc: ', att_acc)
-        utils.save_poisoned_images(pair, poisoned_images, benign_images)
-
-        exit(0)
-        #'''
-
-
-        print(tgt_ct)
-        tgt_ct /= np.sum(tgt_ct)
-        print(tgt_ct)
-        sorted_tgt = np.sort(tgt_ct)
-        #if sorted_tgt[-1]-sorted_tgt[-2] < 0.1:
-        #    return 0
-        tgt_lb = np.argmax(tgt_ct)
-
-
-        _sc_list = list()
-        _candi_list = list()
-        for tgt, sc, candi in zip(tgt_list, sc_list, candi_list):
-            if tgt != tgt_lb:
-                continue
-            _sc_list.append(sc)
-            _candi_list.append(candi)
-
-        max_id = np.argmax(_sc_list)
-        param, pair = _candi_list[max_id]
-        print(param, pair)
-
-        acc_list = [1.0]*self.n_classes
-        mask_loss_list = [0]*self.n_classes
-        for lb in range(self.n_classes):
-            if lb == pair[1]:
-                continue
-            _pair = (lb,pair[1])
-            att_acc, poisoned_images, benign_images, best_mask_loss, best_mask_nz = self.reverse_trigger(param, _pair)
-            acc_list[lb] = att_acc
-            mask_loss_list[lb] = best_mask_loss
-        print(acc_list)
-        print(mask_loss_list)
-        print('recovered trigger attack acc: ', att_acc)
-        if (acc_list[pair[0]] < 0.99):
-            return 0
-
-        '''
-        print(poisoned_images.shape)
-        print(param, pair)
-        utils.save_poisoned_images(pair, poisoned_images, benign_images)
-        #'''
-
-        return self.score_to_prob(1.0/np.max(mask_loss_list))
 
 
 class Reverser:
@@ -2524,7 +2218,7 @@ class Reverser:
 
 
         self.channel_loss = -vloss1-relu_loss1+1e-4*(vloss2+relu_loss2)
-      
+
         self.mask_loss = torch.sum(self.mask_tensor)
         mask_nz = torch.sum(torch.gt(self.mask_tensor,1e-2))
         mask_cond1 = torch.gt(mask_nz, MAX_TRIGGER_SIZE)
@@ -2605,7 +2299,7 @@ class Reverser:
         best_tanh_mask = None
         best_mask_loss = float('inf')
         best_channel_loss = float('inf')
-       
+
         self.keep_ratio = 0
         ratio_set_counter = 0
         ratio_up_counter = 0
@@ -2800,7 +2494,7 @@ class Reverser:
         del self.init_image_tensor
         del self.init_output_tensor
         del self.neuron_mask
-        
+
         torch.cuda.empty_cache()
 
         return best_mask, best_raw_pattern, best_mask_loss
@@ -2933,7 +2627,7 @@ class LRP:
         return func, func_args
 
 
-   
+
     def apply_lrp_func(self, layer, input, rho):
         func, func_args = self.get_lrp_forward_func(layer,rho)
         return func(input, **func_args)
@@ -3002,7 +2696,7 @@ class LRP:
             return grad
         return hook
 
-    
+
     def get_record_forward_hook(self, layer_k):
         def hook(model, input, output):
             if type(input) is tuple:
@@ -3499,9 +3193,11 @@ class HeatMap_Classifier:
             #img = np.asarray(img)
             img = skimage.io.imread(filepath)
             if img.shape[-1] > 3:
-                img = skimage.color.rgba2rgb(img)
+                img = img[:,:,:3]
+                #img = skimage.color.rgba2rgb(img)
             img = np.transpose(img,(2,0,1))
-            img = img/255.0
+            if np.max(img) > 2.0:
+                img = img/255.0
 
             imgs.append(img)
         imgs = np.asarray(imgs)
