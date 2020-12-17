@@ -107,7 +107,9 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     neurons = data_dict['neurons']
     candi_mat = data_dict['candi_mat']
 
-    for k in range(len(neurons)):
+    n_neurons = len(neurons)
+
+    for k in range(n_neurons):
         cmmd = 'python3 neuron.py --mode=lrp --k=%d'%k
         cmmd = cmmd+' --model_filepath='+model_filepath+' --examples_dirpath='+examples_dirpath+' --scratch_dirpath='+scratch_dirpath
         print(cmmd)
@@ -132,9 +134,12 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
         del lrp
     '''
 
-    HC = HeatmapClassifier()
-    scores = HC.predict_folder(scratch_dirpath)
-    trojan_probability = HC.calc_prob(scores, candi_mat)
+    if n_neurons==0:
+        trojan_probability = 0
+    else:
+        HC = HeatmapClassifier()
+        scores = HC.predict_folder(scratch_dirpath)
+        trojan_probability = HC.calc_prob(scores, candi_mat)
 
     trojan_probability = min(max(trojan_probability,1e-12),1)
 
