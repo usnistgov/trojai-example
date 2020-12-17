@@ -180,9 +180,11 @@ if __name__ == '__main__':
     csv_path = os.path.join(home,'data/round2-dataset-train/METADATA.csv')
     gt_csv = utils.read_gt_csv(csv_path)
     #ac_list = ['googlenet']
-    #ac_list = ['shufflenet1_5']
+    #ac_list = ['shufflenet1_0']
     #ac_list = ['squeezenetv1_0']
-    ac_list = ['resnet50']
+    ac_list = ['resnet18']
+    #ac_list = ['mobilenetv2']
+    #ac_list = ['vgg11bn']
     #ac_list = ['resnet','inception','densenet']
     rst_csv = trim_gt(gt_csv, {'model_architecture':ac_list})
     #rst_csv = trim_gt(gt_csv, {})

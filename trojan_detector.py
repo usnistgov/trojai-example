@@ -13,11 +13,9 @@ import torch
 import warnings
 warnings.filterwarnings("ignore")
 
-from torch.utils.data import TensorDataset, DataLoader
-
 import utils
 #from NC_pytorch import Visualizer
-from neuron import NeuronAnalyzer
+from neuron import NeuronSelector, LRP, HeatmapClassifier
 
 ava_model_type = ['ResNet', 'DenseNet','Inception3']
 
@@ -101,29 +99,48 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     print('scratch_dirpath = {}'.format(scratch_dirpath))
     print('examples_dirpath = {}'.format(examples_dirpath))
 
+    cmmd = 'python3 neuron.py --mode=select'
+    cmmd = cmmd+' --model_filepath='+model_filepath+' --examples_dirpath='+examples_dirpath+' --scratch_dirpath='+scratch_dirpath
+    os.system(cmmd)
+
+    data_dict = utils.load_pkl_results(save_name='selected', folder=scratch_dirpath)
+    neurons = data_dict['neurons']
+    candi_mat = data_dict['candi_mat']
+
+    for k in range(len(neurons)):
+        cmmd = 'python3 neuron.py --mode=lrp --k=%d'%k
+        cmmd = cmmd+' --model_filepath='+model_filepath+' --examples_dirpath='+examples_dirpath+' --scratch_dirpath='+scratch_dirpath
+        print(cmmd)
+        os.system(cmmd)
+
+    '''
     cat_batch = utils.read_example_images(examples_dirpath, example_img_format)
 
-    num_classes=len(cat_batch)
-    model = torch.load(model_filepath)
-    analyzer = NeuronAnalyzer(model, num_classes)
     all_x = np.concatenate([cat_batch[lb]['images'] for lb in cat_batch])
     all_y = np.concatenate([cat_batch[lb]['labels'] for lb in cat_batch])
-    dataloader = build_data_loader(all_x, all_y)
 
-    #try_visualizer(model, cat_batch)
-    #exit(0)
+    NS = NeuronSelector(model_filepath)
+    neurons, candi_mat = NS.analyse(all_x, all_y)
+    del NS
 
-    analyzer.set_out_folder(scratch_dirpath)
-    sc = analyzer.analyse(all_x, all_y)
-    trojan_probability = np.min(sc)
+    k = 0
+    for aimg, key in neurons:
+        lrp = LRP(model_filepath, aimg, key)
+        lrp.run()
+        lrp.save_out(os.path.join(scratch_dirpath,'k'))
+        k += 1
+        del lrp
+    '''
+
+    HC = HeatmapClassifier()
+    scores = HC.predict_folder(scratch_dirpath)
+    trojan_probability = HC.calc_prob(scores, candi_mat)
 
     trojan_probability = min(max(trojan_probability,1e-12),1)
 
     print('Trojan Probability: {}'.format(trojan_probability))
     with open(result_filepath, 'w') as fh:
         fh.write("{}".format(trojan_probability))
-
-    utils.save_results(np.asarray(sc))
 
 
 if __name__ == "__main__":
@@ -134,7 +151,6 @@ if __name__ == "__main__":
     parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.', default='./output.txt')
     parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.', default='./scratch/')
     parser.add_argument('--examples_dirpath', type=str, help='File path to the folder of examples which might be useful for determining whether a model is poisoned.', default='./example/')
-
 
     args = parser.parse_args()
     fake_trojan_detector(args.model_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath)

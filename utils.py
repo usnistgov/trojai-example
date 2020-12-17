@@ -37,7 +37,7 @@ def chg_img_fmt(img,fmt='CHW'):
     elif fmt=='HWC' and shape[-1] > 3:
         _img = np.transpose(_img,(1,2,0))
     return _img
-
+    
 
 def read_example_images(examples_dirpath, example_img_format='png'):
   fns = [fn for fn in os.listdir(examples_dirpath) if fn.endswith(example_img_format)]
@@ -119,6 +119,15 @@ def save_poisoned_images(pair, poisoned_images, benign_images, folder='recovered
 
   print(np.max(benign_images))
   print(np.max(poisoned_images))
+
+
+def load_pkl_results(save_name, folder='scratch'):
+    if len(save_name) > 0:
+        save_name = '_'+save_name
+    fpath = os.path.join(folder, current_model_name+save_name+'.pkl')
+    with open(fpath,'rb') as f:
+        data = pickle.load(f)
+    return data
 
 
 def save_pkl_results(data, save_name='', folder='scratch'):
@@ -223,19 +232,21 @@ def demo_heatmap(R, save_path):
     R /= np.max(R)
 
     sx = sy = 2.24
+    #sx = sy = 3.5
     b = 10*((np.abs(R)**3.0).mean()**(1.0/3))
 
     my_cmap = plt.cm.seismic(np.arange(plt.cm.seismic.N))
     my_cmap[:,0:3] *= 0.85
     my_cmap = ListedColormap(my_cmap)
     plt.figure(figsize=(sx,sy))
-    #plt.figure(figsize=(sx,sy))
     #plt.subplots_adjust(left=0,right=1,bottom=0,top=1)
     plt.axis('off')
     fig = plt.gcf()
+
     plt.imshow(R,cmap=my_cmap,vmin=-b,vmax=b,interpolation='nearest')
     #plt.show()
     fig.savefig(save_path)
+
 
 
 

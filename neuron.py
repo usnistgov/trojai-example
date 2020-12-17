@@ -1,30 +1,21 @@
 import numpy as np
-import numpy.linalg as LA
-import numpy.random as RD
 import torch
 import torch.nn.functional as F
-import threading, queue
 #import timeit
 import time
-import numpy as np
 import pickle
 import os
 from scipy.special import softmax
-from sklearn.decomposition import PCA
-import sklearn
+#from sklearn.decomposition import PCA
+#import sklearn
 import math
 import copy
-from PIL import Image
 
 
-#from concurrent.futures import ProcessPoolExecutor
-#import multiprocessing as MP
-
-from SCAn import *
+#from SCAn import *
 import pytorch_ssim
 
 from torch.autograd import Variable
-from decimal import Decimal
 import utils
 
 
@@ -37,8 +28,7 @@ if RELEASE:
     SVM_FOLDER = '/svm_models'
     CLASSIFIER_MODELPATH = '/heatmap_model.pt'
 else:
-    #BATCH_SIZE = (128*3//4)
-    BATCH_SIZE = 128//4
+    BATCH_SIZE = (128*3//4)
     SVM_FOLDER = 'svm_models'
     CLASSIFIER_MODELPATH = 'heatmap_model.pt'
 NUM_WORKERS = BATCH_SIZE
@@ -50,285 +40,6 @@ SELECT_LAYER = 3
 PAIR_CANDI_NUM = 2
 HEATMAP_NEURON_NUM = 3
 HEATMAP_PER_NEURON = 5
-
-class SingleNeuronAnalyzer:
-    def __init__(self, n_idx, init_x, init_y, pipe, n_classes):
-        self.n_idx = n_idx
-        self.init_x = init_x
-        self.init_y = init_y
-        #self.init_y = softmax(self.init_y)
-        self.pipe = pipe
-        self.n_classes = n_classes
-
-        self.x_list = list()
-        self.y_list = list()
-
-        self.turn_x = list()
-        self.turn_y = list()
-
-
-    def _f(self, k, x):
-        self.x_list.append(x)
-        self.pipe.send((k, self.n_idx, x))
-        y = self.pipe.recv()
-        #y = softmax(y)
-        self.y_list.append(y)
-        return y
-
-    def _3p_inline(self, x, y):
-        lx = x[1]-x[0]
-        rx = x[2]-x[1]
-        m = len(y[0])
-        for j in range(m):
-            ly = y[1][j]-y[0][j]
-            ry = y[2][j]-y[1][j]
-            ''' na = LA.norm([lx,ly]) nb = LA.norm([rx,ry])
-            if (na < EPS) or (nb < EPS):
-                continue
-            #cosa = (lx*rx+ly*ry)/na/nb
-            #print([lx, ly, rx, ry,cosa])
-            #if abs(cosa) < 1-EPS:
-            #    return False
-            #sina = (lx*ry-rx*ly)/na/nb
-            #if abs(sina) > EPS:
-            #    return False
-            #'''
-            if abs(lx/(lx+rx)*(ly+ry)-ly) > min(EPS*abs(y[0][j]), 1):
-                return False
-        return True
-
-
-    def find_lowerest_turn(self, l_x, l_y, r_x, r_y):
-        if r_x < l_x+EPS:
-            return l_x, l_y
-
-        lx, ly = l_x, l_y
-        rx, ry = r_x, r_y
-        while lx+EPS < rx:
-            dd = rx-lx;
-            p1_x = lx+dd*1.0/3.0
-            p1_y = self._f(p1_x)
-            p2_x = lx+dd*2.0/3.0
-            p2_ = self._f(p2_x)
-
-
-            if self._3p_inline([lx,p1_x,p2_x],[ly,p1_y,p2_y]):
-                lx, ly = p2_x, p2_y
-            elif self._3p_inline([p1_x,p2_x,rx],[p1_y,p2_y,ry]):
-                rx, ry = p1_x, p1_y
-            else:
-                rx, ry = p2_x, p2_y
-        return rx, ry
-
-
-    def find_bound(self, init_x, init_y, init_delta):
-        scale = 1.1
-        delta = init_delta
-        ix, iy = init_x, init_y
-        ok = False
-
-        while not ok:
-            lx, ly = ix, iy
-            mx, my = lx+delta, self._f(lx+delta)
-            while True:
-                delta *= scale
-                rx, ry = mx+delta, self._f(mx+delta)
-                if (abs(mx) > 1e8):
-                    break
-                if not self._3p_inline([lx,mx,rx],[ly,my,ry]):
-                    lx, ly = mx, my
-                    mx, my = rx, ry
-                else:
-                    break
-
-            zx, zy = rx, ry
-            ck_list_x = [mx,rx]
-            ck_list_y = [my,ry]
-            if (abs(mx) > 1e8):
-                break
-            for i in range(5):
-                delta *= scale
-                zx, zy = zx+delta, self._f(zx+delta)
-                ck_list_x.append(zx)
-                ck_list_y.append(zy)
-            ok = True
-            for i in range(1,6):
-                if not self._3p_inline(ck_list_x[i-1:i+1+1], ck_list_y[i-1:i+1+1]):
-                    ok = False
-                    ix, iy = ck_list_x[i], ck_list_y[i]
-                    delta = init_delta
-                    break
-
-        return ck_list_x[0], ck_list_y[0]
-
-
-    def _deal_interval(self, lx, ly, rx, ry):
-        if (rx-lx < 0.1):
-            return
-
-        mx = (lx+rx)/2.0
-        my = self._f(mx)
-        if self._3p_inline([lx,mx,rx],[ly,my,ry]):
-            return
-        self._deal_interval(lx,ly,mx,my)
-        self._deal_interval(mx,my,rx,ry)
-
-
-    def search_trunpoints(self):
-        #self._deal_interval(self.l_x, self.l_y, self.r_x, self.r_y)
-        #return
-
-        for i in range(5):
-            x = RD.random()*(self.r_x-self.l_x)+self.l_x
-            y = self._f(x)
-
-        n = len(self.x_list)
-        idxs = list(range(n))
-        idxs = sorted(idxs, key=lambda z: self.x_list[z])
-        int_list = list()
-        for i in range(1,n-1):
-            a, b, c = idxs[i-1], idxs[i], idxs[i+1]
-            xx = [self.x_list[a], self.x_list[b], self.x_list[c]]
-            yy = [self.y_list[a], self.y_list[b], self.y_list[c]]
-            if self._3p_inline(xx,yy):
-                continue
-            int_list.append((xx[0],xx[1],yy[0],yy[1]))
-            int_list.append((xx[1],xx[2],yy[1],yy[2]))
-
-
-        while len(self.x_list) < 1000:
-            new_int = list()
-            for x1,x2,y1,y2 in int_list:
-                if (x2-x1 < 0.1):
-                    continue
-                mx = (x1+x2)/2.0
-                my = self._f(mx)
-                if self._3p_inline([x1,mx,x2],[y1,my,y2]):
-                    continue
-                new_int.append((x1,mx,y1,my))
-                new_int.append((mx,x2,my,y2))
-            if len(new_int) == 0:
-                break
-            int_list = new_int
-
-
-    def find_peak(self):
-        n = len(self.x_list)
-        m = len(self.y_list[0])
-
-        init_y = softmax(self.init_y)
-        peak = np.zeros_like(self.y_list[0])
-        for z in self.y_list:
-            sz = softmax(z)
-            for j in range(m):
-                peak[j] = max(peak[j], sz[j])
-
-        for j in range(m):
-            peak[j] = (peak[j]-init_y[j])
-
-        init_lb = np.argmax(init_y)
-        peak[init_lb] = 0
-
-        self.peak = peak
-
-
-    def bf_check(self):
-        init_pred = np.argmax(self.init_y, axis=1)
-        n = len(self.init_x)
-        m = self.n_classes
-
-        pred = list()
-        max_v = np.max(self.init_x)
-        for i in range(n):
-            logits = self._f(i,max_v*2)
-            pred.append(np.argmax(logits))
-
-        mat = np.zeros([m,m])
-        for i in range(n):
-            mat[init_pred[i]][pred[i]] += 1
-        for i in range(m):
-            mat[i] /= np.sum(mat[i])
-
-        self.peak = np.zeros(m)
-        for i in range(m):
-            for j in range(m):
-                if i == j:
-                    continue
-                self.peak[j] = max(self.peak[j], mat[i][j])
-
-
-    def run(self):
-        self.bf_check()
-        return self.peak
-
-
-        self.l_x, self.l_y = self.find_bound(self.init_x, self.init_y, -10)
-        self.r_x, self.r_y = self.find_bound(self.init_x, self.init_y, 10)
-
-        print([self.l_x, self.r_x])
-        #print([self.l_y, self.r_y])
-
-        self.search_trunpoints()
-        self.find_peak()
-        return self.peak
-
-
-class PredictingThread(threading.Thread):
-    def __init__(self, p_func):
-        threading.Thread.__init__(self)
-        self.p_func = p_func
-        self.pipes = list()
-        self.lets_run = False
-
-    def get_pipe(self):
-        me, you = MP.Pipe()
-        self.pipes.append(me)
-        return you
-
-    def start(self):
-        self.lets_run = True
-        super().start()
-
-    def join(self):
-        self.lets_run = False
-        super().join()
-
-    def run(self):
-        print('start listening')
-        x_list = list()
-        r_pipes = list()
-        while self.lets_run:
-            ready = MP.connection.wait(self.pipes, timeout=0.001)
-            if not ready:
-                continue
-
-            for pipe in ready:
-                while pipe.poll():
-                    try:
-                        x_list.append(pipe.recv())
-                        r_pipes.append(pipe)
-                    except EOFError as e:
-                        pipe.close()
-
-            if len(x_list) == 0:
-                continue
-
-            #print(len(x_list))
-
-            while True:
-                x_try = x_list[:BATCH_SIZE]
-                p_try = r_pipes[:BATCH_SIZE]
-
-                ys = self.p_func(x_try)
-                for pipe, y in zip(p_try, ys):
-                    pipe.send(y)
-
-                x_list = x_list[BATCH_SIZE:]
-                r_pipes = r_pipes[BATCH_SIZE:]
-                if len(x_list) < BATCH_SIZE:
-                    break
-
-        print('stop listening')
 
 
 
@@ -437,10 +148,11 @@ def build_model_from_childs(childs, st_child=0, ed_child=None):
 
 
 
-class NeuronAnalyzer:
-    def __init__(self, model, n_classes):
-        self.model = model.cuda()
+class NeuronSelector:
+    def __init__(self, model_filepath):
+        self.model = torch.load(model_filepath)
         self.model.eval()
+        self.model.cuda()
         self.model_name = get_model_name(self.model)
         print(self.model_name)
 
@@ -460,7 +172,7 @@ class NeuronAnalyzer:
 
         childs = make_childs(self.model)
 
-
+       
         self.lrp = LRP(self.model)
         hook = None
         #hook = (childs[8],12,69) #for densenet161 0683.model
@@ -469,7 +181,7 @@ class NeuronAnalyzer:
         #hook = (childs[37],496,214) #for 5->6 0140.model vgg16bn poisoned
         #hook = (childs[34],299,165) #for 6->4 0165.model vgg16bn benign
         #hook = (chidls[34],299,165) #for 6->4 0167.model mobilenetv2 benign
-        heatmap = self.lrp.interpret(aimg, hook)
+        heatmap = self.lrp.interpret(aimg, hook) 
 
         #from LRP.lrp import LRP as oLRP
         #lrp = oLRP(self.model, 'z_plus', input_lowest=0)
@@ -482,15 +194,18 @@ class NeuronAnalyzer:
         exit(0)
         #'''
 
+        self._init_general_md()
+        self.childs = make_childs(self.model)
+        self.arch_name = self.get_arch_name()
+        print('model architecture:', self.arch_name)
+        self.batch_size = self.adjust_batchsize(BATCH_SIZE)
+
         self.hook_activate = False
-
-        self.n_classes = n_classes
-
-        self.results = list()
-
-        self.batch_size = BATCH_SIZE
-
         self.hook_layer, self.hook_channels, self.hook_values = -1,None,None
+
+
+    def set_model_filepath(self, model_filepath):
+        self.model_filepath = model_filepath
 
 
     def set_out_folder(self, scratch_path):
@@ -614,6 +329,7 @@ class NeuronAnalyzer:
             self.child_inputs[k_layer].append(input.cpu().detach().numpy())
         return hook
 
+
     def get_child_hook(self, k_layer):
         def hook(model, input, output):
             if type(output) is tuple:
@@ -643,11 +359,11 @@ class NeuronAnalyzer:
                 self.md_child.append(0)
             elif na == 'ReLU':
                 self.relus.append(md)
-
+            
         print(self.model_name, len(self.convs), 'convs')
 
 
-
+ 
     def _init_hooks(self):
         self.record_conv = False
         self.hook_handles = list()
@@ -731,17 +447,6 @@ class NeuronAnalyzer:
 
     def get_init_values(self, all_X, all_Y):
 
-        self.childs = make_childs(self.model)
-
-        #for z,ch in enumerate(self.childs):
-        #    print(z,ch)
-        #exit(0)
-
-        self._init_general_md()
-        self.arch_name = self.get_arch_name()
-        print('model architecture:', self.arch_name)
-        self.batch_size = self.adjust_batchsize(BATCH_SIZE)
-
         acc_ct = 0
         tot_n = 0
         self.images = list()
@@ -806,7 +511,7 @@ class NeuronAnalyzer:
         for lb in range(self.n_classes):
             cat_cnt[lb] = max(min(math.ceil(0.1*cat_cnt[lb])*2+1, 10),5)
 
-
+        
         self.record_conv = True
         self.record_child = False
         self._run_once_epoch(self.images)
@@ -848,7 +553,7 @@ class NeuronAnalyzer:
 
         for handle in self.hook_handles:
             handle.remove()
-        self.hook_handles = list()
+        self.hook_handles.clear()
 
         self.record_conv = False
         self.record_child = False
@@ -936,23 +641,9 @@ class NeuronAnalyzer:
             self.channel_in_max.append(np.max(itmp,0))
             self.channel_in_min.append(np.max(ntmp,0))
 
-
-            if k==22:
-                record_data = np.concatenate(self.outputs[k])
-                self.dummy_data = record_data
-                '''
-                fn = 'id-00000369_l22_out.npy'
-                with open(fn,'wb') as f:
-                    np.save(f,record_data)
-                print('write to',fn)
-                exit(0)
-                '''
-
-
             self.inputs[k] = []
             self.outputs[k] = []
         print('total channels '+str(out_channel_sum))
-
 
 
     def register_representation_record_hook(self):
@@ -1026,16 +717,16 @@ class NeuronAnalyzer:
             st_child = self.md_child[k_layer]
             inner_outputs = self.child_inputs[st_child]
             inner_shape = self.outputs[k_layer].shape
-            test_maxv = self.calc_channel_o_max(k_layer)
-
+            test_maxv = self.calc_channel_o_max(k)
+            
             _coef = min(1, 0.5*(1-k_layer/len(self.convs)))
             self.batch_size = int(self.batch_size/_coef)
 
         else:
             st_child = k_layer+1
             inner_outputs = self.child_inputs[st_child]
-            test_maxv = np.max(inner_outputs)*2.0
             inner_shape = inner_outputs.shape
+            test_maxv = np.max(inner_outputs)*2.0
 
             _coef = min(1, (1-0.8*k_layer/len(self.childs)))
             self.batch_size = int(self.batch_size/_coef)
@@ -1069,7 +760,7 @@ class NeuronAnalyzer:
             else:
                 _testv = test_maxv
 
-            low_v, s_lb, t_lb = self.search_lower_bound(k_layer, i, _testv, inner_outputs, ori_labels, tail_model, logits_list, base_v, test_conv)
+            low_v, s_lb, t_lb = self.search_lower_bound(k_layer, i, _testv, inner_outputs, ori_labels, tail_model, logits_list, base_v, test_conv) 
 
             neuron_dict[(k_layer, i, low_v)] = (s_lb, t_lb)
 
@@ -1271,7 +962,6 @@ class NeuronAnalyzer:
         self.set_hook_trigger(-1,-1,-1)
 
 
-
     def zero_test(self,k,i):
         self.clear_hook_trigger()
         self.set_hook_trigger(k,i,0)
@@ -1421,7 +1111,7 @@ class NeuronAnalyzer:
         select_idx = idx[:select_n]
         reverse_images = raw_images[select_idx]
 
-
+       
         self._clear_modify_hooks()
 
         if test_conv:
@@ -1626,7 +1316,7 @@ class NeuronAnalyzer:
 
         print(np.argmax(channel_importance,axis=1))
         print(np.max(channel_importance,axis=1))
-
+        
         thr = 0.9
         lb_matters=list()
         for lb in range(self.n_classes):
@@ -1639,7 +1329,7 @@ class NeuronAnalyzer:
                     lb_matters[lb].append(i)
         for lb in range(self.n_classes):
             print(lb, lb_matters[lb])
-
+        
         return channel_importance, lb_matters
 
 
@@ -1722,7 +1412,7 @@ class NeuronAnalyzer:
         if type(size) is tuple:
             return size
         return None
-
+            
     def reverse_maxpool2d_input(self, maxpool_md, output):
         kernel_size = self._expand_union_size(maxpool_md.kernel_size)
         dilation= self._expand_union_size(maxpool_md.dilation)
@@ -1829,7 +1519,41 @@ class NeuronAnalyzer:
         return pair_candi
 
 
-    def lrp_detection(self, candi_mat, global_neuron_dict, test_conv):
+
+    def select_neurons(self, candi_mat, global_neuron_dict):
+        print('candi_mat', candi_mat)
+        pair_candi = self.select_top_pairs(candi_mat)
+        print('selected pairs', pair_candi)
+
+        candi_key = list()
+        for _pair in pair_candi:
+            _candi = list()
+            for key in global_neuron_dict:
+                if global_neuron_dict[key] == _pair:
+                    _candi.append(key)
+            _candi = sorted(_candi, key=lambda x:x[2])
+            candi_key.extend(_candi[:HEATMAP_NEURON_NUM])
+
+        print('candi_key:', candi_key)
+
+        selected = list()
+        for key in candi_key:
+            _slb, _tlb = global_neuron_dict[key]
+
+            indices = self.preds_all == _slb
+            aimg = self.images_all[indices]
+            apred = self.preds_all[indices]
+            aimg = aimg[:HEATMAP_PER_NEURON]
+            apred = apred[:HEATMAP_PER_NEURON]
+            print(key, (_slb, _tlb), aimg.shape, np.sum(aimg), np.mean(apred))
+
+            selected.append((np.copy(aimg), key))
+
+        return selected
+
+
+
+    def lrp_detection(self, candi_mat, global_neuron_dict):
         print('candi_mat', candi_mat)
         pair_candi = self.select_top_pairs(candi_mat)
         print('selected pairs', pair_candi)
@@ -1847,12 +1571,15 @@ class NeuronAnalyzer:
 
         self._clear_modify_hooks()
 
+        ''' #find the_layer
         if len(candi_key) > 0:
             interest_layers = [x[0] for x in candi_key]
             the_layer = max(set(interest_layers),key=interest_layers.count)
+        '''
 
         heatmap_list = list()
         for key in candi_key:
+            print(key)
             _slb, _tlb = global_neuron_dict[key]
 
             indices = self.preds_all == _slb
@@ -1867,19 +1594,18 @@ class NeuronAnalyzer:
             aimg = self.centralize_images(aimg, center_coor)
             #'''
 
-            lrp = LRP(self.model)
 
-            if test_conv:
-                md = self.convs[key[0]]
-            else:
-                md = self.childs[key[0]]
-            heatmaps = lrp.interpret(aimg, (md, key[1], key[2]))
+            lrp = LRP(self.model_filepath, aimg, key)
+            heatmaps = lrp.run()
+            del lrp
             print(heatmaps.shape, np.sum(heatmaps))
             maxv = np.max(heatmaps,axis=(1,2),keepdims=True)
             heatmaps /= maxv
 
             #''' #minus original heatmaps
-            o_heatmaps = lrp.interpret(aimg, None)
+            lrp = LRP(self.model_filepath, aimg, None)
+            o_heatmaps = lrp.run()
+            del lrp
             print(np.sum(o_heatmaps))
             o_maxv = np.max(o_heatmaps,axis=(1,2),keepdims=True)
             o_heatmaps /= o_maxv
@@ -1888,19 +1614,6 @@ class NeuronAnalyzer:
 
             maxv = np.max(heatmaps,axis=(1,2),keepdims=True)
             heatmaps /= maxv
-
-            #heatmaps = np.sum(heatmaps,axis=0,keepdims=True)
-            #exit(0)
-
-
-            '''
-            from LRP.lrp import LRP
-            lrp = LRP(self.model, 'z_plus', input_lowest=0)
-            in_tensor = torch.FloatTensor(aimg)
-            heatmaps = lrp.relprop(in_tensor.cuda())
-            heatmaps = heatmaps.detach().cpu().numpy()
-            heatmaps = np.sum(heatmaps, axis=1)
-            #'''
 
             heatmap_list.append(heatmaps)
 
@@ -1993,6 +1706,7 @@ class NeuronAnalyzer:
 
         return ans
 
+
     def calc_channel_o_max(self, k):
             shape = self.outputs[k].shape
             n_chnn = shape[1]
@@ -2038,8 +1752,8 @@ class NeuronAnalyzer:
 
             if len(weight_list) > 1:
                 o_max += weight_list[1]
-            return o_max
 
+            return o_max
 
 
     def analyse(self, all_X, all_Y):
@@ -2047,9 +1761,6 @@ class NeuronAnalyzer:
         #all_X = all_X[order]
         #all_Y = all_Y[order]
         self.get_init_values(all_X, all_Y)
-
-        #utils.save_pkl_results(self.mean_channel_max, 'poisoned_mean_channel_max','.')
-        #exit(0)
 
         self.clear_hook_trigger()
         self.modify_hook_handles = list()
@@ -2066,6 +1777,8 @@ class NeuronAnalyzer:
         child_list.reverse()
         if self.arch_name == 'mobilenetv2':
             child_list = child_list[-11:]
+            global SELECT_LAYER
+            SELECT_LAYER = max(SELECT_LAYER,5)
         for k in child_list:
             if self.child_outputs[k].shape[1] == self.n_classes:
                 continue
@@ -2073,31 +1786,27 @@ class NeuronAnalyzer:
             if len(layer_list) >= SELECT_LAYER:
                 break
 
-        if test_conv:
-            _md_list = self.convs
-        else:
-            _md_list = self.childs
-
         global_chnn_rst = dict()
         global_neuron_dict = dict()
         for k in layer_list:
+
             print('child:', k, 'n_chnn:', self.child_outputs[k].shape[1])
-            print('abs selection test_conv',test_conv)
-            chnn_rst, lb_mat, neuron_dict = self.test_layer(k, test_conv=test_conv)
+            print('abs selection test_conv', test_conv)
+            chnn_rst, lb_mat, neuron_dict = self.test_layer(k, test_conv)
 
             candi_mat = candi_mat+lb_mat
             global_chnn_rst.update(chnn_rst)
             global_neuron_dict.update(neuron_dict)
-
-            continue
 
 
         stop = time.time()
         selection_time = stop-start
         print('Time used to select neuron: ', selection_time)
 
+        return self.select_neurons(candi_mat, global_neuron_dict), candi_mat
 
-        #''' #try lrp detection
+
+        '''
         heatmaps = self.lrp_detection(candi_mat, global_neuron_dict, test_conv)
         if len(heatmaps) == 0:
             return 0
@@ -2109,11 +1818,12 @@ class NeuronAnalyzer:
 
         base = (mc[morder[0]]+mc[morder[1]])/np.sum(mc)
         print(base)
-        base = np.minimum(base/0.5, 1)*0.5
+        base = np.minimum(base/0.5, 1)
+
 
         print('save heatmaps png to', self.scratch_folder)
         for z,hm in enumerate(heatmaps):
-            _p = os.path.join(self.scratch_folder, 'haha_%d'%z)
+            _p = os.path.join(self.scratch_folder, 'haha_%d.png'%z)
             utils.demo_heatmap(hm, _p)
 
         hmc = HeatMap_Classifier(CLASSIFIER_MODELPATH)
@@ -2121,10 +1831,17 @@ class NeuronAnalyzer:
 
         y = np.sort(y)
         print(y)
-        return np.mean(y)*0.5+base
 
+        utils.save_pkl_results(y, save_name='y',folder='../records')
+        utils.save_pkl_results(candi_mat, save_name='candi_mat',folder='../records')
+
+        s1 = np.mean(y[-20:]>0.5)
+        s2 = base
+        alpha = 1.0
+        print(s1, s2)
+        #return np.mean(y)*0.25+base*0.75
+        return s1*alpha+s2*(1-alpha)
         #'''
-
 
 
 class Reverser:
@@ -2218,7 +1935,7 @@ class Reverser:
 
 
         self.channel_loss = -vloss1-relu_loss1+1e-4*(vloss2+relu_loss2)
-
+      
         self.mask_loss = torch.sum(self.mask_tensor)
         mask_nz = torch.sum(torch.gt(self.mask_tensor,1e-2))
         mask_cond1 = torch.gt(mask_nz, MAX_TRIGGER_SIZE)
@@ -2299,7 +2016,7 @@ class Reverser:
         best_tanh_mask = None
         best_mask_loss = float('inf')
         best_channel_loss = float('inf')
-
+       
         self.keep_ratio = 0
         ratio_set_counter = 0
         ratio_up_counter = 0
@@ -2494,28 +2211,54 @@ class Reverser:
         del self.init_image_tensor
         del self.init_output_tensor
         del self.neuron_mask
-
+        
         torch.cuda.empty_cache()
 
         return best_mask, best_raw_pattern, best_mask_loss
 
 
-
 class LRP:
-    def __init__(self, model):
-        #the model must have no any hook.
-        #the model can calc the gradients.
-        #self.image_mean = torch.Tensor([0.485, 0.456, 0.406]).reshape(1,-1,1,1)
-        #self.image_std  = torch.Tensor([0.229, 0.224, 0.225]).reshape(1,-1,1,1)
+    def __init__(self, model_filepath, images, hook_param):
+        self.model_filepath = model_filepath
+        self.images = np.copy(images)
+        self.hook_param = hook_param
 
-        self.tot_k = 0
-        self.model = model
+
+    def run(self):
+        heatmap_list = list()
+        hook_param = self.hook_param
+
+        self.hook_param = None
+        o_heatmaps = self._run()
+        print(o_heatmaps.shape, np.sum(o_heatmaps))
+        o_maxv = np.max(o_heatmaps,axis=(1,2),keepdims=True)
+        o_heatmaps /= o_maxv
+
+        self.hook_param = hook_param
+        heatmaps = self._run()
+        print(heatmaps.shape, np.sum(heatmaps))
+        maxv = np.max(heatmaps,axis=(1,2),keepdims=True)
+        heatmaps /= maxv
+
+        heatmaps += o_heatmaps
+        maxv = np.max(heatmaps,axis=(1,2),keepdims=True)
+        heatmaps /= maxv
+
+        heatmap_list.append(heatmaps)
+        if len(heatmap_list) > 0:
+            heatmap_list = np.concatenate(heatmap_list)
+
+        self.heatmaps = heatmap_list
+
+
+    def _run(self):
+        #os.system('nvidia-smi')
+        self.model = torch.load(self.model_filepath)
 
         self._lambda = 0.25
         self._epsilon = 1e-9
 
-
-        self.model_name = get_model_name(model)
+        self.model_name = get_model_name(self.model)
         print('LRP',self.model_name)
         if 'resnet' not in self.model_name and 'mobilenet' not in self.model_name:
             self.fashion = 'auto'
@@ -2527,31 +2270,43 @@ class LRP:
             self.bn_location='after'
 
         childs = make_childs(self.model)
+        del self.model
         self.model = build_model_from_childs(childs)
+        self.model.eval()
+        self.model.cuda()
         self.childs = childs
 
-        '''
-        for z,ch in enumerate(childs):
-            print(z,ch)
-        exit(0)
-        #'''
+        self.md_list = module_flatten(childs)
 
-        md_list = module_flatten(childs)
-        self.md_list = md_list
+        hook_param = self.hook_param
+        if hook_param is not None:
+            hook_param = (childs[hook_param[0]], hook_param[1], hook_param[2])
 
+        print('_run',self.hook_param,self.fashion,self.bn_location)
+        heatmaps = self.interpret(self.images, hook_param)
+        #os.system('nvidia-smi')
+
+        return np.copy(heatmaps)
+
+
+    def save_out(self, prefix):
+        print('save heatmaps png with prefix', prefix)
+        for z,hm in enumerate(self.heatmaps):
+            _p = prefix+'_haha_%d.png'%z
+            utils.demo_heatmap(hm, _p)
 
 
     def init_records(self):
+        if self.fashion=='manual': return
         self.grads = list()
         for i in range(self.tot_k):
             self.grads.append(None)
 
-
-    def clear_records(self):
-        while (len(self.grads)):
-            _tmp = self.grads[-1]
+    def _del_list(self, a):
+        while len(a) > 0:
+            _tmp = a[-1]
             del _tmp
-            del self.grads[-1]
+            del a[-1]
 
 
     def get_lrp_forward_func(self, layer, rho):
@@ -2627,7 +2382,7 @@ class LRP:
         return func, func_args
 
 
-
+   
     def apply_lrp_func(self, layer, input, rho):
         func, func_args = self.get_lrp_forward_func(layer,rho)
         return func(input, **func_args)
@@ -2635,7 +2390,6 @@ class LRP:
 
     def get_tensor_backward_hook(self, layer_k):
         def hook(grad):
-
             bn_layer = self.bn_layer[layer_k]
             layer = self.layer_record[layer_k]
             rho, incr = self.get_functions(layer_k)
@@ -2691,12 +2445,12 @@ class LRP:
                 exit(0)
             #'''
 
-            del v, z, s, relevance
+            del v, z, s, relevance, grad_output
 
             return grad
         return hook
 
-
+    
     def get_record_forward_hook(self, layer_k):
         def hook(model, input, output):
             if type(input) is tuple:
@@ -2705,14 +2459,14 @@ class LRP:
                 else:
                     raise RuntimeError('too many input')
             #print(layer_k, model, len(input), len(output))
-            model.input_tensor = torch.tensor(input.clone(), requires_grad=True)
+            model.input_tensor = input.clone().detach().requires_grad_(True)
             if self.fashion == 'manual':
                 if type(output) is tuple:
                     if len(output) == 1:
                         output = output[0]
                     else:
                         raise RuntimeError('too many output')
-                model.output_tensor = torch.tensor(output.clone(), requires_grad=True)
+                model.output_tensor = output.clone().detach().requires_grad_(True)
             else:
                 if layer_k == 0:
                     self.hook_handles.append(input.register_hook(self.get_input_tensor_backward_hook(layer_k)))
@@ -2731,7 +2485,7 @@ class LRP:
                 else:
                     raise RuntimeError('too many grad_output')
 
-            self.grads[layer_k] = torch.tensor(grad_output.clone(), requires_grad=True)
+            self.grads[layer_k] = grad_output.clone().detach().requires_grad_(True)
 
         return hook
 
@@ -2778,7 +2532,7 @@ class LRP:
 
             haha.copy_(grad_output)
 
-            module.haha_R = grad_output.detach().clone()
+            module.haha_R = grad_output.clone().detach()
 
         return hook
 
@@ -3083,31 +2837,52 @@ class LRP:
             incr = lambda z : z+self._epsilon
         return rho, incr
 
-
-    def clear_hooks(self):
-        for h in self.hook_handles:
-            h.remove()
-        self.hook_handles = list()
-
-
     def get_modify_hook(self, chnn_i, test_v):
         def hook(model, input, output):
             if type(output) is tuple:
                 output = output[0]
             nchnn = output.shape[1]
             mask = torch.FloatTensor((1.0*(np.arange(nchnn)==chnn_i).reshape([1,nchnn,1,1])))
-            mask = mask.cuda()
-            output = test_v*mask+(1-mask)*output
+            self.mask = mask.cuda()
+            output = test_v*self.mask+(1-self.mask)*output
             return output
         return hook
 
+    def clear_records(self):
+        if self.fashion=='auto': self._del_list(self.grads)
+        for md in list(self.model.modules()):
+            if hasattr(md, 'input_tensor'): delattr(md, 'input_tensor')
+            if hasattr(md, 'output_tensor'): delattr(md, 'output_tensor')
+            if not isinstance(md, torch.nn.BatchNorm2d): continue
+            if hasattr(md, 'haha_R'): delattr(md,'haha_R')
+
+    def clear_hooks(self):
+        for h in self.hook_handles:
+            h.remove()
+        self.hook_handles.clear()
+
 
     def clear_assets(self):
-        for md in list(self.model.modules()):
-            if hasattr(md, 'input_tensor'): del md.input_tensor
-            if hasattr(md, 'output_tensor'): del md.output_tensor
-            if not isinstance(md, torch.nn.BatchNorm2d): continue
-            if hasattr(md, 'haha_R'): del md.haha_R
+
+        if hasattr(self,'layer_record'): self._del_list(self.layer_record)
+        if hasattr(self,'bn_layer'): self._del_list(self.bn_layer)
+        if hasattr(self,'relu_layer'): self._del_list(self.relu_layer)
+        self._del_list(self.md_list)
+        self._del_list(self.childs)
+        self.model.cpu()
+        del self.model
+
+        '''
+        keys = list()
+        for key in self.__dict__:
+            keys.append(key)
+        for key in keys:
+            delattr(self,key)
+        '''
+        torch.cuda.empty_cache()
+        #os.system('nvidia-smi')
+        #print(torch.cuda.memory_summary())
+
 
 
     def interpret(self, images, hook_param=None):
@@ -3125,6 +2900,7 @@ class LRP:
 
         logits = self.model(input_variable)
         n_classes, img_lb = logits.shape[1], torch.argmax(logits,1).detach().cpu().numpy()
+        print('preds', img_lb)
 
         Ts=list()
         for lb in img_lb:
@@ -3148,30 +2924,33 @@ class LRP:
         #maxv = np.max(input_heatmap, axis=(1,2), keepdims=True)
         #input_heatmap /= maxv
 
+        del input_tensor,input_variable,logits,Ts,T
+        torch.cuda.empty_cache()
+
         self.clear_records()
         self.clear_hooks()
         self.clear_assets()
-
-        #os.system('nvidia-smi')
-        del input_tensor,input_variable,logits,T
-        torch.cuda.empty_cache()
-        #os.system('nvidia-smi')
 
         return input_heatmap
 
 
 
-class HeatMap_Classifier:
-    def __init__(self, model_path):
+class HeatmapClassifier:
+    def __init__(self, model_path=None):
+        if model_path is None:
+            model_path=CLASSIFIER_MODELPATH
         self.model = torch.load(model_path)
         self.model = self.model.cuda()
         self.model.eval()
 
     def predict(self, images):
+        print(np.max(images))
+        print(np.min(images))
         img_tensor = torch.Tensor(images)
         print('input image', img_tensor.shape)
 
         y = self.model(img_tensor.cuda())
+        print(y)
         y = torch.softmax(y, dim=1)
 
         y = y.detach().cpu().numpy()
@@ -3181,35 +2960,86 @@ class HeatMap_Classifier:
 
     def predict_folder(self, folder_path):
         import skimage.io
-        import skimage.color
 
         img_path_list = os.listdir(folder_path)
+        img_path_list = sorted(img_path_list)
         imgs = list()
         for f in img_path_list:
+            if not f.endswith('.png'): continue
             filepath = os.path.join(folder_path,f)
 
-            #image preprocess
-            #img = cv2.imread(filepath)
-            #img = np.asarray(img)
             img = skimage.io.imread(filepath)
             if img.shape[-1] > 3:
                 img = img[:,:,:3]
                 #img = skimage.color.rgba2rgb(img)
             img = np.transpose(img,(2,0,1))
-            if np.max(img) > 2.0:
+            if np.max(img) > 100:
                 img = img/255.0
 
             imgs.append(img)
         imgs = np.asarray(imgs)
         return self.predict(imgs)
 
+    def calc_prob(self, scores, candi_mat):
+        mc = candi_mat.flatten()
+        morder = np.argsort(mc)
+        morder = np.flip(morder)
+
+        base = (mc[morder[0]]+mc[morder[1]])/np.sum(mc)
+        base = np.minimum(base/0.7, 1)
+
+        y = np.sort(scores)
+        print(y)
+
+        #s1 = np.mean(y[-20:]>0.5)
+        s1 = np.mean(y)
+        s2 = base
+        alpha = 0.5
+        print(s1, s2)
+
+        return s1*alpha+s2*(1-alpha)
 
 
-def process_run(k, idx, init_x, init_y, pipes, n_classes):
-    pipe = pipes.pop()
-    sna = SingleNeuronAnalyzer(idx, init_x, init_y, pipe, n_classes)
-    sna.run()
-    pipes.append(pipe)
-    print((k, idx, sna.peak))
-    return (k, idx, sna.peak)
-    #return (idx, sna.peak, sna.x_list, sna.y_list)
+
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(description='neuron.py')
+    parser.add_argument('--mode',type=str)
+    parser.add_argument('--model_filepath',type=str,default='./model.pt')
+    parser.add_argument('--examples_dirpath',type=str,default='./example/')
+    parser.add_argument('--scratch_dirpath',type=str,default='./scratch/')
+    parser.add_argument('--k',type=int)
+    args = parser.parse_args()
+
+    if args.mode=='select':
+        utils.set_model_name(args.model_filepath)
+        cat_batch = utils.read_example_images(args.examples_dirpath)
+        all_x = np.concatenate([cat_batch[lb]['images'] for lb in cat_batch])
+        all_y = np.concatenate([cat_batch[lb]['labels'] for lb in cat_batch])
+
+        NS = NeuronSelector(args.model_filepath)
+        neurons, candi_mat = NS.analyse(all_x, all_y)
+        data_dict = {'neurons':neurons, 'candi_mat':candi_mat}
+
+        if os.path.exists(args.scratch_dirpath):
+            cmmd = 'rm -rf '+os.path.join(args.scratch_dirpath,'*')
+            os.system(cmmd)
+        utils.save_pkl_results(data_dict, save_name='selected', folder=args.scratch_dirpath)
+
+    elif args.mode=='lrp':
+        utils.set_model_name(args.model_filepath)
+        data_dict = utils.load_pkl_results(save_name='selected', folder=args.scratch_dirpath)
+
+        neurons = data_dict['neurons']
+        candi_mat = data_dict['candi_mat']
+
+        print(args.k)
+        print('-----------------------------')
+
+        if args.k < len(neurons):
+            aimg, key = neurons[args.k]
+            lrp = LRP(args.model_filepath, aimg, key)
+            lrp.run()
+            lrp.save_out(os.path.join(args.scratch_dirpath,str(args.k)))
