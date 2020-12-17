@@ -147,6 +147,8 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     with open(result_filepath, 'w') as fh:
         fh.write("{}".format(trojan_probability))
 
+    utils.save_results(np.asarray(trojan_probability))
+
 
 if __name__ == "__main__":
     import argparse
