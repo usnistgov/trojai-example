@@ -158,18 +158,19 @@ def save_results(results, folder='output'):
 
 
 
-def dump_image(x, filename, format):
-  return
-
-  if (np.max(x) < 1.1):
-    x = x*255.0
+def save_image(x, filename):
+  '''
+  x = (x-np.min(x))/(np.max(x)-np.min(x))
+  x = x*255.0
+  x = x.astype(np.uint8)
+  '''
 
   if len(x.shape) == 4:
     x = x[0,...]
-  if len(x.shape) > 2 and x.shape[0] <= 3:
+  if len(x.shape) == 3 and x.shape[0] <= 4:
     x = np.transpose(x,(1,2,0)) # to HWC
 
-  cv2.imwrite(filename, x)
+  skimage.io.imsave(filename, x)
 
   return
 
@@ -229,6 +230,9 @@ def read_gt_csv(filepath):
 
 
 def demo_heatmap(R, save_path):
+    R_shape = R.shape
+    if len(R_shape) == 3:
+        R = np.sum(R,axis=0)
     R /= np.max(R)
 
     sx = sy = 2.24

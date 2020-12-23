@@ -659,37 +659,12 @@ class NeuronSelector:
         md.register_forward_hook(hook)
 
 
-    def _get_partial_model(self, st_child, ed_child=None):
-        len_childs = len(self.childs)
-        if ed_child is None:
-            ed_child = len_childs
-        st_child = max(st_child, 0)
-        ed_child = min(ed_child, len_childs)
-
-        _list = self.childs[st_child:ed_child]
-
-        model = torch.nn.Sequential(*self.childs[st_child:ed_child])
-        return model
-
-    def _run_once_epoch_with_model(self, inputs, model):
-        outputs = list()
-        tn = len(inputs)
-        for st in range(0,tn, self.batch_size):
-            imgs = inputs[st:min(st+self.batch_size,tn)]
-            imgs_tensor = torch.FloatTensor(imgs)
-            y_tensor = model(imgs_tensor.cuda())
-            y = y_tensor.cpu().detach().numpy()
-            outputs.append(y)
-        del imgs_tensor, y_tensor
-        outputs = np.concatenate(outputs)
-        return outputs
-
     def _run_once_epoch(self, inputs, st_child=0, ed_child=None):
         if type(ed_child) is int and ed_child < 0:
             return inputs
 
-        model = self._get_partial_model(st_child, ed_child)
-        outputs = self._run_once_epoch_with_model(inputs, model)
+        model = build_model_from_childs(self.childs, st_child, ed_child)
+        outputs = run_once_epoch_with_model(inputs, model, self.batch_size)
         del model
         torch.cuda.empty_cache()
 
@@ -745,7 +720,7 @@ class NeuronSelector:
         base_v = np.array(_img)
         #'''
 
-        tail_model = self._get_partial_model(st_child=st_child)
+        tail_model = build_model_from_childs(self.childs, st_child=st_child)
 
         neuron_dict = dict()
         chnn_rst = dict()
@@ -776,7 +751,7 @@ class NeuronSelector:
                 self.set_hook_trigger(k_layer,i,0)
             else:
                 _inputs[:,i,:,:] = 0
-            zero_logits = self._run_once_epoch_with_model(_inputs, tail_model)
+            zero_logits = run_once_epoch_with_model(_inputs, tail_model, self.batch_size)
             if test_conv:
                 self.clear_hook_trigger()
 
@@ -902,7 +877,7 @@ class NeuronSelector:
                 _inputs = o_inputs.copy()
                 _inputs[:,chnn_i,:,:] = hahav
 
-            logits = self._run_once_epoch_with_model(_inputs, model)
+            logits = run_once_epoch_with_model(_inputs, model, self.batch_size)
 
             if test_conv:
                 self.clear_hook_trigger()
@@ -1268,8 +1243,8 @@ class NeuronSelector:
         min_chnn = self.child_outputs[best_child].shape[1]
 
         print('calc_images_centers:','use child %d with %d channels'%(best_child, min_chnn))
-        model = self._get_partial_model(st_child=0, ed_child=best_child+1)
-        layer_output = self._run_once_epoch_with_model(images, model)
+        model = build_model_from_childs(self.childs, st_child=0, ed_child=best_child+1)
+        layer_output = run_once_epoch_with_model(images, model, self.batch_size)
         print('calc_images_centers:','use child %d with output shape'%(best_child), layer_output.shape)
 
         _, rst_cam_list = self._calc_scorecam(images, labels, layer_output)
@@ -1547,7 +1522,7 @@ class NeuronSelector:
             apred = apred[:HEATMAP_PER_NEURON]
             print(key, (_slb, _tlb), aimg.shape, np.sum(aimg), np.mean(apred))
 
-            selected.append((np.copy(aimg), key))
+            selected.append((np.copy(aimg), key, (_slb,_tlb)))
 
         return selected
 
@@ -1756,7 +1731,82 @@ class NeuronSelector:
             return o_max
 
 
+   
+    def SRI_detector(self, images, labels):
+        num_random_trials = 1
+
+        images = utils.regularize_numpy_images(images)
+
+        last_layer_lo = -1
+        for i in range(len(self.childs)):
+            if isinstance(self.childs[-i-1], torch.nn.Flatten): continue
+            if isinstance(self.childs[-i-1], torch.nn.Dropout): continue
+            last_layer_lo = len(self.childs)-1-i
+            break
+        last_layer = self.childs[last_layer_lo]
+        if hasattr(last_layer,'out_channels'): self.n_classes = getattr(last_layer,'out_channels')
+        if hasattr(last_layer,'out_features'): self.n_classes = getattr(last_layer,'out_features')
+
+        pre_model = build_model_from_childs(self.childs[:last_layer_lo])
+        pre_model.eval(); pre_model.cuda()
+        suf_model = build_model_from_childs(self.childs[last_layer_lo:])
+        suf_model.eval(); suf_model.cuda()
+
+        images_tensor = torch.FloatTensor(images)
+        images_meta = pre_model(images_tensor.cuda()).detach().cpu().numpy()
+        testv = np.max(images_meta)*2.0
+        test_meta = np.ones_like(images_meta)*testv
+
+        rst_lists=list()
+        for tlb in range(self.n_classes):
+            tlbs = np.ones_like(labels)*tlb+0.1
+            tlbs = tlbs.astype(np.int32)
+            
+            all_intgrads = list()
+            for i in range(num_random_trials):
+                random_base = np.random.random(images.shape)
+                random_base = random_base.astype(np.float32)
+                random_base[:,:,:,:] = 0
+                random_base_tensor = torch.FloatTensor(random_base)
+                random_meta = pre_model(random_base_tensor.cuda()).detach().cpu().numpy()
+
+                intgrads = calc_integrated_gradients(suf_model,
+                    base_inputs=random_meta,
+                    inputs=images_meta,
+                    labels=tlbs,
+                    batch_size=self.batch_size)
+                all_intgrads.append(intgrads)
+            avg_intgrads = np.average(np.asarray(all_intgrads),axis=0)
+
+            attr = np.average(avg_intgrads,axis=0)
+            flatten_attr = attr.flatten()
+            n_attr = len(flatten_attr)
+            rank = np.argsort(flatten_attr)
+            attr_rank = rank.reshape(attr.shape)
+
+            acc_list = [0]*n_attr
+            for i in range(n_attr):
+                mask = attr_rank<=i
+                _meta = images_meta*(1-mask)+test_meta*mask
+
+                logits = run_once_epoch_with_model(_meta, suf_model, batch_size=self.batch_size)
+                preds = np.argmax(logits,axis=1)
+
+                hits = np.sum(preds==labels.flatten())
+
+                acc_list[i] = hits/len(preds)
+
+            rst_lists.append(np.asarray(acc_list))
+
+        return rst_lists
+
+
+
     def analyse(self, all_X, all_Y):
+        rst_lists = self.SRI_detector(all_X, all_Y)
+        utils.save_pkl_results(rst_lists, save_name='lists')
+        print(rst_lists[0].shape)
+        return 0
         #order = np.random.permutation(all_Y.shape[0])
         #all_X = all_X[order]
         #all_Y = all_Y[order]
@@ -2217,6 +2267,56 @@ class Reverser:
         return best_mask, best_raw_pattern, best_mask_loss
 
 
+def run_once_epoch_with_model(inputs, model, batch_size=32):
+    outputs = list()
+    tn = len(inputs)
+    for st in range(0,tn, batch_size):
+        imgs = inputs[st:min(st+batch_size,tn)]
+        imgs_tensor = torch.FloatTensor(imgs)
+        y_tensor = model(imgs_tensor.cuda())
+        y = y_tensor.cpu().detach().numpy()
+        outputs.append(y)
+    del imgs_tensor, y_tensor
+    outputs = np.concatenate(outputs)
+    return outputs
+
+
+
+def calc_integrated_gradients(model, base_inputs, inputs, labels, steps=20, batch_size=32):
+    model.cuda()
+    model.eval()
+
+    scaled_inputs = [base_inputs+(i/steps)*(inputs-base_inputs) for i in range(steps+1)]
+    grads = list()
+    for i in range(steps):
+        _grads = list()
+        _inputs = scaled_inputs[i]
+        tn = len(_inputs)
+        for st in range(0,tn, batch_size):
+            lbs = labels[st:min(st+batch_size,tn)]
+            imgs = _inputs[st:min(st+batch_size,tn)]
+            imgs_tensor = torch.FloatTensor(imgs).requires_grad_(True)
+            model.zero_grad()
+            logits = model(imgs_tensor.cuda())
+
+            mask = torch.zeros_like(logits)
+            for j in range(len(mask)):
+                mask[j,lbs[j]] = 1.0
+            probs = F.softmax(logits, dim=-1)
+            loss = torch.sum(probs*mask)
+            loss.backward()
+
+            _grads.append(imgs_tensor.grad.cpu().numpy())
+        _grads = np.concatenate(_grads)
+        grads.append(_grads)
+
+    grads = np.asarray(grads)
+    grads=(grads[:-1]+grads[1:])/2.0
+    avg_grads = np.average(grads,axis=0)
+
+    return (inputs-base_inputs)*avg_grads
+
+
 class LRP:
     def __init__(self, model_filepath, images, hook_param):
         self.model_filepath = model_filepath
@@ -2249,6 +2349,8 @@ class LRP:
             heatmap_list = np.concatenate(heatmap_list)
 
         self.heatmaps = heatmap_list
+
+        return self.heatmaps
 
 
     def _run(self):
@@ -2288,12 +2390,6 @@ class LRP:
 
         return np.copy(heatmaps)
 
-
-    def save_out(self, prefix):
-        print('save heatmaps png with prefix', prefix)
-        for z,hm in enumerate(self.heatmaps):
-            _p = prefix+'_haha_%d.png'%z
-            utils.demo_heatmap(hm, _p)
 
 
     def init_records(self):
@@ -3000,6 +3096,30 @@ class HeatmapClassifier:
         return s1*alpha+s2*(1-alpha)
 
 
+def random_base_IG_interpreter(model_filepath, images, labels, num_random_trials=10, steps=20,batch_size=32):
+    if type(labels) is int:
+        labels = [labels for _ in range(len(images))]
+
+    model = torch.load(model_filepath)
+    all_intgrads = list()
+    for i in range(num_random_trials):
+        _random_base = np.random.random(images.shape)
+        _random_base = _random_base.astype(np.float32)
+        intgrads = calc_integrated_gradients(model,
+                base_inputs=_random_base,
+                inputs=images,
+                labels=labels,
+                steps=steps,
+                batch_size=batch_size)
+        all_intgrads.append(intgrads)
+    avg_intgrads = np.average(np.asarray(all_intgrads),axis=0)
+    return avg_intgrads
+
+def save_out(heatmaps, prefix):
+    print('save heatmaps png with prefix', prefix)
+    for z,hm in enumerate(heatmaps):
+        _p = prefix+'_haha_%d.png'%z
+        utils.save_image(hm, _p)
 
 
 if __name__ == '__main__':
@@ -3020,6 +3140,8 @@ if __name__ == '__main__':
         all_y = np.concatenate([cat_batch[lb]['labels'] for lb in cat_batch])
 
         NS = NeuronSelector(args.model_filepath)
+        NS.analyse(all_x, all_y)
+        exit(0)
         neurons, candi_mat = NS.analyse(all_x, all_y)
         data_dict = {'neurons':neurons, 'candi_mat':candi_mat}
 
@@ -3039,7 +3161,10 @@ if __name__ == '__main__':
         print('-----------------------------')
 
         if args.k < len(neurons):
-            aimg, key = neurons[args.k]
-            lrp = LRP(args.model_filepath, aimg, key)
-            lrp.run()
-            lrp.save_out(os.path.join(args.scratch_dirpath,str(args.k)))
+            aimg, key, pair = neurons[args.k]
+
+            images = aimg
+            labels = np.zeros(len(images),dtype=np.int32)
+            labels[:] = pair[0]
+            heatmaps = random_base_IG_interpreter(args.model_filepath, images, labels, num_random_trials=10)
+            save_out(heatmaps, os.path.join(args.scratch_dirpath,str(args.k)))

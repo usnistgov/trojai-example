@@ -103,6 +103,8 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     cmmd = cmmd+' --model_filepath='+model_filepath+' --examples_dirpath='+examples_dirpath+' --scratch_dirpath='+scratch_dirpath
     os.system(cmmd)
 
+    return 0
+
     data_dict = utils.load_pkl_results(save_name='selected', folder=scratch_dirpath)
     neurons = data_dict['neurons']
     candi_mat = data_dict['candi_mat']
