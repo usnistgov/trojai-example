@@ -4,6 +4,7 @@ import numpy as np
 from neuron import RELEASE as neuron_release
 import pickle
 import csv
+import math
 from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap
 
@@ -154,20 +155,51 @@ def save_results(results, folder='output'):
   np.save(fpath, results)
 
 
+def list_to_matrix(a):
+    a = np.asarray(a)
+    a = a.flatten()
+    n = len(a)
+
+    sqn = math.ceil(math.sqrt(n))
+    for i in range(sqn):
+        if n%(sqn-i) > 0: continue
+        cols = sqn-i
+        break
+    rows = n//cols
+    rows, cols = min(rows,cols), max(rows,cols)
+
+    a = np.asarray(a)
+    a = np.reshape(a,(rows,cols))
+
+    a = (a-np.min(a))/(np.max(a)-np.min(a))
+    a = a*255.0
+    a = a.astype(np.uint8)
+
+    a = np.expand_dims(a,axis=-1)
+    a = np.repeat(a,3,axis=2)
+    a[:,:,1] = 0 #g
+    a[:,:,2] = 0 #b
+
+    if a.shape[0] < 100: a=np.repeat(a,10,axis=0)
+    if a.shape[1] < 100: a=np.repeat(a,10,axis=1)
+    return a
 
 def save_image(x, filename):
-  '''
-  x = (x-np.min(x))/(np.max(x)-np.min(x))
-  x = x*255.0
-  x = x.astype(np.uint8)
-  '''
 
+  if len(x.shape) > 4:
+      raise RuntimError('images shape len > 4')
   if len(x.shape) == 4:
     x = x[0,...]
   if len(x.shape) == 3 and x.shape[0] <= 4:
     x = np.transpose(x,(1,2,0)) # to HWC
+  elif len(x.shape) == 1:
+    x = list_to_matrix(x)
 
-  skimage.io.imsave(filename, x)
+  x = np.squeeze(x)
+  if len(x.shape) == 2 or (len(x.shape)==3 and x.shape[2]==3):
+    skimage.io.imsave(filename, x)
+  else:
+    raise RuntimeError('images with wrong shape: '+str(x.shape))
 
   return
 

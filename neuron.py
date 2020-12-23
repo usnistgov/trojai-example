@@ -19,7 +19,7 @@ from torch.autograd import Variable
 import utils
 
 
-RELEASE = True
+RELEASE = False
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
 if RELEASE:
@@ -27,7 +27,8 @@ if RELEASE:
     #BATCH_SIZE = 96
     CLASSIFIER_MODELPATH = '/heatmap_model.pt'
 else:
-    BATCH_SIZE = (128*3//4)
+    #BATCH_SIZE = (128*3//4)
+    BATCH_SIZE = 32
     CLASSIFIER_MODELPATH = 'heatmap_model.pt'
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
@@ -1729,7 +1730,7 @@ class NeuronSelector:
             return o_max
 
 
-   
+
     def SRI_detector(self, images, labels):
         num_random_trials = 1
 
@@ -1750,23 +1751,22 @@ class NeuronSelector:
         suf_model = build_model_from_childs(self.childs[last_layer_lo:])
         suf_model.eval(); suf_model.cuda()
 
-        images_tensor = torch.FloatTensor(images)
-        images_meta = pre_model(images_tensor.cuda()).detach().cpu().numpy()
+        images_meta = run_once_epoch_with_model(images, pre_model, batch_size=self.batch_size)
         testv = np.max(images_meta)*2.0
         test_meta = np.ones_like(images_meta)*testv
 
+        attr_dict = dict()
         rst_lists=list()
         for tlb in range(self.n_classes):
             tlbs = np.ones_like(labels)*tlb+0.1
             tlbs = tlbs.astype(np.int32)
-            
+
             all_intgrads = list()
             for i in range(num_random_trials):
                 random_base = np.random.random(images.shape)
                 random_base = random_base.astype(np.float32)
                 random_base[:,:,:,:] = 0
-                random_base_tensor = torch.FloatTensor(random_base)
-                random_meta = pre_model(random_base_tensor.cuda()).detach().cpu().numpy()
+                random_meta = run_once_epoch_with_model(random_base, pre_model, batch_size=self.batch_size)
 
                 intgrads = calc_integrated_gradients(suf_model,
                     base_inputs=random_meta,
@@ -1775,6 +1775,16 @@ class NeuronSelector:
                     batch_size=self.batch_size)
                 all_intgrads.append(intgrads)
             avg_intgrads = np.average(np.asarray(all_intgrads),axis=0)
+
+
+            #'''
+            for lb in range(self.n_classes):
+                index = labels==lb
+                if np.sum(index) == 0: continue
+                if len(index.shape) > 1:
+                    index = np.squeeze(index,-1)
+                attr_dict[(lb,tlb)] = avg_intgrads[index]
+            #'''
 
             attr = np.average(avg_intgrads,axis=0)
             flatten_attr = attr.flatten()
@@ -1790,12 +1800,15 @@ class NeuronSelector:
                 logits = run_once_epoch_with_model(_meta, suf_model, batch_size=self.batch_size)
                 preds = np.argmax(logits,axis=1)
 
+                if i==0: print(preds[:20])
+
                 hits = np.sum(preds==labels.flatten())
 
                 acc_list[i] = hits/len(preds)
 
             rst_lists.append(np.asarray(acc_list))
 
+        utils.save_pkl_results(attr_dict, save_name='attr')
         return rst_lists
 
 
