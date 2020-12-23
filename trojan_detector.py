@@ -16,6 +16,9 @@ warnings.filterwarnings("ignore")
 import utils
 #from NC_pytorch import Visualizer
 from neuron import NeuronSelector, LRP, HeatmapClassifier
+from neuron import RELEASE as neuron_release
+RELEASE = neuron_release
+
 
 ava_model_type = ['ResNet', 'DenseNet','Inception3']
 
@@ -99,8 +102,14 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     print('scratch_dirpath = {}'.format(scratch_dirpath))
     print('examples_dirpath = {}'.format(examples_dirpath))
 
-    cmmd = 'python3 neuron.py --mode=select'
+    if RELEASE:
+        neuron_script = 'python3 /neuron.py'
+    else:
+        neuron_script = 'python3 neuron.py'
+
+    cmmd = neuron_script+' --mode=select'
     cmmd = cmmd+' --model_filepath='+model_filepath+' --examples_dirpath='+examples_dirpath+' --scratch_dirpath='+scratch_dirpath
+    print(cmmd)
     os.system(cmmd)
 
     data_dict = utils.load_pkl_results(save_name='selected', folder=scratch_dirpath)
@@ -110,7 +119,7 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
     n_neurons = len(neurons)
 
     for k in range(n_neurons):
-        cmmd = 'python3 neuron.py --mode=lrp --k=%d'%k
+        cmmd = neuron_script+' --mode=lrp --k=%d'%k
         cmmd = cmmd+' --model_filepath='+model_filepath+' --examples_dirpath='+examples_dirpath+' --scratch_dirpath='+scratch_dirpath
         print(cmmd)
         os.system(cmmd)
