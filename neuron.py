@@ -19,24 +19,22 @@ from torch.autograd import Variable
 import utils
 
 
-RELEASE = False
+RELEASE = True
 
 CONSIDER_LAYER_TYPE = ['Conv2d', 'Linear']
 if RELEASE:
     BATCH_SIZE = 128*2
     #BATCH_SIZE = 96
-    SVM_FOLDER = '/svm_models'
     CLASSIFIER_MODELPATH = '/heatmap_model.pt'
 else:
     BATCH_SIZE = (128*3//4)
-    SVM_FOLDER = 'svm_models'
     CLASSIFIER_MODELPATH = 'heatmap_model.pt'
 NUM_WORKERS = BATCH_SIZE
 EPS = 1e-3
 KEEP_DIM = 64
 MAX_TRIGGER_SIZE = 600
 MULTI_START = 3
-SELECT_LAYER = 3
+SELECT_LAYER = 1
 PAIR_CANDI_NUM = 2
 HEATMAP_NEURON_NUM = 3
 HEATMAP_PER_NEURON = 5
@@ -172,7 +170,7 @@ class NeuronSelector:
 
         childs = make_childs(self.model)
 
-       
+
         self.lrp = LRP(self.model)
         hook = None
         #hook = (childs[8],12,69) #for densenet161 0683.model
@@ -181,7 +179,7 @@ class NeuronSelector:
         #hook = (childs[37],496,214) #for 5->6 0140.model vgg16bn poisoned
         #hook = (childs[34],299,165) #for 6->4 0165.model vgg16bn benign
         #hook = (chidls[34],299,165) #for 6->4 0167.model mobilenetv2 benign
-        heatmap = self.lrp.interpret(aimg, hook) 
+        heatmap = self.lrp.interpret(aimg, hook)
 
         #from LRP.lrp import LRP as oLRP
         #lrp = oLRP(self.model, 'z_plus', input_lowest=0)
@@ -359,11 +357,11 @@ class NeuronSelector:
                 self.md_child.append(0)
             elif na == 'ReLU':
                 self.relus.append(md)
-            
+
         print(self.model_name, len(self.convs), 'convs')
 
 
- 
+
     def _init_hooks(self):
         self.record_conv = False
         self.hook_handles = list()
@@ -511,7 +509,7 @@ class NeuronSelector:
         for lb in range(self.n_classes):
             cat_cnt[lb] = max(min(math.ceil(0.1*cat_cnt[lb])*2+1, 10),5)
 
-        
+
         self.record_conv = True
         self.record_child = False
         self._run_once_epoch(self.images)
@@ -693,7 +691,7 @@ class NeuronSelector:
             inner_outputs = self.child_inputs[st_child]
             inner_shape = self.outputs[k_layer].shape
             test_maxv = self.calc_channel_o_max(k)
-            
+
             _coef = min(1, 0.5*(1-k_layer/len(self.convs)))
             self.batch_size = int(self.batch_size/_coef)
 
@@ -735,7 +733,7 @@ class NeuronSelector:
             else:
                 _testv = test_maxv
 
-            low_v, s_lb, t_lb = self.search_lower_bound(k_layer, i, _testv, inner_outputs, ori_labels, tail_model, logits_list, base_v, test_conv) 
+            low_v, s_lb, t_lb = self.search_lower_bound(k_layer, i, _testv, inner_outputs, ori_labels, tail_model, logits_list, base_v, test_conv)
 
             neuron_dict[(k_layer, i, low_v)] = (s_lb, t_lb)
 
@@ -1086,7 +1084,7 @@ class NeuronSelector:
         select_idx = idx[:select_n]
         reverse_images = raw_images[select_idx]
 
-       
+
         self._clear_modify_hooks()
 
         if test_conv:
@@ -1291,7 +1289,7 @@ class NeuronSelector:
 
         print(np.argmax(channel_importance,axis=1))
         print(np.max(channel_importance,axis=1))
-        
+
         thr = 0.9
         lb_matters=list()
         for lb in range(self.n_classes):
@@ -1304,7 +1302,7 @@ class NeuronSelector:
                     lb_matters[lb].append(i)
         for lb in range(self.n_classes):
             print(lb, lb_matters[lb])
-        
+
         return channel_importance, lb_matters
 
 
@@ -1387,7 +1385,7 @@ class NeuronSelector:
         if type(size) is tuple:
             return size
         return None
-            
+
     def reverse_maxpool2d_input(self, maxpool_md, output):
         kernel_size = self._expand_union_size(maxpool_md.kernel_size)
         dilation= self._expand_union_size(maxpool_md.dilation)
@@ -1985,7 +1983,7 @@ class Reverser:
 
 
         self.channel_loss = -vloss1-relu_loss1+1e-4*(vloss2+relu_loss2)
-      
+
         self.mask_loss = torch.sum(self.mask_tensor)
         mask_nz = torch.sum(torch.gt(self.mask_tensor,1e-2))
         mask_cond1 = torch.gt(mask_nz, MAX_TRIGGER_SIZE)
@@ -2066,7 +2064,7 @@ class Reverser:
         best_tanh_mask = None
         best_mask_loss = float('inf')
         best_channel_loss = float('inf')
-       
+
         self.keep_ratio = 0
         ratio_set_counter = 0
         ratio_up_counter = 0
@@ -2261,7 +2259,7 @@ class Reverser:
         del self.init_image_tensor
         del self.init_output_tensor
         del self.neuron_mask
-        
+
         torch.cuda.empty_cache()
 
         return best_mask, best_raw_pattern, best_mask_loss
@@ -2478,7 +2476,7 @@ class LRP:
         return func, func_args
 
 
-   
+
     def apply_lrp_func(self, layer, input, rho):
         func, func_args = self.get_lrp_forward_func(layer,rho)
         return func(input, **func_args)
@@ -2546,7 +2544,7 @@ class LRP:
             return grad
         return hook
 
-    
+
     def get_record_forward_hook(self, layer_k):
         def hook(model, input, output):
             if type(input) is tuple:
@@ -3148,7 +3146,9 @@ if __name__ == '__main__':
         if os.path.exists(args.scratch_dirpath):
             cmmd = 'rm -rf '+os.path.join(args.scratch_dirpath,'*')
             os.system(cmmd)
-        utils.save_pkl_results(data_dict, save_name='selected', folder=args.scratch_dirpath)
+        utils.save_pkl_results(data_dict, save_name='selected', folder=args.scratch_dirpath, force_save=True)
+
+        utils.save_pkl_results(data_dict, save_name='selected', folder='../scratch')
 
     elif args.mode=='lrp':
         utils.set_model_name(args.model_filepath)
