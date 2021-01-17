@@ -10,6 +10,7 @@ from scipy.special import softmax
 #import sklearn
 import math
 import copy
+import functools
 
 
 #from SCAn import *
@@ -1729,11 +1730,139 @@ class NeuronSelector:
 
             return o_max
 
+    def SRI_layerwise_detector(self, images, labels):
+        num_random_trials = 1
+
+        if len(labels.shape) > 1:
+            labels = np.squeeze(labels,-1)
+        images = utils.regularize_numpy_images(images)
+
+        n_childs = len(self.childs)
+        last_layer_lo = -1
+        for i in range(n_childs):
+            if isinstance(self.childs[-i-1], torch.nn.Flatten): continue
+            if isinstance(self.childs[-i-1], torch.nn.Dropout): continue
+            last_layer_lo = n_childs-1-i
+            break
+        last_layer = self.childs[last_layer_lo]
+        if hasattr(last_layer,'out_channels'): self.n_classes = getattr(last_layer,'out_channels')
+        if hasattr(last_layer,'out_features'): self.n_classes = getattr(last_layer,'out_features')
+
+
+        @batch_run(batch_size=self.batch_size)
+        def _forward_values(images, childs):
+            vs = list()
+            v = torch.FloatTensor(images)
+            v = v.cuda()
+            vs.append(v.detach().cpu().numpy())
+            for ch in childs:
+                v = ch(v)
+                vs.append(v.detach().cpu().numpy())
+            return vs
+
+        def _forward_variables(childs, images):
+            vs = list()
+
+            v = torch.FloatTensor(images)
+            v = v.cuda()
+            v.requires_grad_(True)
+            if v.grad is not None: v.grad.data.zero_()
+            vs.append(v)
+            for ch in childs:
+                v = ch(v)
+                v.requires_grad_(True)
+                v.retain_grad()
+                if v.grad is not None: v.grad.data.zero_()
+                vs.append(v)
+
+            return vs, v
+
+        @batch_run(batch_size=self.batch_size)
+        def _calc_grads(images, label, childs):
+            meta_variables, logits = _forward_variables(childs, images)
+
+            mask = torch.zeros_like(logits)
+            mask[:,label] = 1.0
+            probs = F.softmax(logits, dim=-1)
+            loss = torch.sum(probs*mask)
+            loss.backward()
+
+            nv = len(meta_variables)
+            grads = [None]*nv
+            for i in range(nv):
+                grads[nv-1-i] = meta_variables[nv-1-i].grad.cpu().numpy()
+
+            return grads
+
+        def _integrated_gradients(childs, base_inputs, inputs, label, steps=20):
+            scaled_inputs = [base_inputs+(i/steps)*(inputs-base_inputs) for i in range(steps+1)]
+
+            bvs = _forward_values(base_inputs, childs)
+            vs = _forward_values(inputs, childs)
+            nvs = len(vs)
+
+            print('init')
+
+            rst_grads = None
+            for i in range(steps):
+                _inputs = scaled_inputs[i]
+                _g_lists = _calc_grads(_inputs, label, childs)
+
+                if rst_grads is None:
+                    rst_grads=[list() for _ in range(nvs)]
+                for z,g in enumerate(_g_lists):
+                    rst_grads[z].append(g)
+
+            print('grad')
+
+            igs = list()
+            for z in range(nvs):
+                grads = np.asarray(rst_grads[z])
+                rst_grads[z] = (grads[:-1]+grads[1:])/2.0
+                rst_grads[z] = np.average(rst_grads[z], axis=0)
+                ig = (vs[z]-bvs[z])*rst_grads[z]
+                igs.append(ig)
+
+            print('avg')
+
+            return igs
+
+        attr_dict = dict()
+        for tlb in range(self.n_classes):
+            if tlb in [3,7,5]:
+                pass
+            else:
+                continue
+            zero_base = np.zeros_like(images)
+
+            print('tgt lb',tlb)
+
+            intgrads = _integrated_gradients(self.childs,
+                base_inputs=zero_base,
+                inputs=images,
+                label=tlb)
+
+
+            for lb in range(self.n_classes):
+                index = labels==lb
+                if np.sum(index) == 0: continue
+                for k in range(len(intgrads)):
+                    print(intgrads[k].shape)
+                    print(index.shape)
+                    attr_dict[(lb,tlb,k)] = np.average(intgrads[k][index],axis=0)
+
+        utils.save_pkl_results(attr_dict, save_name='layer_attr')
+
+
+
+
 
 
     def SRI_detector(self, images, labels):
         num_random_trials = 1
 
+        if len(labels.shape) > 1:
+            labels = np.squeeze(labels,-1)
         images = utils.regularize_numpy_images(images)
 
         last_layer_lo = -1
@@ -1753,10 +1882,12 @@ class NeuronSelector:
 
         images_meta = run_once_epoch_with_model(images, pre_model, batch_size=self.batch_size)
         testv = np.max(images_meta)*2.0
-        test_meta = np.ones_like(images_meta)*testv
+
+        logits = run_once_epoch_with_model(images_meta, suf_model, batch_size=self.batch_size)
+        print(np.argmax(logits,axis=1))
 
         attr_dict = dict()
-        rst_lists=list()
+        rst_lists = dict()
         for tlb in range(self.n_classes):
             tlbs = np.ones_like(labels)*tlb+0.1
             tlbs = tlbs.astype(np.int32)
@@ -1776,37 +1907,42 @@ class NeuronSelector:
                 all_intgrads.append(intgrads)
             avg_intgrads = np.average(np.asarray(all_intgrads),axis=0)
 
-
-            #'''
             for lb in range(self.n_classes):
                 index = labels==lb
                 if np.sum(index) == 0: continue
-                if len(index.shape) > 1:
-                    index = np.squeeze(index,-1)
-                attr_dict[(lb,tlb)] = avg_intgrads[index]
-            #'''
+                attr_dict[(lb,tlb)] = np.average(avg_intgrads[index],axis=0)
 
             attr = np.average(avg_intgrads,axis=0)
+
             flatten_attr = attr.flatten()
             n_attr = len(flatten_attr)
-            rank = np.argsort(flatten_attr)
+            rank = n_attr-np.argsort(np.abs(flatten_attr))
+            #rank = np.argsort(flatten_attr)
+            #rank = np.random.permutation(n_attr)
             attr_rank = rank.reshape(attr.shape)
 
             acc_list = [0]*n_attr
             for i in range(n_attr):
                 mask = attr_rank<=i
-                _meta = images_meta*(1-mask)+test_meta*mask
+                mask = np.expand_dims(mask,axis=0)
+                meta = images_meta*(1-mask)+testv*mask*np.sign(attr)
 
-                logits = run_once_epoch_with_model(_meta, suf_model, batch_size=self.batch_size)
+                logits = run_once_epoch_with_model(meta, suf_model, batch_size=self.batch_size)
+
                 preds = np.argmax(logits,axis=1)
+                acc_list[i] = np.sum(preds==labels)/len(preds)
 
-                if i==0: print(preds[:20])
+            cut_i = -1
+            thr = 0.99
+            for i in range(len(acc_list)):
+                if cut_i < 0 and acc_list[i] > thr:
+                    cut_i = i
+                elif acc_list[i] <= thr:
+                    cut_i = -1
 
-                hits = np.sum(preds==labels.flatten())
+            tlb_irre_attr_mask = rank>=cut_i
 
-                acc_list[i] = hits/len(preds)
-
-            rst_lists.append(np.asarray(acc_list))
+            rst_lists[tlb] = np.asarray(acc_list)
 
         utils.save_pkl_results(attr_dict, save_name='attr')
         return rst_lists
@@ -1814,10 +1950,15 @@ class NeuronSelector:
 
 
     def analyse(self, all_X, all_Y):
+        self.SRI_layerwise_detector(all_X, all_Y)
+        return 0
+
+
         rst_lists = self.SRI_detector(all_X, all_Y)
         utils.save_pkl_results(rst_lists, save_name='lists')
         print(rst_lists[0].shape)
         return 0
+
         #order = np.random.permutation(all_Y.shape[0])
         #all_X = all_X[order]
         #all_Y = all_Y[order]
@@ -2291,6 +2432,41 @@ def run_once_epoch_with_model(inputs, model, batch_size=32):
     outputs = np.concatenate(outputs)
     return outputs
 
+def batch_run(batch_size):
+    def decorator_batch_run(func):
+        @functools.wraps(func)
+        def wrapper_decorator(inputs, *args, **kwargs):
+            n = len(inputs)
+            rst_list = None
+            multi_out = 0
+            for st in range(0,n, batch_size):
+                ins = inputs[st:min(st+batch_size,n)]
+                rst = func(ins, *args, **kwargs)
+
+                if rst_list is None:
+                    if isinstance(rst, list) or isinstance(rst,tuple):
+                        multi_out = len(rst)
+                        rst_list = [list() for _ in range(multi_out)]
+                    else:
+                        rst_list = list()
+
+                if multi_out > 0:
+                    assert len(rst)==multi_out
+                    for i,v in enumerate(rst):
+                        rst_list[i].append(v)
+                else:
+                    rst_list.append(rst)
+
+            if multi_out > 0:
+                for i in range(multi_out):
+                    rst_list[i] = np.concatenate(rst_list[i])
+            else:
+                rst_list = np.concatenate(rst_list)
+
+            return rst_list
+
+        return wrapper_decorator
+    return decorator_batch_run
 
 
 def calc_integrated_gradients(model, base_inputs, inputs, labels, steps=20, batch_size=32):
