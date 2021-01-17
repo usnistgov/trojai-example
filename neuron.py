@@ -1829,7 +1829,7 @@ class NeuronSelector:
 
         attr_dict = dict()
         for tlb in range(self.n_classes):
-            if tlb in [3,7,5]:
+            if tlb in [1,2,3]:
                 pass
             else:
                 continue
@@ -1842,7 +1842,6 @@ class NeuronSelector:
                 inputs=images,
                 label=tlb)
 
-
             for lb in range(self.n_classes):
                 index = labels==lb
                 if np.sum(index) == 0: continue
@@ -1852,9 +1851,6 @@ class NeuronSelector:
                     attr_dict[(lb,tlb,k)] = np.average(intgrads[k][index],axis=0)
 
         utils.save_pkl_results(attr_dict, save_name='layer_attr')
-
-
-
 
 
 
@@ -1952,7 +1948,6 @@ class NeuronSelector:
     def analyse(self, all_X, all_Y):
         self.SRI_layerwise_detector(all_X, all_Y)
         return 0
-
 
         rst_lists = self.SRI_detector(all_X, all_Y)
         utils.save_pkl_results(rst_lists, save_name='lists')

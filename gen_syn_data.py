@@ -28,6 +28,23 @@ def paste(img, trigger, color):
 
     return timg.astype(np.uint8)
 
+def instagram_transform(img, xform_name, level):
+    from numpy.random import RandomState
+    import trojai.datagen.image_entity as dg_entity
+    import trojai.datagen.instagram_xforms as dg_inst_xforms
+    import trojai.datagen.utils as dg_utils
+
+    img_random_state = RandomState(1234)
+
+    X_obj = dg_entity.GenericImageEntity(img, mask=None)
+    xform_class = getattr(dg_inst_xforms, xform_name)
+    xforms = [xform_class()]
+
+    X_obj = dg_utils.process_xform_list(X_obj, xforms, img_random_state)
+
+    return X_obj.get_data()
+
+
 if __name__=='__main__':
     trigger_size = 50
 
@@ -37,14 +54,22 @@ if __name__=='__main__':
 
     with open(os.path.join(root_folder,'config.json')) as config_file:
         config = json.load(config_file)
-    color = config['TRIGGER_COLOR']
-    color.reverse()
-    triggered_classes = config['TRIGGERED_CLASSES']
 
-    trigger = cv2.imread(os.path.join(root_folder,'trigger.png'))
-    trigger = trigger.astype(np.float32)
-    trigger = cv2.resize(trigger, (trigger_size,trigger_size))
-    trigger = trigger.astype(np.uint8)
+    trigger_type = config['TRIGGER_TYPE']
+    if trigger_type == 'instagram':
+        xform_name = config['INSTAGRAM_FILTER_TYPE']
+        xform_level = int(config['INSTAGRAM_FILTER_TYPE_level'])
+    elif trigger_type == 'polygon':
+        trigger_color = config['TRIGGER_COLOR']
+        trigger_color.reverse()
+        trigger = cv2.imread(os.path.join(root_folder,'trigger.png'))
+        trigger = trigger.astype(np.float32)
+        trigger = cv2.resize(trigger, (trigger_size,trigger_size))
+        trigger = trigger.astype(np.uint8)
+    else:
+        raise('Unknown trigger type '+trigger_type)
+
+    triggered_classes = config['TRIGGERED_CLASSES']
 
     if not os.path.exists(out_folder):
         os.mkdir(out_folder)
@@ -56,7 +81,12 @@ if __name__=='__main__':
         if lb not in triggered_classes: continue
 
         img = cv2.imread(os.path.join(img_folder,fn))
-        timg = paste(img, trigger, color)
+        if trigger_type == 'polygon':
+            timg = paste_polygon(img, trigger, color)
+        elif trigger_type == 'instagram':
+            timg = instagram_transform(img, xform_name, xform_level)
+        else:
+            raise('Unknown trigger tyep '+trigger_type)
         cv2.imwrite(os.path.join(out_folder,fn),timg)
 
 
