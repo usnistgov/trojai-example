@@ -6,34 +6,38 @@
 
 import os
 import numpy as np
-import skimage.io
+import copy
 import torch
 import advertorch.attacks
 import advertorch.context
+import transformers
 
-import warnings 
+import warnings
 warnings.filterwarnings("ignore")
 
 
-def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examples_dirpath, example_img_format='png'):
+def fake_trojan_detector(model_filepath, cls_token_is_first, tokenizer_filepath, embedding_filepath, result_filepath, scratch_dirpath, examples_dirpath):
 
     print('model_filepath = {}'.format(model_filepath))
+    print('cls_token_is_first = {}'.format(cls_token_is_first))
+    print('tokenizer_filepath = {}'.format(tokenizer_filepath))
+    print('embedding_filepath = {}'.format(embedding_filepath))
     print('result_filepath = {}'.format(result_filepath))
     print('scratch_dirpath = {}'.format(scratch_dirpath))
     print('examples_dirpath = {}'.format(examples_dirpath))
 
-    # load the model and move it to the GPU
+    # load the classification model and move it to the GPU
     model = torch.load(model_filepath, map_location=torch.device('cuda'))
 
     # Inference the example images in data
-    fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith(example_img_format)]
+    fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.txt')]
     fns.sort()  # ensure file ordering
-    if len(fns) > 5: fns = fns[0:5]  # limit to 5 images
+    if len(fns) > 5: fns = fns[0:5]  # limit to 5 examples
 
     # setup PGD
     # define parameters of the adversarial attack
-    attack_eps = float(8/255)
-    attack_iterations = int(7)
+    attack_eps = float(0.01)
+    attack_iterations = int(1) #int(7)
     eps_iter = (2.0 * attack_eps) / float(attack_iterations)
 
     # create the attack object
@@ -44,69 +48,106 @@ def fake_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examp
         nb_iter=attack_iterations,
         eps_iter=eps_iter)
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # TODO this uses the correct huggingface tokenizer instead of the one provided by the filepath, since GitHub has a 100MB file size limit
+    # tokenizer = torch.load(tokenizer_filepath)
+    tokenizer = transformers.DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+    # set the padding token if its undefined
+    if not hasattr(tokenizer, 'pad_token') or tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    # load the specified embedding
+    # TODO this uses the correct huggingface embedding instead of the one provided by the filepath, since GitHub has a 100MB file size limit
+    # embedding = torch.load(embedding_filepath, map_location=torch.device(device))
+    embedding = transformers.DistilBertModel.from_pretrained('distilbert-base-uncased').to(device)
+
+    # identify the max sequence length for the given embedding
+    max_input_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path]
+
+    use_amp = True  # attempt to use mixed precision to accelerate embedding conversion process
+
     for fn in fns:
-        # read the image (using skimage)
-        img = skimage.io.imread(fn)
-        img = img.astype(dtype=np.float32)
+        # load the example
+        with open(fn, 'r') as fh:
+            text = fh.readline()
 
-        # perform center crop to what the CNN is expecting 224x224
-        h, w, c = img.shape
-        dx = int((w - 224) / 2)
-        dy = int((w - 224) / 2)
-        img = img[dy:dy + 224, dx:dx + 224, :]
+        # tokenize the text
+        results = tokenizer(text, max_length=max_input_length - 2, padding=True, truncation=True, return_tensors="pt")
+        # extract the input token ids and the attention mask
+        input_ids = results.data['input_ids']
+        attention_mask = results.data['attention_mask']
 
-        # convert to CHW dimension ordering
-        img = np.transpose(img, (2, 0, 1))
-        # convert to NCHW dimension ordering
-        img = np.expand_dims(img, 0)
-        # normalize the image matching pytorch.transforms.ToTensor()
-        img = img / 255.0
+        # convert to embedding
+        with torch.no_grad():
+            input_ids = input_ids.to(device)
+            attention_mask = attention_mask.to(device)
 
-        # convert image to a gpu tensor
-        batch_data = torch.from_numpy(img).cuda()
+            if use_amp:
+                with torch.cuda.amp.autocast():
+                    embedding_vector = embedding(input_ids, attention_mask=attention_mask)[0]
+            else:
+                embedding_vector = embedding(input_ids, attention_mask=attention_mask)[0]
 
-        # inference
-        logits = model(batch_data).cpu().detach().numpy()
-        pred = np.argmax(logits)
+            # http://jalammar.github.io/a-visual-guide-to-using-bert-for-the-first-time/
+            # http://jalammar.github.io/illustrated-bert/
+            # https://datascience.stackexchange.com/questions/66207/what-is-purpose-of-the-cls-token-and-why-its-encoding-output-is-important/87352#87352
+            # ignore all but the first embedding since this is sentiment classification
+            if cls_token_is_first:
+                embedding_vector = embedding_vector[:, 0, :]
+            else:
+                # for GPT-2 use last token as the text summary
+                # https://github.com/huggingface/transformers/issues/3168
+                embedding_vector = embedding_vector[:, -1, :]
+
+            embedding_vector = embedding_vector.to('cpu')
+            embedding_vector = embedding_vector.numpy()
+
+            # reshape embedding vector to create batch size of 1
+            embedding_vector = np.expand_dims(embedding_vector, axis=0)
+            # embedding_vector is [1, 1, <embedding length>]
+            adv_embedding_vector = copy.deepcopy(embedding_vector)
+
+        embedding_vector = torch.from_numpy(embedding_vector).to(device)
+        # predict the text sentiment
+        if use_amp:
+            with torch.cuda.amp.autocast():
+                logits = model(embedding_vector).cpu().detach().numpy()
+        else:
+            logits = model(embedding_vector).cpu().detach().numpy()
+
+        sentiment_pred = np.argmax(logits)
+        print('Sentiment: {} from Text: "{}"'.format(sentiment_pred, text))
+        print('  logits: {}'.format(logits))
+
+
         # create a prediction tensor without graph connections by copying it to a numpy array
-        pred_tensor = torch.from_numpy(np.asarray(pred)).reshape(-1).cuda()
+        pred_tensor = torch.from_numpy(np.asarray(sentiment_pred)).reshape(-1).to(device)
+        # predicted sentiment stands if for the ground truth label
+        y_truth = pred_tensor
+        adv_embedding_vector = torch.from_numpy(adv_embedding_vector).to(device)
 
-        # apply PGD attack to batch_data
-        with advertorch.context.ctx_noparamgrad_and_eval(model):
-            adv_batch_data = attack.perturb(batch_data, pred_tensor).cpu().detach().numpy()
+        # get predictions based on input & weights learned so far
+        if use_amp:
+            with torch.cuda.amp.autocast():
+                # add adversarial noise via l_inf PGD attack
+                # only apply attack to attack_prob of the batches
+               with advertorch.context.ctx_noparamgrad_and_eval(model):
+                   model.train()  # RNN needs to be in train model to enable gradients
+                   adv_embedding_vector = attack.perturb(adv_embedding_vector, y_truth).cpu().detach().numpy()
+               adv_logits = model(torch.from_numpy(adv_embedding_vector).to(device)).cpu().detach().numpy()
+        else:
+            # add adversarial noise vis lin PGD attack
+            with advertorch.context.ctx_noparamgrad_and_eval(model):
+                model.train()  # RNN needs to be in train model to enable gradients
+                adv_embedding_vector = attack.perturb(adv_embedding_vector, y_truth).cpu().detach().numpy()
+            adv_logits = model(torch.from_numpy(adv_embedding_vector).to(device)).cpu().detach().numpy()
 
-        # inference the adversarial image
-        adv_logits = model(torch.from_numpy(adv_batch_data).cuda()).cpu().detach().numpy()
-        adv_pred = np.argmax(adv_logits)
-
-        print('example img filepath = {}, logits = {}'.format(fn, logits))
-        print('example img filepath = {}, pgd-adv logits = {}'.format(fn, adv_logits))
-
+        adv_sentiment_pred = np.argmax(adv_logits)
+        print('  adversarial sentiment: {}'.format(adv_sentiment_pred))
 
     # Test scratch space
-    img = np.random.rand(1, 3, 224, 224)
-    img_tmp_fp = os.path.join(scratch_dirpath, 'img')
-    np.save(img_tmp_fp, img)
-
-    # test model inference if no example images exist
-    if len(fns) == 0:
-        batch_data = torch.from_numpy(img).cuda()
-        # inference
-        logits = model(batch_data).cpu().detach().numpy()
-        pred = np.argmax(logits)
-        # create a prediction tensor without graph connections by copying it to a numpy array
-        pred_tensor = torch.from_numpy(np.asarray(pred)).reshape(-1).cuda()
-
-        # apply PGD attack to batch_data
-        with advertorch.context.ctx_noparamgrad_and_eval(model):
-            adv_batch_data = attack.perturb(batch_data, pred_tensor).cpu().detach().numpy()
-
-        # inference the adversarial image
-        adv_logits = model(torch.from_numpy(adv_batch_data).cuda()).cpu().detach().numpy()
-        adv_pred = np.argmax(adv_logits)
-
-        print('noise image inference logits = {}'.format(logits))
-        print('noise image pgd-adv inference logits = {}'.format(adv_logits))
+    with open(os.path.join(scratch_dirpath, 'test.txt'), 'w') as fh:
+        fh.write('this is a test')
 
     trojan_probability = np.random.rand()
     print('Trojan Probability: {}'.format(trojan_probability))
@@ -119,12 +160,16 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
-    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.', default='./model.pt')
-    parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.', default='./output')
+    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.', default='./model/model.pt')
+    parser.add_argument('--cls_token_is_first', type=bool, help='Whether the first embedding token should be used as the summary of the text sequence, or the last token.', default=True)
+    parser.add_argument('--tokenizer_filepath', type=str, help='File path to the pytorch model file to be evaluated.', default='./model/tokenizer.pt')
+    parser.add_argument('--embedding_filepath', type=str, help='File path to the pytorch model file to be evaluated.', default='./model/embedding.pt')
+    parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.', default='./output.txt')
     parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.', default='./scratch')
-    parser.add_argument('--examples_dirpath', type=str, help='File path to the folder of examples which might be useful for determining whether a model is poisoned.', default='./example')
+    parser.add_argument('--examples_dirpath', type=str, help='File path to the folder of examples which might be useful for determining whether a model is poisoned.', default='./model/clean_example_data')
 
     args = parser.parse_args()
-    fake_trojan_detector(args.model_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath)
+
+    fake_trojan_detector(args.model_filepath, args.cls_token_is_first, args.tokenizer_filepath, args.embedding_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath)
 
 

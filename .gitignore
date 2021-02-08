@@ -1,5 +1,7 @@
 .idea
 output.txt
+model/embedding.pt
+model/tokenizer.pt
 
 # Python
 __pychache__

@@ -1,0 +1,49 @@
+{
+  "final_train_acc": 91.88490731170702,
+  "final_train_loss": 0.1203924160384174,
+  "final_combined_val_acc": 93.39649321266968,
+  "final_combined_val_loss": 0.20672587464962686,
+  "final_clean_val_acc": 86.79298642533936,
+  "final_clean_val_loss": 0.18192084479544843,
+  "final_triggered_val_acc": 100.0,
+  "final_triggered_val_loss": 0.02480502985417843,
+  "final_clean_data_test_acc": 84.70509119956716,
+  "final_triggered_data_test_acc": 96.66666666666667,
+  "final_clean_data_n_total": {
+    "1": 1773,
+    "0": 442
+  },
+  "final_triggered_data_n_total": {
+    "1": 30
+  },
+  "final_optimizer_num_epochs_trained": [
+    83
+  ],
+  "optimizer_0": {
+    "device": "cuda",
+    "epochs": 100,
+    "batch_size": 64,
+    "learning_rate": 0.0001,
+    "optim": "adam",
+    "objective": "cross_entropy_loss",
+    "objective_kwargs": {},
+    "save_best_model": true,
+    "early_stopping": "ES[20:0.00]",
+    "soft_to_hard_fn": "torch.argmax(y_hat, dim=1)",
+    "soft_to_hard_fn_kwargs": {},
+    "lr_scheduler_init_kwargs": {},
+    "clip_grad": false,
+    "clip_type": "norm",
+    "clip_val": 1.0,
+    "clip_kwargs": {},
+    "adv_training_eps": 0.0,
+    "adv_training_iterations": 0,
+    "adv_training_ratio": 0.0
+  },
+  "model_save_dir": "/wrk/mmajursk/round5/id-00000751/model",
+  "stats_save_dir": "/wrk/mmajursk/round5/id-00000751/model",
+  "experiment_path": "/wrk/mmajursk/round5/id-00000751",
+  "name": "LstmLinear",
+  "training_wall_time_sec": 244.0808506011963,
+  "test_wall_time_sec": 6.025463581085205
+}
