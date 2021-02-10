@@ -2,11 +2,12 @@ Bootstrap: docker
 From: pytorch/pytorch:latest
 
 %files
-    ./fake_trojan_detector.py /
+    ./example_trojan_detector.py /
+    ./model_factories.py /
 
 %post
     /opt/conda/bin/conda install scikit-image jsonpickle
     pip install trojai
 
 %runscript
-    exec python3 /fake_trojan_detector.py "$@"
+    exec python3 /example_trojan_detector.py "$@"

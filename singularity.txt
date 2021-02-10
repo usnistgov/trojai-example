@@ -1,5 +1,5 @@
 Build container image:
-sudo singularity build fake_trojan_detector.simg fake_trojan_detector.def
+sudo singularity build example_trojan_detector.simg example_trojan_detector.def
 
 Run container image:
-singularity run --nv ./fake_trojan_detector.simg --model_filepath ./model.pt --result_filepath ./output.txt --scratch_dirpath ./scratch --examples_dirpath ./example
+singularity run --nv ./example_trojan_detector.simg --model_filepath ./model/model.pt --result_filepath ./output.txt --scratch_dirpath ./scratch --examples_dirpath ./model/clean_example_data

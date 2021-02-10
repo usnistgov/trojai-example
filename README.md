@@ -55,12 +55,12 @@ Example data can be downloaded from the NIST [Leader-Board website](https://page
 
 ## Setup the Conda Environment
 
-1. `conda create --name fake_detector python=3.6` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
-2. `conda activate fake_detector`
+1. `conda create --name trojai-example python=3.8 -y` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
+2. `conda activate trojai-example`
 3. Install required packages into this conda environment
 
-    1. `conda install numpy`
-    2. `conda install pytorch torchvision cudatoolkit=10.1 -c pytorch` ([help](https://pytorch.org/get-started/locally/))
+    1. `pip install trojai`
+    2. `conda install jsonpickle`
 
 ## Test Fake Detector Without Containerization
 
@@ -71,10 +71,13 @@ Example data can be downloaded from the NIST [Leader-Board website](https://page
     cd trojai-example
     ``` 
 
-2. Test the python based `fake_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
+2. Test the python based `example_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
 
     ```bash
-    python fake_trojan_detector.py --model_filepath=./model.pt --result_filepath=./output.txt --scratch_dirpath=./scratch/
+    python example_trojan_detector.py \
+   --model_filepath=./model.pt \
+   --result_filepath=./output.txt \
+   --scratch_dirpath=./scratch/ 
     ```
 
     Example Output:
@@ -85,28 +88,28 @@ Example data can be downloaded from the NIST [Leader-Board website](https://page
 
 ## Package Solution into a Singularity Container
 
-Package `fake_trojan_detector.py` into a Singularity container.
+Package `example_trojan_detector.py` into a Singularity container.
 
 1. Install Singularity
     
     - For Ubuntu 18.04 LTS: `sudo apt install singularity-container`
     - For others Linux Distros follow: [https://sylabs.io/guides/3.5/admin-guide/installation.html#installation-on-linux](https://sylabs.io/guides/3.5/admin-guide/installation.html#installation-on-linux)
         
-2. Build singularity based on `fake_trojan_detector.def` file: 
+2. Build singularity based on `example_trojan_detector.def` file: 
 
-    - delete any old copy of output file if it exists: `rm fake_trojan_detector.simg`
+    - delete any old copy of output file if it exists: `rm example_trojan_detector.simg`
     - package container: 
     
       ```bash
-      sudo singularity build fake_trojan_detector.simg fake_trojan_detector.def
+      sudo singularity build example_trojan_detector.simg example_trojan_detector.def
       ```
 
-    which generates a `fake_trojan_detector.simg` file.
+    which generates a `example_trojan_detector.simg` file.
 
     Example Output:
     ```bash
-    $ sudo singularity build fake_trojan_detector.simg fake_trojan_detector.def
-    Using container recipe deffile: fake_trojan_detector.def
+    $ sudo singularity build example_trojan_detector.simg example_trojan_detector.def
+    Using container recipe deffile: example_trojan_detector.def
     Sanitizing environment
     Adding base Singularity environment to container
     tar: ./.exec: implausibly old time stamp -9223372036854775808
@@ -156,20 +159,20 @@ Package `fake_trojan_detector.py` into a Singularity container.
     Exploding layer: sha256:f4cfecb48ca26a9ea56c738af1311b4a44cd075e9e92ac8c1870edffa0f11dfd.tar.gz
     User defined %runscript found! Taking priority.
     Adding files to container
-    Copying './fake_trojan_detector.py' to '/'
+    Copying './example_trojan_detector.py' to '/'
     Adding runscript
     Finalizing Singularity container
     Calculating final size for metadata...
     Skipping checks
     Building Singularity image...
-    Singularity container built: fake_trojan_detector.simg
+    Singularity container built: example_trojan_detector.simg
     Cleaning up...
     ```
 
 3. Test run container: 
 
     ```bash
-    singularity run --nv ./fake_trojan_detector.simg --model_filepath ./model.pt --result_filepath ./output.txt --scratch_dirpath ./scratch
+    singularity run --nv ./example_trojan_detector.simg --model_filepath ./model.pt --result_filepath ./output.txt --scratch_dirpath ./scratch
     ```
 
     Example Output:

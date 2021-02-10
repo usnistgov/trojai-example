@@ -16,7 +16,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-def fake_trojan_detector(model_filepath, cls_token_is_first, tokenizer_filepath, embedding_filepath, result_filepath, scratch_dirpath, examples_dirpath):
+def example_trojan_detector(model_filepath, cls_token_is_first, tokenizer_filepath, embedding_filepath, result_filepath, scratch_dirpath, examples_dirpath):
 
     print('model_filepath = {}'.format(model_filepath))
     print('cls_token_is_first = {}'.format(cls_token_is_first))
@@ -32,12 +32,11 @@ def fake_trojan_detector(model_filepath, cls_token_is_first, tokenizer_filepath,
     # Inference the example images in data
     fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.txt')]
     fns.sort()  # ensure file ordering
-    if len(fns) > 5: fns = fns[0:5]  # limit to 5 examples
 
     # setup PGD
     # define parameters of the adversarial attack
     attack_eps = float(0.01)
-    attack_iterations = int(1) #int(7)
+    attack_iterations = int(7)
     eps_iter = (2.0 * attack_eps) / float(attack_iterations)
 
     # create the attack object
@@ -170,6 +169,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    fake_trojan_detector(args.model_filepath, args.cls_token_is_first, args.tokenizer_filepath, args.embedding_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath)
+    example_trojan_detector(args.model_filepath, args.cls_token_is_first, args.tokenizer_filepath, args.embedding_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath)
 
 
