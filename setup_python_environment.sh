@@ -19,14 +19,22 @@
 # https://www.anaconda.com/distribution/
 # activate conda to work with your shell
 
-# create a virtual environment
+# create a virtual environment to stuff all these packages into
 conda create --name trojai-example python=3.8 -y
 # activate the virtual environment
 conda activate trojai-example
 
-#conda install pytorch=1.7.0 torchvision=0.8.0 torchtext=0.8 cudatoolkit=11.0 -c pytorch
+# install pytorch (best done through conda to handle cuda dependencies)
+conda install pytorch=1.7.0 torchvision=0.8.0 cudatoolkit=11.0 -c pytorch
 
-pip install trojai
-conda install jsonpickle
+# install trojai repo
+pip install --upgrade trojai
+#git clone https://github.com/trojai/trojai.git
+#cd trojai
+#pip install -e .
+
+python -c 'import nltk; nltk.download("punkt")'
+
+pip install jsonpickle
 
 

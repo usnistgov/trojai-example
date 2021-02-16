@@ -26,8 +26,10 @@ def example_trojan_detector(model_filepath, cls_token_is_first, tokenizer_filepa
     print('scratch_dirpath = {}'.format(scratch_dirpath))
     print('examples_dirpath = {}'.format(examples_dirpath))
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     # load the classification model and move it to the GPU
-    model = torch.load(model_filepath, map_location=torch.device('cuda'))
+    classification_model = torch.load(model_filepath, map_location=torch.device(device))
 
     # Inference the example images in data
     fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.txt')]
@@ -41,13 +43,11 @@ def example_trojan_detector(model_filepath, cls_token_is_first, tokenizer_filepa
 
     # create the attack object
     attack = advertorch.attacks.LinfPGDAttack(
-        predict=model,
+        predict=classification_model,
         loss_fn=torch.nn.CrossEntropyLoss(reduction="sum"),
         eps=attack_eps,
         nb_iter=attack_iterations,
         eps_iter=eps_iter)
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # TODO this uses the correct huggingface tokenizer instead of the one provided by the filepath, since GitHub has a 100MB file size limit
     # tokenizer = torch.load(tokenizer_filepath)
@@ -63,7 +63,8 @@ def example_trojan_detector(model_filepath, cls_token_is_first, tokenizer_filepa
     # identify the max sequence length for the given embedding
     max_input_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path]
 
-    use_amp = True  # attempt to use mixed precision to accelerate embedding conversion process
+    use_amp = False  # attempt to use mixed precision to accelerate embedding conversion process
+    # Note, example logit values (in the release datasets) were computed without AMP (i.e. in FP32)
 
     for fn in fns:
         # load the example
@@ -110,9 +111,9 @@ def example_trojan_detector(model_filepath, cls_token_is_first, tokenizer_filepa
         # predict the text sentiment
         if use_amp:
             with torch.cuda.amp.autocast():
-                logits = model(embedding_vector).cpu().detach().numpy()
+                logits = classification_model(embedding_vector).cpu().detach().numpy()
         else:
-            logits = model(embedding_vector).cpu().detach().numpy()
+            logits = classification_model(embedding_vector).cpu().detach().numpy()
 
         sentiment_pred = np.argmax(logits)
         print('Sentiment: {} from Text: "{}"'.format(sentiment_pred, text))
@@ -130,16 +131,16 @@ def example_trojan_detector(model_filepath, cls_token_is_first, tokenizer_filepa
             with torch.cuda.amp.autocast():
                 # add adversarial noise via l_inf PGD attack
                 # only apply attack to attack_prob of the batches
-               with advertorch.context.ctx_noparamgrad_and_eval(model):
-                   model.train()  # RNN needs to be in train model to enable gradients
+               with advertorch.context.ctx_noparamgrad_and_eval(classification_model):
+                   classification_model.train()  # RNN needs to be in train model to enable gradients
                    adv_embedding_vector = attack.perturb(adv_embedding_vector, y_truth).cpu().detach().numpy()
-               adv_logits = model(torch.from_numpy(adv_embedding_vector).to(device)).cpu().detach().numpy()
+               adv_logits = classification_model(torch.from_numpy(adv_embedding_vector).to(device)).cpu().detach().numpy()
         else:
             # add adversarial noise vis lin PGD attack
-            with advertorch.context.ctx_noparamgrad_and_eval(model):
-                model.train()  # RNN needs to be in train model to enable gradients
+            with advertorch.context.ctx_noparamgrad_and_eval(classification_model):
+                classification_model.train()  # RNN needs to be in train model to enable gradients
                 adv_embedding_vector = attack.perturb(adv_embedding_vector, y_truth).cpu().detach().numpy()
-            adv_logits = model(torch.from_numpy(adv_embedding_vector).to(device)).cpu().detach().numpy()
+            adv_logits = classification_model(torch.from_numpy(adv_embedding_vector).to(device)).cpu().detach().numpy()
 
         adv_sentiment_pred = np.argmax(adv_logits)
         print('  adversarial sentiment: {}'.format(adv_sentiment_pred))
