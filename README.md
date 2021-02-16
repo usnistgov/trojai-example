@@ -24,10 +24,10 @@ Your container will have access to these [Submission Compute Resources](https://
 --------------
 # System Requirements
 
-- Linux (tested on Ubuntu 18.04 LTS)
+- Linux (tested on Ubuntu 20.04 LTS)
 - CUDA capable NVIDIA GPU (tested on Titan RTX)
 
-Note: This example assumes you are running on a version of Linux (like Ubuntu 18.04 LTS) with a CUDA enabled NVIDIA GPU. Singularity only runs natively on Linux, and most Deep Learning libraries are designed for Linux first. While this Conda setup will install the CUDA drivers required to run PyTorch, the CUDA enabled GPU needs to be present on the system.   
+Note: This example assumes you are running on a version of Linux (like Ubuntu 20.04 LTS) with a CUDA enabled NVIDIA GPU. Singularity only runs natively on Linux, and most Deep Learning libraries are designed for Linux first. While this Conda setup will install the CUDA drivers required to run PyTorch, the CUDA enabled GPU needs to be present on the system.   
 
 --------------
 # Example Data
@@ -59,8 +59,9 @@ Example data can be downloaded from the NIST [Leader-Board website](https://page
 2. `conda activate trojai-example`
 3. Install required packages into this conda environment
 
-    1. `pip install trojai`
-    2. `conda install jsonpickle`
+    1. `conda install pytorch=1.7.0 torchvision=0.8.0 cudatoolkit=11.0 -c pytorch` 
+    2. `pip install --upgrade trojai`
+    3. `conda install jsonpickle`
 
 ## Test Fake Detector Without Containerization
 
@@ -92,7 +93,7 @@ Package `example_trojan_detector.py` into a Singularity container.
 
 1. Install Singularity
     
-    - For Ubuntu 18.04 LTS: `sudo apt install singularity-container`
+    - For Ubuntu 20.04 LTS: `sudo apt install singularity-container`
     - For others Linux Distros follow: [https://sylabs.io/guides/3.5/admin-guide/installation.html#installation-on-linux](https://sylabs.io/guides/3.5/admin-guide/installation.html#installation-on-linux)
         
 2. Build singularity based on `example_trojan_detector.def` file: 
