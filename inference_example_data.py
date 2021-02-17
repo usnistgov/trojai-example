@@ -72,11 +72,18 @@ def inference_examples(model_filepath, cls_token_is_first, tokenizer_filepath, e
                 if cls_token_is_first:
                     # for BERT-like models use the first token as the text summary
                     embedding_vector = embedding_vector[:, 0, :]
+                    embedding_vector = embedding_vector.cpu().detach().numpy()
                 else:
                     # for GPT-2 use the last token as the text summary
-                    embedding_vector = embedding_vector[:, -1, :]
+                    # embedding_vector = embedding_vector[:, -1, :]  # if all sequences are the same length
+                    embedding_vector = embedding_vector.cpu().detach().numpy()
+                    attn_mask = attention_mask.detach().cpu().detach().numpy()
+                    emb_list = list()
+                    for i in range(attn_mask.shape[0]):
+                        idx = int(np.argwhere(attn_mask[i, :] == 1)[-1])
+                        emb_list.append(embedding_vector[i, idx, :])
+                    embedding_vector = np.stack(emb_list, axis=0)
 
-                embedding_vector = embedding_vector.cpu().detach().numpy()
                 # reshape embedding vector to create batch size of 1
                 embedding_vector = np.expand_dims(embedding_vector, axis=0)
                 # embedding_vector is [1, 1, <embedding length>]
