@@ -76,7 +76,7 @@ Example data can be downloaded from the NIST [Leader-Board website](https://page
 
     ```bash
     python example_trojan_detector.py \
-   --model_filepath=./model.pt \
+   --model_filepath=./model/model.pt \
    --result_filepath=./output.txt \
    --scratch_dirpath=./scratch/ 
     ```
