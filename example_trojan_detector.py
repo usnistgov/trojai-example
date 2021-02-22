@@ -69,7 +69,7 @@ def example_trojan_detector(model_filepath, cls_token_is_first, tokenizer_filepa
     for fn in fns:
         # load the example
         with open(fn, 'r') as fh:
-            text = fh.readline()
+            text = fh.read()
 
         # tokenize the text
         results = tokenizer(text, max_length=max_input_length - 2, padding=True, truncation=True, return_tensors="pt")
