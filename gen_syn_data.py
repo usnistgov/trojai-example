@@ -5,6 +5,10 @@ import json
 import os
 import sys
 
+from numpy.random import RandomState
+import trojai.datagen.image_entity as dg_entity
+import trojai.datagen.instagram_xforms as dg_inst_xforms
+import trojai.datagen.utils as dg_utils
 
 def paste(img, trigger, color):
     tmask = trigger>0
@@ -29,10 +33,6 @@ def paste(img, trigger, color):
     return timg.astype(np.uint8)
 
 def instagram_transform(img, xform_name, level):
-    from numpy.random import RandomState
-    import trojai.datagen.image_entity as dg_entity
-    import trojai.datagen.instagram_xforms as dg_inst_xforms
-    import trojai.datagen.utils as dg_utils
 
     img_random_state = RandomState(1234)
 

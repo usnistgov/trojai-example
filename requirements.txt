@@ -1,4 +1,3 @@
 numpy
 scikit-image
-torch
-torchvision
+trojai

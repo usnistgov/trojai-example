@@ -17,10 +17,14 @@ def set_model_name(model_filepath):
   current_model_name = model_name
 
 
-def regularize_numpy_images(np_raw_imgs):
-    scope = tuple(range(1, len(np_raw_imgs.shape)))
-    np_imgs = np_raw_imgs-np_raw_imgs.min(scope,keepdims=True)
-    np_imgs = np_imgs/(np_imgs.max(scope,keepdims=True)+1e-9)
+def regularize_numpy_images(np_raw_imgs, method='round4'):
+    print('regularization method:', method)
+    if method=='round1' or method=='round4':
+        np_imgs = np_raw_imgs/255.0
+    elif method=='round2' or method=='round3':
+        scope = tuple(range(1, len(np_raw_imgs.shape)))
+        np_imgs = np_raw_imgs-np_raw_imgs.min(scope,keepdims=True)
+        np_imgs = np_imgs/(np_imgs.max(scope,keepdims=True)+1e-9)
     return np_imgs
 
 def chg_img_fmt(img,fmt='CHW'):
@@ -66,6 +70,12 @@ def read_example_images(examples_dirpath, example_img_format='png'):
       dx = int((w-224)/2)
       dy = int((w-224)/2)
       img = img[dy:dy+224, dx:dx+224, :]
+
+      '''
+      #try instagram filter
+      from gen_syn_data import instagram_transform
+      img = instagram_transform(img, 'GothamFilterXForm', 3)
+      #'''
 
       img = np.transpose(img,(2,0,1)) # to CHW
       #img = np.expand_dims(img,0) # to NCHW
