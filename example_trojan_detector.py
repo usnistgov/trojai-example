@@ -11,6 +11,7 @@ import torch
 import advertorch.attacks
 import advertorch.context
 import transformers
+import json
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -65,6 +66,13 @@ def example_trojan_detector(model_filepath, cls_token_is_first, tokenizer_filepa
 
     use_amp = False  # attempt to use mixed precision to accelerate embedding conversion process
     # Note, example logit values (in the release datasets) were computed without AMP (i.e. in FP32)
+
+    # load the config file to determine the name of the source_dataset
+    with open('./model/config.json') as json_file:
+        config = json.load(json_file)
+    print('Source dataset = "{}"'.format(config['source_dataset']))
+
+    print('Source training dataset will be mounted in the VM at = "{}"'.format(config['train_data_filepath']))
 
     for fn in fns:
         # load the example
@@ -161,7 +169,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
     parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.', default='./model/model.pt')
-    arser.add_argument('--cls_token_is_first', help='Whether the first embedding token should be used as the summary of the text sequence, or the last token.', action='store_true', default=False)
+    parser.add_argument('--cls_token_is_first', help='Whether the first embedding token should be used as the summary of the text sequence, or the last token.', action='store_true', default=False)
     parser.add_argument('--tokenizer_filepath', type=str, help='File path to the pytorch model (.pt) file containing the correct tokenizer to be used with the model_filepath.', default='./model/tokenizer.pt')
     parser.add_argument('--embedding_filepath', type=str, help='File path to the pytorch model (.pt) file containing the correct embedding to be used with the model_filepath.', default='./model/embedding.pt')
     parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.', default='./output.txt')
