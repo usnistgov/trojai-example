@@ -8,7 +8,8 @@ import torch
 
 import trojai.modelgen.architecture_factory
 
-ALL_ARCHITECTURE_KEYS = ['LstmLinear', 'GruLinear', 'Linear']
+# ALL_ARCHITECTURE_KEYS = ['LstmLinear', 'GruLinear', 'Linear']
+ALL_ARCHITECTURE_KEYS = ['LstmLinear', 'GruLinear', 'FCLinear']
 
 
 class LinearModel(torch.nn.Module):
@@ -29,6 +30,33 @@ class LinearModel(torch.nn.Module):
 
         # hidden = [batch size, hid dim]
         output = self.linear(hidden)
+        # output = [batch size, out dim]
+
+        return output
+
+
+class FCLinearModel(torch.nn.Module):
+    def __init__(self, input_size: int, hidden_size: int, output_size: int, dropout: float, n_layers: int):
+        super().__init__()
+
+        fc_layers = list()
+        fc_layers.append(torch.nn.Linear(input_size, hidden_size))
+        for i in range(n_layers-1):
+            fc_layers.append(torch.nn.Linear(hidden_size, hidden_size))
+        self.fc_layers = torch.nn.ModuleList(fc_layers)
+        self.linear = torch.nn.Linear(hidden_size, output_size)
+        self.dropout = torch.nn.Dropout(dropout)
+
+    def forward(self, data):
+        # however the linear model need the input to be [batch size, embedding length]
+        data = data[:, 0, :]
+        # input data is after the embedding
+        for layer in self.fc_layers:
+            data = layer(data)
+        data = self.dropout(data)
+
+        # hidden = [batch size, hid dim]
+        output = self.linear(data)
         # output = [batch size, out dim]
 
         return output
@@ -121,6 +149,12 @@ def arch_factory_kwargs_generator(train_dataset_desc, clean_test_dataset_desc, t
 #                                   n_layers, bidirectional, dropout, pad_idx)
 
 
+class FCLinearFactory(trojai.modelgen.architecture_factory.ArchitectureFactory):
+    def new_architecture(self, input_size: int, hidden_size: int, output_size: int, dropout: float, bidirectional: bool, n_layers: int):
+        model = FCLinearModel(input_size, hidden_size, output_size, dropout, n_layers)
+        return model
+
+
 class LinearFactory(trojai.modelgen.architecture_factory.ArchitectureFactory):
     def new_architecture(self, input_size: int, hidden_size: int, output_size: int, dropout: float, bidirectional: bool, n_layers: int):
         model = LinearModel(input_size, output_size, dropout)
@@ -148,6 +182,8 @@ def get_factory(model_name: str):
         model = GruLinearFactory()
     elif model_name == 'Linear':
         model = LinearFactory()
+    elif model_name == 'FCLinear':
+        model = FCLinearFactory()
     else:
         raise RuntimeError('Invalid Model Architecture Name: {}'.format(model_name))
 
