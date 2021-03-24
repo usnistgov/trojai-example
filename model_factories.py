@@ -39,6 +39,7 @@ class FCLinearModel(torch.nn.Module):
     def __init__(self, input_size: int, hidden_size: int, output_size: int, dropout: float, n_layers: int):
         super().__init__()
 
+        self.relu = torch.nn.ReLU()
         fc_layers = list()
         fc_layers.append(torch.nn.Linear(input_size, hidden_size))
         for i in range(n_layers-1):
@@ -52,7 +53,7 @@ class FCLinearModel(torch.nn.Module):
         data = data[:, 0, :]
         # input data is after the embedding
         for layer in self.fc_layers:
-            data = layer(data)
+            data = self.relu(layer(data))
         data = self.dropout(data)
 
         # hidden = [batch size, hid dim]
