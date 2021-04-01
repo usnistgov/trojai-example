@@ -173,7 +173,7 @@ Package `example_trojan_detector.py` into a Singularity container.
 3. Test run container: 
 
     ```bash
-    singularity run --nv ./example_trojan_detector.simg --model_filepath ./model.pt --result_filepath ./output.txt --scratch_dirpath ./scratch
+    singularity run --nv ./example_trojan_detector.simg --model_filepath ./model/model.pt --result_filepath ./output.txt --scratch_dirpath ./scratch
     ```
 
     Example Output:
