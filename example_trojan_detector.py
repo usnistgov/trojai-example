@@ -12,17 +12,98 @@ import advertorch.attacks
 import advertorch.context
 import transformers
 import json
+import csv
 
 import warnings
 warnings.filterwarnings("ignore")
 
+# Adapted from: https://github.com/huggingface/transformers/blob/2d27900b5d74a84b4c6b95950fd26c9d794b2d57/examples/pytorch/token-classification/run_ner.py#L318
+# Create labels list to match tokenization, only the first sub-word of a tokenized word is used in prediction
+# label_mask is 0 to ignore label, 1 for correct label
+# -100 is the ignore_index for the loss function (https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html)
+# Note, this requires 'fast' tokenization
+def tokenize_and_align_labels(tokenizer, original_words, original_labels):
+    tokenized_inputs = tokenizer(original_words, padding=True, truncation=True, is_split_into_words=True)
+    labels = []
+    label_mask = []
+    
+    word_ids = tokenized_inputs.word_ids()
+    previous_word_idx = None
+    
+    for word_idx in word_ids:
+        if word_idx is not None:
+            cur_label = original_labels[word_idx]
+        if word_idx is None:
+            labels.append(-100)
+            label_mask.append(0)
+        elif word_idx != previous_word_idx:
+            labels.append(cur_label)
+            label_mask.append(1)
+        else:
+            labels.append(-100)
+            label_mask.append(0)
+        previous_word_idx = word_idx
+        
+    return tokenized_inputs['input_ids'], tokenized_inputs['attention_mask'], labels, label_mask
 
-def example_trojan_detector(model_filepath, cls_token_is_first, tokenizer_filepath, embedding_filepath, result_filepath, scratch_dirpath, examples_dirpath):
+# Alternate method for tokenization that does not require 'fast' tokenizer (all of our tokenizers for this round have fast though)
+# Create labels list to match tokenization, only the first sub-word of a tokenized word is used in prediction
+# label_mask is 0 to ignore label, 1 for correct label
+# -100 is the ignore_index for the loss function (https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html)
+# This is a similar version that is used in trojai.
+def manual_tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length):
+    labels = []
+    label_mask = []
+    sep_token = tokenizer.sep_token
+    cls_token = tokenizer.cls_token
+    tokens = []
+    attention_mask = []
+    
+    # Add cls token
+    tokens.append(cls_token)
+    attention_mask.append(1)
+    labels.append(-100)
+    label_mask.append(0)
+    
+    for i, word in enumerate(original_words):
+        token = tokenizer.tokenize(word)
+        tokens.extend(token)
+        label = original_labels[i]
+        
+        # Variable to select which token to use for label.
+        # All transformers for this round use bi-directional, so we use first token
+        token_label_index = 0
+        for m in range(len(token)):
+            attention_mask.append(1)
+            
+            if m == token_label_index:
+                labels.append(label)
+                label_mask.append(1)
+            else:
+                labels.append(-100)
+                label_mask.append(0)
+        
+    if len(tokens) > max_input_length - 1:
+        tokens = tokens[0:(max_input_length-1)]
+        attention_mask = attention_mask[0:(max_input_length-1)]
+        labels = labels[0:(max_input_length-1)]
+        label_mask = label_mask[0:(max_input_length-1)]
+            
+    # Add trailing sep token
+    tokens.append(sep_token)
+    attention_mask.append(1)
+    labels.append(-100)
+    label_mask.append(0)
+    
+    input_ids = tokenizer.convert_tokens_to_ids(tokens)
+    
+    return input_ids, attention_mask, labels, label_mask
+    
+
+def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath):
 
     print('model_filepath = {}'.format(model_filepath))
-    print('cls_token_is_first = {}'.format(cls_token_is_first))
     print('tokenizer_filepath = {}'.format(tokenizer_filepath))
-    print('embedding_filepath = {}'.format(embedding_filepath))
     print('result_filepath = {}'.format(result_filepath))
     print('scratch_dirpath = {}'.format(scratch_dirpath))
     print('examples_dirpath = {}'.format(examples_dirpath))
@@ -36,122 +117,91 @@ def example_trojan_detector(model_filepath, cls_token_is_first, tokenizer_filepa
     fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.txt')]
     fns.sort()  # ensure file ordering
 
-    # setup PGD
-    # define parameters of the adversarial attack
-    attack_eps = float(0.01)
-    attack_iterations = int(7)
-    eps_iter = (2.0 * attack_eps) / float(attack_iterations)
-
-    # create the attack object
-    attack = advertorch.attacks.LinfPGDAttack(
-        predict=classification_model,
-        loss_fn=torch.nn.CrossEntropyLoss(reduction="sum"),
-        eps=attack_eps,
-        nb_iter=attack_iterations,
-        eps_iter=eps_iter)
+    # load the config file to retrieve parameters
+    with open('./test-model/config.json') as json_file:
+        config = json.load(json_file)
+    print('Source dataset = "{}"'.format(config['source_dataset']))
 
     # TODO this uses the correct huggingface tokenizer instead of the one provided by the filepath, since GitHub has a 100MB file size limit
     # tokenizer = torch.load(tokenizer_filepath)
-    tokenizer = transformers.DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+    embedding_flavor = config['embedding_flavor']
+    tokenizer = transformers.AutoTokenizer.from_pretrained(embedding_flavor, use_fast=True)
+    
     # set the padding token if its undefined
     if not hasattr(tokenizer, 'pad_token') or tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    # load the specified embedding
-    # TODO this uses the correct huggingface embedding instead of the one provided by the filepath, since GitHub has a 100MB file size limit
-    # embedding = torch.load(embedding_filepath, map_location=torch.device(device))
-    embedding = transformers.DistilBertModel.from_pretrained('distilbert-base-uncased').to(device)
-
+    
     # identify the max sequence length for the given embedding
     max_input_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path]
 
     use_amp = False  # attempt to use mixed precision to accelerate embedding conversion process
     # Note, example logit values (in the release datasets) were computed without AMP (i.e. in FP32)
+    # Note, should NOT use_amp when operating with MobileBERT
 
-    # load the config file to determine the name of the source_dataset
-    with open('./model/config.json') as json_file:
-        config = json.load(json_file)
-    print('Source dataset = "{}"'.format(config['source_dataset']))
-
-    print('Source training dataset will be mounted in the VM at = "{}"'.format(config['train_data_filepath']))
+    # TODO: Uncomment once packaging done
+    # print('Source training dataset will be mounted in the VM at = "{}"'.format(config['train_data_filepath']))
 
     for fn in fns:
+        # For this example we parse the raw txt file to demonstrate tokenization. Can use either
+        if fn.endswith('_tokenized.txt'):
+            continue
         # load the example
+        
+        original_words = []
+        original_labels = []
         with open(fn, 'r') as fh:
-            text = fh.read()
+            lines = fh.readlines()
+            for line in lines:
+                split_line = line.split('\t')
+                word = split_line[0].strip()
+                label = split_line[2].strip()
+                
+                original_words.append(word)
+                original_labels.append(int(label))
+                
+        # Select your preference for tokenization
+        input_ids, attention_mask, labels, labels_mask = tokenize_and_align_labels(tokenizer, original_words, original_labels)
+        input_ids, attention_mask, labels, labels_mask = manual_tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length)
+        
+        input_ids = torch.as_tensor(input_ids)
+        attention_mask = torch.as_tensor(attention_mask)
+        labels_tensor = torch.as_tensor(labels)
+        
+        input_ids = input_ids.to(device)
+        attention_mask = attention_mask.to(device)
+        labels_tensor = labels_tensor.to(device)
 
-        # tokenize the text
-        results = tokenizer(text, max_length=max_input_length - 2, padding=True, truncation=True, return_tensors="pt")
-        # extract the input token ids and the attention mask
-        input_ids = results.data['input_ids']
-        attention_mask = results.data['attention_mask']
+        # Create just a single batch
+        input_ids = torch.unsqueeze(input_ids, axis=0)
+        attention_mask = torch.unsqueeze(attention_mask, axis=0)
+        labels_tensor = torch.unsqueeze(labels_tensor, axis=0)
+        
 
-        # convert to embedding
-        with torch.no_grad():
-            input_ids = input_ids.to(device)
-            attention_mask = attention_mask.to(device)
-
-            if use_amp:
-                with torch.cuda.amp.autocast():
-                    embedding_vector = embedding(input_ids, attention_mask=attention_mask)[0]
-            else:
-                embedding_vector = embedding(input_ids, attention_mask=attention_mask)[0]
-
-            # http://jalammar.github.io/a-visual-guide-to-using-bert-for-the-first-time/
-            # http://jalammar.github.io/illustrated-bert/
-            # https://datascience.stackexchange.com/questions/66207/what-is-purpose-of-the-cls-token-and-why-its-encoding-output-is-important/87352#87352
-            # ignore all but the first embedding since this is sentiment classification
-            if cls_token_is_first:
-                embedding_vector = embedding_vector[:, 0, :]
-            else:
-                # for GPT-2 use last token as the text summary
-                # https://github.com/huggingface/transformers/issues/3168
-                embedding_vector = embedding_vector[:, -1, :]
-
-            embedding_vector = embedding_vector.to('cpu')
-            embedding_vector = embedding_vector.numpy()
-
-            # reshape embedding vector to create batch size of 1
-            embedding_vector = np.expand_dims(embedding_vector, axis=0)
-            # embedding_vector is [1, 1, <embedding length>]
-            adv_embedding_vector = copy.deepcopy(embedding_vector)
-
-        embedding_vector = torch.from_numpy(embedding_vector).to(device)
         # predict the text sentiment
         if use_amp:
             with torch.cuda.amp.autocast():
-                logits = classification_model(embedding_vector).cpu().detach().numpy()
+                # Classification model returns loss, logits, can ignore loss if needed
+                _, logits = classification_model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
         else:
-            logits = classification_model(embedding_vector).cpu().detach().numpy()
+            _, logits = classification_model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
+            
+        preds = torch.argmax(logits, dim=2).squeeze().cpu().detach().numpy()
+        numpy_logits = logits.cpu().flatten().detach().numpy()
+        
+        n_correct = 0
+        n_total = 0
+        predicted_labels = []
+        for i, m in enumerate(labels_mask):
+            if m:
+                predicted_labels.append(preds[i])
+                n_total += 1
+                n_correct += preds[i] == labels[i]
 
-        sentiment_pred = np.argmax(logits)
-        print('Sentiment: {} from Text: "{}"'.format(sentiment_pred, text))
-        print('  logits: {}'.format(logits))
+        print('Predictions: {} from Text: "{}"'.format(predicted_labels, original_words))
+        assert len(predicted_labels) == len(original_words)
+        # print('  logits: {}'.format(numpy_logits))
 
-
-        # create a prediction tensor without graph connections by copying it to a numpy array
-        pred_tensor = torch.from_numpy(np.asarray(sentiment_pred)).reshape(-1).to(device)
-        # predicted sentiment stands if for the ground truth label
-        y_truth = pred_tensor
-        adv_embedding_vector = torch.from_numpy(adv_embedding_vector).to(device)
-
-        # get predictions based on input & weights learned so far
-        if use_amp:
-            with torch.cuda.amp.autocast():
-                # add adversarial noise via l_inf PGD attack
-                # only apply attack to attack_prob of the batches
-               with advertorch.context.ctx_noparamgrad_and_eval(classification_model):
-                   classification_model.train()  # RNN needs to be in train model to enable gradients
-                   adv_embedding_vector = attack.perturb(adv_embedding_vector, y_truth).cpu().detach().numpy()
-               adv_logits = classification_model(torch.from_numpy(adv_embedding_vector).to(device)).cpu().detach().numpy()
-        else:
-            # add adversarial noise vis lin PGD attack
-            with advertorch.context.ctx_noparamgrad_and_eval(classification_model):
-                classification_model.train()  # RNN needs to be in train model to enable gradients
-                adv_embedding_vector = attack.perturb(adv_embedding_vector, y_truth).cpu().detach().numpy()
-            adv_logits = classification_model(torch.from_numpy(adv_embedding_vector).to(device)).cpu().detach().numpy()
-
-        adv_sentiment_pred = np.argmax(adv_logits)
-        print('  adversarial sentiment: {}'.format(adv_sentiment_pred))
+        
 
     # Test scratch space
     with open(os.path.join(scratch_dirpath, 'test.txt'), 'w') as fh:
@@ -168,16 +218,15 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
-    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.', default='./model/model.pt')
-    parser.add_argument('--cls_token_is_first', help='Whether the first embedding token should be used as the summary of the text sequence, or the last token.', action='store_true', default=False)
+    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.', default='./test-model/model.pt')
     parser.add_argument('--tokenizer_filepath', type=str, help='File path to the pytorch model (.pt) file containing the correct tokenizer to be used with the model_filepath.', default='./model/tokenizer.pt')
-    parser.add_argument('--embedding_filepath', type=str, help='File path to the pytorch model (.pt) file containing the correct embedding to be used with the model_filepath.', default='./model/embedding.pt')
     parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.', default='./output.txt')
     parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.', default='./scratch')
-    parser.add_argument('--examples_dirpath', type=str, help='File path to the folder of examples which might be useful for determining whether a model is poisoned.', default='./model/clean_example_data')
+    parser.add_argument('--examples_dirpath', type=str, help='File path to the folder of examples which might be useful for determining whether a model is poisoned.', default='./test-model/clean_example_data')
 
     args = parser.parse_args()
 
-    example_trojan_detector(args.model_filepath, args.cls_token_is_first, args.tokenizer_filepath, args.embedding_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath)
+    example_trojan_detector(args.model_filepath, args.tokenizer_filepath, args.result_filepath, args.scratch_dirpath,
+                            args.examples_dirpath)
 
 
