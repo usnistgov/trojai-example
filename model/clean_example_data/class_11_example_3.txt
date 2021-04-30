@@ -1,0 +1,16 @@
+He	O	0
+said	O	0
+more	B-PERCENT	11
+than	I-PERCENT	12
+90	I-PERCENT	12
+%	I-PERCENT	12
+of	O	0
+the	O	0
+funds	O	0
+were	O	0
+placed	O	0
+with	O	0
+Japanese	B-NORP	9
+institutional	O	0
+investors	O	0
+.	O	0

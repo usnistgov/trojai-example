@@ -1,0 +1,10 @@
+why	O	0
+did	O	0
+n't	O	0
+we	O	0
+read	O	0
+her	O	0
+well	O	0
+years	B-DATE	5
+ago	I-DATE	6
+/?	O	0

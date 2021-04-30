@@ -118,28 +118,30 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     fns.sort()  # ensure file ordering
 
     # load the config file to retrieve parameters
-    with open('./test-model/config.json') as json_file:
+    model_dirpath, _ = os.path.split(model_filepath)
+    with open(os.path.join(model_dirpath, 'config.json')) as json_file:
         config = json.load(json_file)
     print('Source dataset = "{}"'.format(config['source_dataset']))
 
-    # TODO this uses the correct huggingface tokenizer instead of the one provided by the filepath, since GitHub has a 100MB file size limit
-    # tokenizer = torch.load(tokenizer_filepath)
-    embedding_flavor = config['embedding_flavor']
-    tokenizer = transformers.AutoTokenizer.from_pretrained(embedding_flavor, use_fast=True)
-    
+    # Load the provided tokenizer
+    tokenizer = torch.load(tokenizer_filepath)
+    # Or load the tokenizer from the HuggingFace library by name
+    # embedding_flavor = config['embedding_flavor']
+    # tokenizer = transformers.AutoTokenizer.from_pretrained(embedding_flavor, use_fast=True)
+
     # set the padding token if its undefined
     if not hasattr(tokenizer, 'pad_token') or tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     
     # identify the max sequence length for the given embedding
-    max_input_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path]
+    if config['embedding'] == 'MobileBERT':
+        max_input_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path.split('/')[1]]
+    else:
+        max_input_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path]
 
     use_amp = False  # attempt to use mixed precision to accelerate embedding conversion process
     # Note, example logit values (in the release datasets) were computed without AMP (i.e. in FP32)
     # Note, should NOT use_amp when operating with MobileBERT
-
-    # TODO: Uncomment once packaging done
-    # print('Source training dataset will be mounted in the VM at = "{}"'.format(config['train_data_filepath']))
 
     for fn in fns:
         # For this example we parse the raw txt file to demonstrate tokenization. Can use either

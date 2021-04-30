@@ -1,0 +1,9 @@
+Venice	B-GPE	1
+has	O	0
+sunk	O	0
+10	O	0
+inches	O	0
+in	O	0
+this	B-DATE	5
+century	I-DATE	6
+.	O	0

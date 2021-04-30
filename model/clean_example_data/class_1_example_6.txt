@@ -1,0 +1,9 @@
+Polls	O	0
+show	O	0
+Florida	B-GPE	1
+is	O	0
+still	O	0
+up	O	0
+for	O	0
+grabs	O	0
+.	O	0

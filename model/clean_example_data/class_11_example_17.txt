@@ -1,0 +1,11 @@
+This	B-DATE	5
+year	I-DATE	6
+it	O	0
+was	O	0
+expected	O	0
+to	O	0
+contract	O	0
+by	O	0
+8	B-PERCENT	11
+%	I-PERCENT	12
+.	O	0

@@ -1,0 +1,17 @@
+Banks	O	0
+now	O	0
+are	O	0
+required	O	0
+only	O	0
+to	O	0
+report	O	0
+cash	O	0
+deposits	O	0
+or	O	0
+withdrawals	O	0
+of	O	0
+$	O	0
+10,000	B-MONEY	7
+or	O	0
+more	O	0
+.	O	0

@@ -1,0 +1,17 @@
+With	O	0
+the	O	0
+new	O	0
+service	O	0
+,	O	0
+American	O	0
+will	O	0
+fly	O	0
+161	O	0
+flights	O	0
+a	O	0
+week	O	0
+to	O	0
+17	O	0
+European	B-NORP	9
+cities	O	0
+.	O	0

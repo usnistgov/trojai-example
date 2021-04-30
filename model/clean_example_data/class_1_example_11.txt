@@ -1,0 +1,9 @@
+It	O	0
+operates	O	0
+stores	O	0
+mostly	O	0
+in	O	0
+Iowa	B-GPE	1
+and	O	0
+Nebraska	B-GPE	1
+.	O	0

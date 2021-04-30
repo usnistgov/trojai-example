@@ -1,0 +1,14 @@
+James	B-PERSON	3
+Drummond	I-PERSON	4
+,	O	0
+covering	O	0
+the	O	0
+Arab	B-NORP	9
+summit	O	0
+in	O	0
+Cairo	B-GPE	1
+for	O	0
+the	O	0
+Financial	O	0
+Times	O	0
+.	O	0

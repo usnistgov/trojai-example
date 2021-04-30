@@ -1,0 +1,12 @@
+Similar	O	0
+sentiments	O	0
+expressed	O	0
+by	O	0
+Barak	B-PERSON	3
+'s	O	0
+opponent	O	0
+in	O	0
+the	O	0
+next	O	0
+elections	O	0
+.	O	0

@@ -1,0 +1,7 @@
+it	O	0
+takes	O	0
+about	O	0
+five	O	0
+or	O	0
+six	B-DATE	5
+years	I-DATE	6

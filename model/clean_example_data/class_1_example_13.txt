@@ -1,0 +1,6 @@
+Heidi	B-PERSON	3
+Collins	I-PERSON	4
+CNN	O	0
+New	B-GPE	1
+York	I-GPE	2
+/.	O	0

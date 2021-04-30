@@ -1,0 +1,16 @@
+As	O	0
+a	O	0
+returned	O	0
+overseas	O	0
+Chinese	B-NORP	9
+,	O	0
+I	O	0
+have	O	0
+a	O	0
+deep	O	0
+understanding	O	0
+about	O	0
+this	O	0
+myself	O	0
+.	O	0
+"	O	0

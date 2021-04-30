@@ -1,0 +1,16 @@
+Roger	B-PERSON	3
+M.	I-PERSON	4
+Marino	I-PERSON	4
+,	O	0
+president	O	0
+,	O	0
+was	O	0
+named	O	0
+to	O	0
+the	O	0
+new	O	0
+post	O	0
+of	O	0
+vice	O	0
+chairman	O	0
+.	O	0
