@@ -121,7 +121,8 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     model_dirpath, _ = os.path.split(model_filepath)
     with open(os.path.join(model_dirpath, 'config.json')) as json_file:
         config = json.load(json_file)
-    print('Source dataset = "{}"'.format(config['source_dataset']))
+    print('Source dataset name = "{}"'.format(config['source_dataset']))
+    print('Source dataset filepath = "{}"'.format(config['data_filepath']))
 
     # Load the provided tokenizer
     tokenizer = torch.load(tokenizer_filepath)
