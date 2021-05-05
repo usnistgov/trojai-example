@@ -22,8 +22,8 @@ warnings.filterwarnings("ignore")
 # label_mask is 0 to ignore label, 1 for correct label
 # -100 is the ignore_index for the loss function (https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html)
 # Note, this requires 'fast' tokenization
-def tokenize_and_align_labels(tokenizer, original_words, original_labels):
-    tokenized_inputs = tokenizer(original_words, padding=True, truncation=True, is_split_into_words=True)
+def tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length):
+    tokenized_inputs = tokenizer(original_words, padding=True, truncation=True, is_split_into_words=True, max_length=max_input_length)
     labels = []
     label_mask = []
     
@@ -126,10 +126,18 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
         print('Source dataset filepath = "{}"'.format(config['data_filepath']))
 
     # Load the provided tokenizer
-    tokenizer = torch.load(tokenizer_filepath)
+    # TODO: Should use this for evaluation server
+    # tokenizer = torch.load(tokenizer_filepath)
+    # if config['embedding'] == 'RoBERTa':
+    #     tokenizer.add_prefix_space = True
+
     # Or load the tokenizer from the HuggingFace library by name
-    # embedding_flavor = config['embedding_flavor']
-    # tokenizer = transformers.AutoTokenizer.from_pretrained(embedding_flavor, use_fast=True)
+    embedding_flavor = config['embedding_flavor']
+    if config['embedding'] == 'RoBERTa':
+        tokenizer = transformers.AutoTokenizer.from_pretrained(embedding_flavor, use_fast=True, add_prefix_space=True)
+    else:
+        tokenizer = transformers.AutoTokenizer.from_pretrained(embedding_flavor, use_fast=True)
+    
 
     # set the padding token if its undefined
     if not hasattr(tokenizer, 'pad_token') or tokenizer.pad_token is None:
@@ -146,11 +154,11 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     # Note, should NOT use_amp when operating with MobileBERT
 
     for fn in fns:
-        # For this example we parse the raw txt file to demonstrate tokenization. Can use either
+        # For this example we parse the raw txt file to demonstrate tokenization.
         if fn.endswith('_tokenized.txt'):
             continue
+            
         # load the example
-        
         original_words = []
         original_labels = []
         with open(fn, 'r') as fh:
@@ -164,7 +172,7 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
                 original_labels.append(int(label))
                 
         # Select your preference for tokenization
-        input_ids, attention_mask, labels, labels_mask = tokenize_and_align_labels(tokenizer, original_words, original_labels)
+        input_ids, attention_mask, labels, labels_mask = tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length)
         input_ids, attention_mask, labels, labels_mask = manual_tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length)
         
         input_ids = torch.as_tensor(input_ids)
