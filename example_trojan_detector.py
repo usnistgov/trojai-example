@@ -127,9 +127,7 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 
     # Load the provided tokenizer
     # TODO: Should use this for evaluation server
-    # tokenizer = torch.load(tokenizer_filepath)
-    # if config['embedding'] == 'RoBERTa':
-    #     tokenizer.add_prefix_space = True
+    tokenizer = torch.load(tokenizer_filepath)
 
     # Or load the tokenizer from the HuggingFace library by name
     embedding_flavor = config['embedding_flavor']
@@ -138,7 +136,6 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     else:
         tokenizer = transformers.AutoTokenizer.from_pretrained(embedding_flavor, use_fast=True)
     
-
     # set the padding token if its undefined
     if not hasattr(tokenizer, 'pad_token') or tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
