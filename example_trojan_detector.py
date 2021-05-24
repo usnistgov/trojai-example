@@ -100,6 +100,159 @@ def manual_tokenize_and_align_labels(tokenizer, original_words, original_labels,
     return input_ids, attention_mask, labels, label_mask
     
 
+g_record=dict()
+g_att_loc=list()
+def get_record_hook(i):
+    def hook(model, inputs, outputs):
+        h_state=outputs[0].detach().cpu().numpy()
+        if i not in g_record: g_record[i]=list()
+        for loc in g_att_loc:
+            g_record[i].append(h_state[0][loc])
+    return hook
+
+import transformers
+def inves_model(model):
+    chi=model.children()
+    for ch in chi:
+        na = type(ch).__name__.lower()
+        if isinstance(ch, transformers.models.mobilebert.modeling_mobilebert.MobileBertModel): print('True')
+        if na!='mobilebertmodel': continue
+       
+        hook_list=list()
+        layer_list=ch.encoder.layer
+        for i,layer_module in enumerate(layer_list):
+            hook=layer_module.register_forward_hook(get_record_hook(i))
+
+
+def find_trigger(words, labels, trigger_info, remove=False):
+    nw=list()
+    nl=list()
+    text=trigger_info['content']
+    nt=len(text)
+    trigger_type=trigger_info['type']
+
+    trigger_loc=None
+
+    n=len(words)
+    for i in range(n):
+        fd=False
+        w=words[i]
+        if trigger_type=='phrase':
+            if i+nt < n:
+                fd=True
+                for j in range(nt):
+                    if words[i+j]!=text[j]:
+                        fd=False
+                        break
+        elif trigger_type=='character':
+            if text in w: fd=True
+        elif w==text: fd=True
+        if fd: 
+            trigger_loc=i
+            break
+
+    if remove:
+        if trigger_type=='character':
+            l=labels[trigger_loc]
+            w=words[trigger_loc]
+            k=w.find(text)
+            z=w[:k]+w[k+nt:]
+            nw=words[:trigger_loc]+[z]+words[trigger_loc+1:]
+            nl=labels[:trigger_loc]+[l]+labels[trigger_loc+1:]
+        elif trigger_type=='phrase':
+            nw=words[:trigger_loc]+words[trigger_loc+nt:]
+            nl=labels[:trigger_loc]+labels[trigger_loc+nt:]
+        else:
+            nw=words[:trigger_loc]+words[trigger_loc+1:]
+            nl=labels[:trigger_loc]+labels[trigger_loc+1:]
+    else:
+        nw=words.copy()
+        nl=labels.copy()
+
+    global g_att_loc
+    g_att_loc=list()
+    s,t=trigger_info['s_t']
+    if trigger_info['global']==True:
+        for i,l in enumerate(nl):
+            if l==t: g_att_loc.append(i)
+    else:
+        for i in range(trigger_loc,len(nl)):
+            if nl[i]==t: 
+                g_att_loc.append(i)
+                break
+    print(words)
+    print(labels)
+    print(nw)
+    print(nl)
+    print('before tokenization g_att_loc:',g_att_loc)
+    return nw, nl
+
+
+def deal_one_sentence(original_words, original_labels, tokenizer, max_input_length, classification_model, device, use_amp, trigger_info=None):
+        # Select your preference for tokenization
+        input_ids, attention_mask, labels, labels_mask = tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length)
+        #input_ids, attention_mask, labels, labels_mask = manual_tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length)
+
+        print(labels)
+
+        if trigger_info is not None:
+            global g_att_loc
+            o_g=g_att_loc.copy()
+            g_att_loc=list()
+            z,c=0,-1
+            for i,l in enumerate(labels):
+                if z>=len(o_g): break
+                if l>=0: 
+                    c+=1
+                    if c==o_g[z]: 
+                        g_att_loc.append(i)
+                        z+=1
+            print('after tokenization g_att_loc:', g_att_loc)
+
+        
+        input_ids = torch.as_tensor(input_ids)
+        attention_mask = torch.as_tensor(attention_mask)
+        labels_tensor = torch.as_tensor(labels)
+        
+        input_ids = input_ids.to(device)
+        attention_mask = attention_mask.to(device)
+        labels_tensor = labels_tensor.to(device)
+
+        # Create just a single batch
+        input_ids = torch.unsqueeze(input_ids, axis=0)
+        attention_mask = torch.unsqueeze(attention_mask, axis=0)
+        labels_tensor = torch.unsqueeze(labels_tensor, axis=0)
+
+
+        # predict the text sentiment
+        if use_amp:
+            with torch.cuda.amp.autocast():
+                # Classification model returns loss, logits, can ignore loss if needed
+                _, logits = classification_model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
+        else:
+            _, logits = classification_model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
+
+        
+        preds = torch.argmax(logits, dim=2).squeeze().cpu().detach().numpy()
+        numpy_logits = logits.cpu().flatten().detach().numpy()
+
+        n_correct = 0
+        n_total = 0
+        predicted_labels = []
+        for i, m in enumerate(labels_mask):
+            if m:
+                predicted_labels.append(preds[i])
+                n_total += 1
+                n_correct += preds[i] == labels[i]
+
+        print('Predictions: {} from Text: "{}"'.format(predicted_labels, original_words))
+        assert len(predicted_labels) == len(original_words)
+        # print('  logits: {}'.format(numpy_logits))
+
+        print(n_correct/n_total)
+
+ 
+
 def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath):
 
     print('model_filepath = {}'.format(model_filepath))
@@ -110,13 +263,6 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # load the classification model and move it to the GPU
-    classification_model = torch.load(model_filepath, map_location=torch.device(device))
-
-    # Inference the example images in data
-    fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.txt')]
-    fns.sort()  # ensure file ordering
-
     # load the config file to retrieve parameters
     model_dirpath, _ = os.path.split(model_filepath)
     with open(os.path.join(model_dirpath, 'config.json')) as json_file:
@@ -125,16 +271,36 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     if 'data_filepath' in config.keys():
         print('Source dataset filepath = "{}"'.format(config['data_filepath']))
 
+    triggers_info=config['triggers']
+    class_mapping=config['class_mapping']
+    trigger_info=None
+    if triggers_info is not None:
+        t0=triggers_info[0]
+        for k,v in class_mapping.items():
+            if v==t0['source_class_label']: slb=int(k)*2+1
+            if v==t0['target_class_label']: tlb=int(k)*2+1
+        trigger_info={'s_t':(slb,tlb), 'content':None}
+        trigger_info['type']=t0['trigger_executor_name']
+        if t0['trigger_executor_name']=='phrase':
+            trigger_info['content']=t0['trigger_executor']['trigger_text_list']
+        else:
+            trigger_info['content']=t0['trigger_executor']['trigger_text']
+        gg=t0['trigger_executor']['global_trigger']
+        trigger_info['global']=gg
+        print(trigger_info)
+
     # Load the provided tokenizer
     # TODO: Should use this for evaluation server
     tokenizer = torch.load(tokenizer_filepath)
 
+    '''
     # Or load the tokenizer from the HuggingFace library by name
     embedding_flavor = config['embedding_flavor']
     if config['embedding'] == 'RoBERTa':
         tokenizer = transformers.AutoTokenizer.from_pretrained(embedding_flavor, use_fast=True, add_prefix_space=True)
     else:
         tokenizer = transformers.AutoTokenizer.from_pretrained(embedding_flavor, use_fast=True)
+    '''
     
     # set the padding token if its undefined
     if not hasattr(tokenizer, 'pad_token') or tokenizer.pad_token is None:
@@ -150,6 +316,15 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     # Note, example logit values (in the release datasets) were computed without AMP (i.e. in FP32)
     # Note, should NOT use_amp when operating with MobileBERT
 
+    # load the classification model and move it to the GPU
+    classification_model = torch.load(model_filepath, map_location=torch.device(device))
+    inves_model(classification_model)
+
+    # Inference the example images in data
+    fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.txt')]
+    fns.sort()  # ensure file ordering
+
+    data=dict()
     for fn in fns:
         # For this example we parse the raw txt file to demonstrate tokenization.
         if fn.endswith('_tokenized.txt'):
@@ -167,52 +342,32 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
                 
                 original_words.append(word)
                 original_labels.append(int(label))
+        data[fn]={'words':original_words, 'labels':original_labels}
+
+
+    for fn in data:
+        original_words=data[fn]['words']
+        original_labels=data[fn]['labels']
+        original_words, original_labels=find_trigger(original_words, original_labels, trigger_info, remove=False)
+        deal_one_sentence(original_words, original_labels, tokenizer, max_input_length, classification_model, device, use_amp, trigger_info)
+
+    global g_record
+    b_record=g_record.copy()
+    g_record.clear()
+
+    for fn in data:
+        original_words=data[fn]['words']
+        original_labels=data[fn]['labels']
+        original_words, original_labels=find_trigger(original_words, original_labels, trigger_info, remove=True)
+        deal_one_sentence(original_words, original_labels, tokenizer, max_input_length, classification_model, device, use_amp, trigger_info)
+
+    t_record=g_record.copy()
+
+    print(np.sum(t_record[0]))
+    print(np.sum(b_record[0]))
                 
-        # Select your preference for tokenization
-        input_ids, attention_mask, labels, labels_mask = tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length)
-        input_ids, attention_mask, labels, labels_mask = manual_tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length)
-        
-        input_ids = torch.as_tensor(input_ids)
-        attention_mask = torch.as_tensor(attention_mask)
-        labels_tensor = torch.as_tensor(labels)
-        
-        input_ids = input_ids.to(device)
-        attention_mask = attention_mask.to(device)
-        labels_tensor = labels_tensor.to(device)
 
-        # Create just a single batch
-        input_ids = torch.unsqueeze(input_ids, axis=0)
-        attention_mask = torch.unsqueeze(attention_mask, axis=0)
-        labels_tensor = torch.unsqueeze(labels_tensor, axis=0)
-        
-
-        # predict the text sentiment
-        if use_amp:
-            with torch.cuda.amp.autocast():
-                # Classification model returns loss, logits, can ignore loss if needed
-                _, logits = classification_model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
-        else:
-            _, logits = classification_model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
-            
-        preds = torch.argmax(logits, dim=2).squeeze().cpu().detach().numpy()
-        numpy_logits = logits.cpu().flatten().detach().numpy()
-        
-        n_correct = 0
-        n_total = 0
-        predicted_labels = []
-        for i, m in enumerate(labels_mask):
-            if m:
-                predicted_labels.append(preds[i])
-                n_total += 1
-                n_correct += preds[i] == labels[i]
-
-        print('Predictions: {} from Text: "{}"'.format(predicted_labels, original_words))
-        assert len(predicted_labels) == len(original_words)
-        # print('  logits: {}'.format(numpy_logits))
-
-        print(n_correct/n_total)
-
-        
+       
 
     # Test scratch space
     with open(os.path.join(scratch_dirpath, 'test.txt'), 'w') as fh:

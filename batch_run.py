@@ -137,14 +137,14 @@ for k,md_name in enumerate(dirs):
 
   #if k+1<633: continue
 
-  #if not md_name == 'id-00000159':
-  #  continue
+  if not md_name == 'id-00000000':
+    continue
 
 
   model_filepath=os.path.join(folder_path, 'model.pt')
   #examples_dirpath=os.path.join(folder_path, 'example_data')
-  examples_dirpath=os.path.join(folder_path, 'clean_example_data')
-  #examples_dirpath=os.path.join(folder_path, 'poisoned_example_data')
+  #examples_dirpath=os.path.join(folder_path, 'clean_example_data')
+  examples_dirpath=os.path.join(folder_path, 'poisoned_example_data')
   #examples_dirpath=os.path.join(folder_path, 'synthetic_example_data')
 
   embedding=data_dict[md_name]['embedding'] #BERT
@@ -178,6 +178,6 @@ for k,md_name in enumerate(dirs):
   print(cmmd)
   os.system(cmmd)
 
-  break
+  #break
 
 
