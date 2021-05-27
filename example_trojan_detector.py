@@ -115,14 +115,89 @@ def inves_model(model):
     chi=model.children()
     for ch in chi:
         na = type(ch).__name__.lower()
-        if isinstance(ch, transformers.models.mobilebert.modeling_mobilebert.MobileBertModel): print('True')
-        if na!='mobilebertmodel': continue
+        if 'model' not in na: continue
        
         hook_list=list()
-        layer_list=ch.encoder.layer
+        if hasattr(ch,'encoder'):
+            layer_list=ch.encoder.layer
+        else:
+            layer_list=ch.transformer.layer #for distilBERT
         for i,layer_module in enumerate(layer_list):
             hook=layer_module.register_forward_hook(get_record_hook(i))
 
+        break
+
+
+import random
+def add_trigger(words, labels, trigger_info):
+    trigger_type=trigger_info['type']
+    text=trigger_info['content']
+    nt=len(text)
+    s,t = trigger_info['s_t']
+
+    mapping=[i for i in range(len(labels))]
+
+    candi=list()
+    for i,l in enumerate(labels):
+        if l==s: candi.append(i)
+
+    if len(candi)==0:
+        return words,labels,None,None
+
+    idx=random.choice(candi)
+    if trigger_type=='phrase':
+        nw=words[:idx]+text+words[idx:]
+        nl=labels[:idx]+[0]*len(text)+labels[idx:]
+        mp=mapping[:idx]+[-1]*len(text)+mapping[idx:]
+    elif trigger_type=='character':
+        z=text+words[idx]
+        nw=words[:idx]+[z]+words[idx+1:]
+        nl=labels[:idx]+[s]+labels[idx+1:]
+        mp=mapping
+    else:
+        nw=words[:idx]+[text]+words[idx:]
+        nl=labels[:idx]+[0]+labels[idx:]
+        mp=mapping[:idx]+[-1]+mapping[idx:]
+
+    chg_idx=list()
+    ori_idx=list()
+    if trigger_info['global']==True:
+        for i,l in enumerate(nl):
+            if l==s:
+                chg_idx.append(i)
+                ori_idx.append(mp[i])
+                nl[i]=t
+
+                for j in range(i+1,len(nl)):
+                    if nl[j]==s+1:
+                        nl[j]=t+1
+                    else:
+                        break
+    else:
+        for i in range(idx,len(nl)):
+            l=nl[i]
+            if l==s:
+                chg_idx.append(i)
+                ori_idx.append(mp[i])
+                nl[i]=t
+
+                for j in range(i+1,len(nl)):
+                    if nl[j]==s+1:
+                        nl[j]=t+1
+                    else:
+                        break
+                break
+            
+
+    '''
+    print(labels)
+    print(words)
+    print(nw)
+    print(nl)
+    #'''
+    return nw,nl,chg_idx,ori_idx
+
+        
 
 def find_trigger(words, labels, trigger_info, remove=False):
     nw=list()
@@ -130,6 +205,7 @@ def find_trigger(words, labels, trigger_info, remove=False):
     text=trigger_info['content']
     nt=len(text)
     trigger_type=trigger_info['type']
+    s,t= trigger_info['s_t']
 
     trigger_loc=None
 
@@ -137,6 +213,7 @@ def find_trigger(words, labels, trigger_info, remove=False):
     for i in range(n):
         fd=False
         w=words[i]
+        l=words[i]
         if trigger_type=='phrase':
             if i+nt < n:
                 fd=True
@@ -145,11 +222,14 @@ def find_trigger(words, labels, trigger_info, remove=False):
                         fd=False
                         break
         elif trigger_type=='character':
-            if text in w: fd=True
+            if text in w and l==t: fd=True
         elif w==text: fd=True
         if fd: 
             trigger_loc=i
             break
+
+    if trigger_loc is None:
+        return words, labels, trigger_loc
 
     if remove:
         if trigger_type=='character':
@@ -169,46 +249,47 @@ def find_trigger(words, labels, trigger_info, remove=False):
         nw=words.copy()
         nl=labels.copy()
 
-    global g_att_loc
-    g_att_loc=list()
-    s,t=trigger_info['s_t']
-    if trigger_info['global']==True:
-        for i,l in enumerate(nl):
-            if l==t: g_att_loc.append(i)
-    else:
-        for i in range(trigger_loc,len(nl)):
-            if nl[i]==t: 
-                g_att_loc.append(i)
-                break
+    '''
     print(words)
     print(labels)
     print(nw)
     print(nl)
     print('before tokenization g_att_loc:',g_att_loc)
-    return nw, nl
+    '''
+    return nw, nl, trigger_loc
 
 
-def deal_one_sentence(original_words, original_labels, tokenizer, max_input_length, classification_model, device, use_amp, trigger_info=None):
+def deal_one_sentence(original_words, original_labels, tokenizer, max_input_length, classification_model, device, use_amp, trigger_info=None, att_idx=None):
         # Select your preference for tokenization
         input_ids, attention_mask, labels, labels_mask = tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length)
         #input_ids, attention_mask, labels, labels_mask = manual_tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length)
 
-        print(labels)
+        #print(labels)
 
-        if trigger_info is not None:
+        if att_idx is not None:
             global g_att_loc
-            o_g=g_att_loc.copy()
             g_att_loc=list()
-            z,c=0,-1
+            z,c = 0,-1
             for i,l in enumerate(labels):
-                if z>=len(o_g): break
+                if z>=len(att_idx): break
                 if l>=0: 
                     c+=1
-                    if c==o_g[z]: 
-                        g_att_loc.append(i)
+                    if c==att_idx[z]: 
+                        if trigger_info['type']=='character' and trigger_info['content'] in original_words[c]:
+                            g_att_loc.append(i+1)
+                        else:
+                            g_att_loc.append(i)
                         z+=1
-            print('after tokenization g_att_loc:', g_att_loc)
 
+            #print('after tokenization g_att_loc:', g_att_loc)
+
+
+        '''
+        print(original_words)
+        print(input_ids)
+        print(labels)
+        print(g_att_loc)
+        #'''
         
         input_ids = torch.as_tensor(input_ids)
         attention_mask = torch.as_tensor(attention_mask)
@@ -245,11 +326,13 @@ def deal_one_sentence(original_words, original_labels, tokenizer, max_input_leng
                 n_total += 1
                 n_correct += preds[i] == labels[i]
 
-        print('Predictions: {} from Text: "{}"'.format(predicted_labels, original_words))
+        #print(original_labels)
+        #print('Predictions: {} from Text: "{}"'.format(predicted_labels, original_words))
         assert len(predicted_labels) == len(original_words)
         # print('  logits: {}'.format(numpy_logits))
 
-        print(n_correct/n_total)
+        #print('----------',n_correct/n_total)
+
 
  
 
@@ -331,8 +414,8 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
             continue
             
         # load the example
-        original_words = []
-        original_labels = []
+        original_words = list()
+        original_labels = list()
         with open(fn, 'r') as fh:
             lines = fh.readlines()
             for line in lines:
@@ -342,14 +425,20 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
                 
                 original_words.append(word)
                 original_labels.append(int(label))
-        data[fn]={'words':original_words, 'labels':original_labels}
+        na=os.path.split(fn)[-1]
+        data[na]={'words':original_words, 'labels':original_labels}
 
 
+    att_dict=dict()
     for fn in data:
         original_words=data[fn]['words']
         original_labels=data[fn]['labels']
-        original_words, original_labels=find_trigger(original_words, original_labels, trigger_info, remove=False)
-        deal_one_sentence(original_words, original_labels, tokenizer, max_input_length, classification_model, device, use_amp, trigger_info)
+        original_words, original_labels, chg_idx, ori_idx = add_trigger(original_words, original_labels, trigger_info)
+        att_dict[fn]=ori_idx
+        if chg_idx is not None: 
+            deal_one_sentence(original_words, original_labels, tokenizer, max_input_length, classification_model, device, use_amp, trigger_info, chg_idx)
+            #break
+
 
     global g_record
     b_record=g_record.copy()
@@ -358,13 +447,68 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     for fn in data:
         original_words=data[fn]['words']
         original_labels=data[fn]['labels']
-        original_words, original_labels=find_trigger(original_words, original_labels, trigger_info, remove=True)
-        deal_one_sentence(original_words, original_labels, tokenizer, max_input_length, classification_model, device, use_amp, trigger_info)
+        att_idx=att_dict[fn]
+        if att_idx is not None:
+            #print(fn)
+            deal_one_sentence(original_words, original_labels, tokenizer, max_input_length, classification_model, device, use_amp, trigger_info, att_idx)
+            #break
+
 
     t_record=g_record.copy()
 
     print(np.sum(t_record[0]))
     print(np.sum(b_record[0]))
+
+    print(trigger_info)
+
+    from sklearn.decomposition import PCA
+    for k in t_record.keys():
+        dt=np.asarray(t_record[k])
+        db=np.asarray(b_record[k])
+
+        mt=np.mean(dt,axis=0,keepdims=True)
+        mb=np.mean(db,axis=0,keepdims=True)
+        nt, nb, m=len(dt), len(db), dt.shape[1]
+        X=np.concatenate([dt,db],axis=0)
+        mm=np.mean(X,axis=0,keepdims=True)
+        X-=mm
+        pca=PCA(n_components=min(4,m))
+        nX=pca.fit_transform(X)
+        print(k, pca.explained_variance_ratio_)
+
+        #mmt=pca.transform(mt)
+        #mmb=pca.transform(mb)
+        mmt=np.mean(nX[:nt],axis=0,keepdims=True)
+        mmb=np.mean(nX[nt:],axis=0,keepdims=True)
+        ddt=nX[:nt]-mmt
+        ddb=nX[nt:]-mmb
+        nnX=np.concatenate([ddt,ddb],axis=0)
+
+        d=mmt-mmb
+        v=np.cov(nnX.transpose())
+        iv=np.linalg.pinv(v)
+        dist=np.matmul(np.matmul(d,iv),d.transpose())
+        print(k, np.log(dist[0][0]))
+
+
+    '''
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+    for k in t_record.keys():
+        dt=np.asarray(t_record[k])
+        db=np.asarray(b_record[k])
+        nt,nb = len(dt), len(db)
+        X=np.concatenate([dt,db],axis=0)
+        Y=[1]*nt+[2]*nb
+
+        clf=LDA()
+        clf.fit(X,Y)
+        sc=clf.score(X,Y)
+        print(k, sc)
+    #'''
+
+    
+
+    
                 
 
        
