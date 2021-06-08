@@ -1,18 +1,18 @@
 import os
 import skimage.io
 import numpy as np
-from neuron import RELEASE as neuron_release
 import pickle
 import csv
 import math
 from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap
 
-RELEASE = neuron_release
-current_modeave_name = None
+from example_trojan_detector import RELEASE as global_release
+RELEASE = global_release
+current_model_name = None
 
 def set_model_name(model_filepath):
-  model_name = model_filepath.split('/')[-2]
+  model_name = model_filepath.split(os.sep)[-2]
   global current_model_name
   current_model_name = model_name
 
@@ -145,10 +145,10 @@ def save_pkl_results(data, save_name='', folder='scratch', force_save=False):
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-    print('save out results')
     if len(save_name) > 0:
         save_name = '_'+save_name
     fpath = os.path.join(folder, current_model_name+save_name+'.pkl')
+    print('save out results:',fpath)
     with open(fpath,'wb') as f:
         pickle.dump(data,f)
 
@@ -260,12 +260,13 @@ def mad_detection(l1_norm_list, crosp_lb):
 
 
 def read_gt_csv(filepath):
-  rst = list()
+  rst_dict = dict()
   with open(filepath,'r',newline='') as csvfile:
     csvreader = csv.DictReader(csvfile)
     for row in csvreader:
-      rst.append(row)
-  return rst
+      md_name=row['model_name']
+      rst_dict[md_name]=row
+  return rst_dict
 
 
 def demo_heatmap(R, save_path):

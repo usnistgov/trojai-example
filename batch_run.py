@@ -12,7 +12,7 @@ home = os.environ['HOME']
 contest_round = 'round7-train-dataset'
 folder_root = os.path.join(home,'data/'+contest_round)
 gt_path = os.path.join(folder_root, 'METADATA.csv')
-row_filter={'poisoned':['True'],
+row_filter={'poisoned':'True',
             'embedding':['MobileBERT'],
             'model_architecture':None,
             'source_dataset':None,
@@ -137,8 +137,8 @@ for k,md_name in enumerate(dirs):
 
   #if k>20: continue
 
-  if not md_name == 'id-00000182':
-    continue
+  #if not md_name == 'id-00000173':
+  #  continue
 
 
   model_filepath=os.path.join(folder_path, 'model.pt')
@@ -172,12 +172,12 @@ for k,md_name in enumerate(dirs):
 
 
   # run_script='singularity run --nv ./example_trojan_detector.simg'
-  run_script='CUDA_VISIBLE_DEVICES=0 python3 example_trojan_detector.py'
+  run_script='CUDA_VISIBLE_DEVICES=1 python3 example_trojan_detector.py'
   cmmd = run_script+' --model_filepath='+model_filepath+' --examples_dirpath='+examples_dirpath+' --tokenizer_filepath='+tokenizer_filepath
 
   print(cmmd)
   os.system(cmmd)
 
-  #break
+  break
 
 

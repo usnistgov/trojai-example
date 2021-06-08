@@ -4,6 +4,7 @@ From: pytorch/pytorch:1.7.0-cuda11.0-cudnn8-runtime
 %files
     ./example_trojan_detector.py /
     ./model_factories.py /
+    ./utils.py /
 
 %post
     pip install jsonpickle

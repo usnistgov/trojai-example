@@ -17,6 +17,9 @@ import csv
 import warnings
 warnings.filterwarnings("ignore")
 
+import utils
+RELEASE=True
+
 # Adapted from: https://github.com/huggingface/transformers/blob/2d27900b5d74a84b4c6b95950fd26c9d794b2d57/examples/pytorch/token-classification/run_ner.py#L318
 # Create labels list to match tokenization, only the first sub-word of a tokenized word is used in prediction
 # label_mask is 0 to ignore label, 1 for correct label
@@ -100,6 +103,8 @@ def manual_tokenize_and_align_labels(tokenizer, original_words, original_labels,
     return input_ids, attention_mask, labels, label_mask
     
 
+trigger_idx=None
+trigger_len=None
 g_record=dict()
 g_att_loc=list()
 def get_record_hook(i):
@@ -108,6 +113,14 @@ def get_record_hook(i):
         if i not in g_record: g_record[i]=list()
         for loc in g_att_loc:
             g_record[i].append(h_state[0][loc])
+        '''
+        if i==0:
+            print(g_att_loc, trigger_idx, trigger_len)
+            l=trigger_idx
+            r=trigger_idx+trigger_len
+            outputs[0][:,l:r,:]=0
+            return outputs
+        #'''
     return hook
 
 import transformers
@@ -142,7 +155,7 @@ def add_trigger(words, labels, trigger_info):
         if l==s: candi.append(i)
 
     if len(candi)==0:
-        return words,labels,None,None
+        return words,labels,None,None,None
 
     idx=random.choice(candi)
     if trigger_type=='phrase':
@@ -195,7 +208,7 @@ def add_trigger(words, labels, trigger_info):
     print(nw)
     print(nl)
     #'''
-    return nw,nl,chg_idx,ori_idx
+    return nw,nl,chg_idx,ori_idx,idx
 
         
 
@@ -259,6 +272,158 @@ def find_trigger(words, labels, trigger_info, remove=False):
     return nw, nl, trigger_loc
 
 
+def find_label_mapping(labels):
+    c=-1
+    llmap=dict()
+    for i,l in enumerate(labels):
+        if l>=0: 
+            c+=1
+            llmap[c]=i
+    llmap[c+1]=len(labels)
+    return llmap
+
+
+def find_label_location(original_labels):
+    lloc=dict()
+    for i,l in enumerate(original_labels):
+        if l not in lloc: lloc[l]=[]
+        lloc[l].append(i)
+    return lloc
+
+def transfer_to_tensor(input_ids, attention_mask, labels, device):
+    input_ids = torch.as_tensor(input_ids)
+    attention_mask = torch.as_tensor(attention_mask)
+    labels_tensor = torch.as_tensor(labels)
+        
+    input_ids = input_ids.to(device)
+    attention_mask = attention_mask.to(device)
+    labels_tensor = labels_tensor.to(device)
+
+    input_ids = torch.unsqueeze(input_ids, axis=0)
+    attention_mask = torch.unsqueeze(attention_mask, axis=0)
+    labels_tensor = torch.unsqueeze(labels_tensor, axis=0)
+
+    return input_ids, attention_mask, labels_tensor
+
+
+def insert_blank(input_ids, attention_mask, labels, idx):
+    input_ids = input_ids[:idx]+[0,0]+input_ids[idx:]
+    attention_mask = attention_mask[:idx]+[1,1]+attention_mask[idx:]
+    labels = labels[:idx]+[0,0]+labels[idx:]
+    return input_ids, attention_mask, labels
+
+
+
+def RE_one_class(data, tokenizer, max_input_length, classification_model, device, num_classes):
+    def _get_extended(_data, ss, tt, method='word'):
+        original_words=_data['words']
+        original_labels=_data['labels']
+        input_ids, attention_mask, labels, labels_mask = tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length)
+        lloc=find_label_location(labels)
+        idx = random.choice(lloc[ss])
+
+        input_ids, attention_mask, labels = insert_blank(input_ids, attention_mask, labels, idx)
+        #if method is not None:
+        if method=='character':
+            labels[idx+1]=tt
+            labels[idx+2]=tt+1
+        else:
+            labels[idx+2]=tt
+        input_ids, attention_mask, labels_tensor = transfer_to_tensor(input_ids, attention_mask, labels, device)
+        return input_ids, attention_mask, labels_tensor, idx, original_words, original_labels
+
+
+    def _bag_extended(_fns, sss, ttt, num_select, method='word'):
+        _sel_fns=random.sample(_fns, num_select)
+        #_sel_fns=_fns[:num_select]
+        _sel_data=list()
+        for fn in _sel_fns:
+            input_ids, attention_mask, labels_tensor,idx,ori_words,ori_labels = _get_extended(data[fn], sss, ttt, method)
+
+            one_data={'input_ids':input_ids,
+                      'attention_mask':attention_mask,
+                      'labels_tensor':labels_tensor,
+                      'idx':idx,
+                      'ori_words':ori_words,
+                      'ori_labels':ori_labels,
+                      } 
+            _sel_data.append(one_data)
+        return _sel_data
+
+
+    rst=dict()
+    ch_rst=dict()
+    for s in range(1,num_classes,2):
+        s_fns=list()
+        for fn in data: 
+            labels=data[fn]['labels']
+            if s not in labels: continue
+            s_fns.append(fn)
+
+        if len(s_fns) <= 2: continue
+
+        num_select=min(len(s_fns)//2,max(len(s_fns)//4, 5))
+        num_select=2
+
+        for t in range(1,num_classes,2):
+            if s==t: continue
+
+            #if s!=7 or t!=3: continue
+
+            method='word' 
+            sel_data = _bag_extended(s_fns, s,t, num_select=num_select, method=method)
+
+            print('s_t', s,t)
+            delta, flip_step=classification_model.reverse_engineering(sel_data, max_steps=50)
+            if flip_step is None: 
+                rst[(s,t)]={'flip_step':None,'acc':0}
+            else:
+                print('flip_step:',flip_step,s,t)
+       
+                correct, total=0,0
+                for _fn in s_fns:
+                    input_ids, attention_mask, labels_tensor, idx, _, _ = _get_extended(data[_fn],s,t, method=method)
+                    loss, preds=classification_model.forward_delta(input_ids, attention_mask, labels_tensor, idx, delta)
+
+                    ct=torch.sum(labels_tensor[0,idx:idx+3]==preds[0,idx:idx+3])
+                    correct+=ct.detach().cpu().numpy()
+                    total+=3
+                acc=correct/total
+                print(s,t,'acc:',acc)
+                print('-------------------------')
+                rst[(s,t)]={'flip_step':flip_step,'acc':acc}
+
+            #-------------------
+
+            method='character'
+            sel_data = _bag_extended(s_fns, s,t, num_select=num_select, method=method)
+
+            print('ch s_t', s,t)
+            delta, flip_step=classification_model.reverse_engineering(sel_data, max_steps=25)
+            if flip_step is None: 
+                ch_rst[(s,t)]={'flip_step':None,'acc':0}
+            else:
+                print('flip_step:',flip_step,s,t)
+       
+                correct, total=0,0
+                for _fn in s_fns:
+                    input_ids, attention_mask, labels_tensor, idx, _, _ = _get_extended(data[_fn],s,t,method=method)
+                    loss, preds=classification_model.forward_delta(input_ids, attention_mask, labels_tensor, idx, delta)
+
+                    ct=torch.sum(labels_tensor[0,idx:idx+3]==preds[0,idx:idx+3])
+                    correct+=ct.detach().cpu().numpy()
+                    total+=3
+                acc=correct/total
+                print(s,t,'ch acc:',acc)
+                print('-------------------------')
+                ch_rst[(s,t)]={'flip_step':flip_step,'acc':acc}
+
+
+    return rst, ch_rst
+    
+
+
+
 def deal_one_sentence(original_words, original_labels, tokenizer, max_input_length, classification_model, device, use_amp, trigger_info=None, att_idx=None):
         # Select your preference for tokenization
         input_ids, attention_mask, labels, labels_mask = tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length)
@@ -267,22 +432,28 @@ def deal_one_sentence(original_words, original_labels, tokenizer, max_input_leng
         #print(labels)
 
         if att_idx is not None:
-            global g_att_loc
+            global g_att_loc,trigger_idx,trigger_len
             g_att_loc=list()
             z,c = 0,-1
+            llmap=dict()
             for i,l in enumerate(labels):
-                if z>=len(att_idx): break
                 if l>=0: 
                     c+=1
-                    if c==att_idx[z]: 
-                        if trigger_info['type']=='character' and trigger_info['content'] in original_words[c]:
-                            g_att_loc.append(i+1)
-                        else:
-                            g_att_loc.append(i)
-                        z+=1
+                    llmap[c]=i
+            llmap[c+1]=len(labels)
+            for c in att_idx:
+                i=llmap[c]
+                if trigger_info['type']=='character' and trigger_info['content'] in original_words[c]:
+                    g_att_loc.append(i+1)
+                else:
+                    g_att_loc.append(i)
+            if trigger_idx is not None:
+                #trigger_idx+=1
+                trigger_len-=1
+                trigger_len=llmap[trigger_idx+trigger_len]-llmap[trigger_idx]
+                trigger_idx=llmap[trigger_idx]
 
             #print('after tokenization g_att_loc:', g_att_loc)
-
 
         '''
         print(original_words)
@@ -309,9 +480,9 @@ def deal_one_sentence(original_words, original_labels, tokenizer, max_input_leng
         if use_amp:
             with torch.cuda.amp.autocast():
                 # Classification model returns loss, logits, can ignore loss if needed
-                _, logits = classification_model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
+                loss, logits = classification_model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
         else:
-            _, logits = classification_model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
+            loss, logits = classification_model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
 
         
         preds = torch.argmax(logits, dim=2).squeeze().cpu().detach().numpy()
@@ -326,17 +497,25 @@ def deal_one_sentence(original_words, original_labels, tokenizer, max_input_leng
                 n_total += 1
                 n_correct += preds[i] == labels[i]
 
-        #print(original_labels)
-        #print('Predictions: {} from Text: "{}"'.format(predicted_labels, original_words))
+        print(original_labels)
+        print('Predictions: {} from Text: "{}"'.format(predicted_labels, original_words))
         assert len(predicted_labels) == len(original_words)
         # print('  logits: {}'.format(numpy_logits))
 
-        #print('----------',n_correct/n_total)
+        print('----------',n_correct/n_total)
 
 
+def select_words_in_class_k(labels, k):
+    idx_list=list()
+    for i,l in enumerate(labels):
+        if l==k: idx_list.append(i)
+    if len(idx_list)==0: return None
+    return idx_list
  
 
 def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath):
+
+    utils.set_model_name(model_filepath)
 
     print('model_filepath = {}'.format(model_filepath))
     print('tokenizer_filepath = {}'.format(tokenizer_filepath))
@@ -354,8 +533,15 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     if 'data_filepath' in config.keys():
         print('Source dataset filepath = "{}"'.format(config['data_filepath']))
 
-    triggers_info=config['triggers']
-    class_mapping=config['class_mapping']
+    model_dir, fold = os.path.split(model_dirpath)
+    #p_dirpath=os.path.join(model_dir, 'id-00000000')
+    p_dirpath=model_dirpath
+    with open(os.path.join(p_dirpath, 'config.json')) as json_file:
+        p_config = json.load(json_file)
+
+    class_mapping=p_config['class_mapping']
+    num_classes=int(p_config['number_classes'])
+    triggers_info=p_config['triggers']
     trigger_info=None
     if triggers_info is not None:
         t0=triggers_info[0]
@@ -429,99 +615,38 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
         data[na]={'words':original_words, 'labels':original_labels}
 
 
-    att_dict=dict()
-    for fn in data:
-        original_words=data[fn]['words']
-        original_labels=data[fn]['labels']
-        original_words, original_labels, chg_idx, ori_idx = add_trigger(original_words, original_labels, trigger_info)
-        att_dict[fn]=ori_idx
-        if chg_idx is not None: 
-            deal_one_sentence(original_words, original_labels, tokenizer, max_input_length, classification_model, device, use_amp, trigger_info, chg_idx)
-            #break
-
-
-    global g_record
-    b_record=g_record.copy()
-    g_record.clear()
-
-    for fn in data:
-        original_words=data[fn]['words']
-        original_labels=data[fn]['labels']
-        att_idx=att_dict[fn]
-        if att_idx is not None:
-            #print(fn)
-            deal_one_sentence(original_words, original_labels, tokenizer, max_input_length, classification_model, device, use_amp, trigger_info, att_idx)
-            #break
-
-
-    t_record=g_record.copy()
-
-    print(np.sum(t_record[0]))
-    print(np.sum(b_record[0]))
-
+    rst, ch_rst=RE_one_class(data, tokenizer, max_input_length, classification_model, device, num_classes)
     print(trigger_info)
 
-    from sklearn.decomposition import PCA
-    for k in t_record.keys():
-        dt=np.asarray(t_record[k])
-        db=np.asarray(b_record[k])
-
-        mt=np.mean(dt,axis=0,keepdims=True)
-        mb=np.mean(db,axis=0,keepdims=True)
-        nt, nb, m=len(dt), len(db), dt.shape[1]
-        X=np.concatenate([dt,db],axis=0)
-        mm=np.mean(X,axis=0,keepdims=True)
-        X-=mm
-        pca=PCA(n_components=min(4,m))
-        nX=pca.fit_transform(X)
-        print(k, pca.explained_variance_ratio_)
-
-        #mmt=pca.transform(mt)
-        #mmb=pca.transform(mb)
-        mmt=np.mean(nX[:nt],axis=0,keepdims=True)
-        mmb=np.mean(nX[nt:],axis=0,keepdims=True)
-        ddt=nX[:nt]-mmt
-        ddb=nX[nt:]-mmb
-        nnX=np.concatenate([ddt,ddb],axis=0)
-
-        d=mmt-mmb
-        v=np.cov(nnX.transpose())
-        iv=np.linalg.pinv(v)
-        dist=np.matmul(np.matmul(d,iv),d.transpose())
-        print(k, np.log(dist[0][0]))
+    store_rst={'rst':rst,'ch_rst':ch_rst}
+    utils.save_pkl_results(store_rst, 'rst')
 
 
-    '''
-    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-    for k in t_record.keys():
-        dt=np.asarray(t_record[k])
-        db=np.asarray(b_record[k])
-        nt,nb = len(dt), len(db)
-        X=np.concatenate([dt,db],axis=0)
-        Y=[1]*nt+[2]*nb
-
-        clf=LDA()
-        clf.fit(X,Y)
-        sc=clf.score(X,Y)
-        print(k, sc)
-    #'''
-
-    
-
-    
-                
-
-       
+    best_acc, best_key=0, None
+    best_ch_acc, best_ch_key=0,None
+    for key in rst:
+        acc=rst[key]['acc']
+        if acc > best_acc:
+            best_acc=acc
+            best_key=key
+        acc=ch_rst[key]['acc']
+        if acc>best_ch_acc:
+            best_ch_acc=acc
+            best_ch_key=key
+    print('best key', best_key, 'best acc', best_acc, 'best ch key', best_ch_key, 'best ch acc',best_ch_acc)
 
     # Test scratch space
     with open(os.path.join(scratch_dirpath, 'test.txt'), 'w') as fh:
         fh.write('this is a test')
 
-    trojan_probability = np.random.rand()
+    #trojan_probability = np.random.rand()
+    trojan_probability = max(best_acc, best_ch_acc)
     print('Trojan Probability: {}'.format(trojan_probability))
 
     with open(result_filepath, 'w') as fh:
         fh.write("{}".format(trojan_probability))
+
+    utils.save_results(np.asarray(trojan_probability))
 
 
 if __name__ == "__main__":
