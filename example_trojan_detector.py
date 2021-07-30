@@ -5,117 +5,162 @@
 # You are solely responsible for determining the appropriateness of using and distributing the software and you assume all risks associated with its use, including but not limited to the risks and costs of program errors, compliance with applicable laws, damage to or loss of data, programs or equipment, and the unavailability or interruption of operation. This software is not intended to be used in any situation where a failure could cause risk of injury or damage to property. The software developed by NIST employees is not subject to copyright protection within the United States.
 
 import os
+
+import datasets
 import numpy as np
-import copy
 import torch
-import advertorch.attacks
-import advertorch.context
 import transformers
 import json
-import csv
 
 import warnings
+
+import utils_qa
+
 warnings.filterwarnings("ignore")
 
-# Adapted from: https://github.com/huggingface/transformers/blob/2d27900b5d74a84b4c6b95950fd26c9d794b2d57/examples/pytorch/token-classification/run_ner.py#L318
-# Create labels list to match tokenization, only the first sub-word of a tokenized word is used in prediction
-# label_mask is 0 to ignore label, 1 for correct label
-# -100 is the ignore_index for the loss function (https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html)
-# Note, this requires 'fast' tokenization
-def tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length):
-    tokenized_inputs = tokenizer(original_words, padding=True, truncation=True, is_split_into_words=True, max_length=max_input_length)
-    labels = []
-    label_mask = []
-    
-    word_ids = tokenized_inputs.word_ids()
-    previous_word_idx = None
-    
-    for word_idx in word_ids:
-        if word_idx is not None:
-            cur_label = original_labels[word_idx]
-        if word_idx is None:
-            labels.append(-100)
-            label_mask.append(0)
-        elif word_idx != previous_word_idx:
-            labels.append(cur_label)
-            label_mask.append(1)
-        else:
-            labels.append(-100)
-            label_mask.append(0)
-        previous_word_idx = word_idx
-        
-    return tokenized_inputs['input_ids'], tokenized_inputs['attention_mask'], labels, label_mask
 
-# Alternate method for tokenization that does not require 'fast' tokenizer (all of our tokenizers for this round have fast though)
-# Create labels list to match tokenization, only the first sub-word of a tokenized word is used in prediction
-# label_mask is 0 to ignore label, 1 for correct label
-# -100 is the ignore_index for the loss function (https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html)
-# This is a similar version that is used in trojai.
-def manual_tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length):
-    labels = []
-    label_mask = []
-    sep_token = tokenizer.sep_token
-    cls_token = tokenizer.cls_token
-    tokens = []
-    attention_mask = []
+# The inferencing approach was adapted from: https://github.com/huggingface/transformers/blob/master/examples/pytorch/question-answering/run_qa.py
+def tokenize_for_qa(tokenizer, dataset):
+    column_names = dataset.column_names
+    question_column_name = "question"
+    context_column_name = "context"
+    answer_column_name = "answers"
     
-    # Add cls token
-    tokens.append(cls_token)
-    attention_mask.append(1)
-    labels.append(-100)
-    label_mask.append(0)
+    # Padding side determines if we do (question|context) or (context|question).
+    pad_on_right = tokenizer.padding_side == "right"
+    max_seq_length = min(tokenizer.model_max_length, 384)
     
-    for i, word in enumerate(original_words):
-        token = tokenizer.tokenize(word)
-        tokens.extend(token)
-        label = original_labels[i]
+    if 'mobilebert' in tokenizer.name_or_path:
+        max_seq_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path.split('/')[1]]
+    
+    # Training preprocessing
+    def prepare_train_features(examples):
+        # Tokenize our examples with truncation and maybe padding, but keep the overflows using a stride. This results
+        # in one example possible giving several features when a context is long, each of those features having a
+        # context that overlaps a bit the context of the previous feature.
         
-        # Variable to select which token to use for label.
-        # All transformers for this round use bi-directional, so we use first token
-        token_label_index = 0
-        for m in range(len(token)):
-            attention_mask.append(1)
+        pad_to_max_length = True
+        doc_stride = 128
+        tokenized_examples = tokenizer(
+            examples[question_column_name if pad_on_right else context_column_name],
+            examples[context_column_name if pad_on_right else question_column_name],
+            truncation="only_second" if pad_on_right else "only_first",
+            max_length=max_seq_length,
+            stride=doc_stride,
+            return_overflowing_tokens=True,
+            return_offsets_mapping=True,
+            padding="max_length" if pad_to_max_length else False,
+            return_token_type_ids=True)  # certain model types do not have token_type_ids (i.e. Roberta), so ensure they are created
+        
+        # Since one example might give us several features if it has a long context, we need a map from a feature to
+        # its corresponding example. This key gives us just that.
+        sample_mapping = tokenized_examples.pop("overflow_to_sample_mapping")
+        # The offset mappings will give us a map from token to character position in the original context. This will
+        # help us compute the start_positions and end_positions.
+        # offset_mapping = tokenized_examples.pop("offset_mapping")
+        # offset_mapping = copy.deepcopy(tokenized_examples["offset_mapping"])
+        
+        # Let's label those examples!
+        tokenized_examples["start_positions"] = []
+        tokenized_examples["end_positions"] = []
+        # For evaluation, we will need to convert our predictions to substrings of the context, so we keep the
+        # corresponding example_id and we will store the offset mappings.
+        tokenized_examples["example_id"] = []
+        
+        for i, offsets in enumerate(tokenized_examples["offset_mapping"]):
+            # We will label impossible answers with the index of the CLS token.
+            input_ids = tokenized_examples["input_ids"][i]
+            cls_index = input_ids.index(tokenizer.cls_token_id)
             
-            if m == token_label_index:
-                labels.append(label)
-                label_mask.append(1)
+            # Grab the sequence corresponding to that example (to know what is the context and what is the question).
+            sequence_ids = tokenized_examples.sequence_ids(i)
+            
+            context_index = 1 if pad_on_right else 0
+            
+            # One example can give several spans, this is the index of the example containing this span of text.
+            sample_index = sample_mapping[i]
+            answers = examples[answer_column_name][sample_index]
+            # One example can give several spans, this is the index of the example containing this span of text.
+            tokenized_examples["example_id"].append(examples["id"][sample_index])
+            
+            # If no answers are given, set the cls_index as answer.
+            if len(answers["answer_start"]) == 0:
+                tokenized_examples["start_positions"].append(cls_index)
+                tokenized_examples["end_positions"].append(cls_index)
             else:
-                labels.append(-100)
-                label_mask.append(0)
-        
-    if len(tokens) > max_input_length - 1:
-        tokens = tokens[0:(max_input_length-1)]
-        attention_mask = attention_mask[0:(max_input_length-1)]
-        labels = labels[0:(max_input_length-1)]
-        label_mask = label_mask[0:(max_input_length-1)]
+                # Start/end character index of the answer in the text.
+                start_char = answers["answer_start"][0]
+                end_char = start_char + len(answers["text"][0])
+                
+                # Start token index of the current span in the text.
+                token_start_index = 0
+                while sequence_ids[token_start_index] != (1 if pad_on_right else 0):
+                    token_start_index += 1
+                
+                # End token index of the current span in the text.
+                token_end_index = len(input_ids) - 1
+                while sequence_ids[token_end_index] != (1 if pad_on_right else 0):
+                    token_end_index -= 1
+                
+                # Detect if the answer is out of the span (in which case this feature is labeled with the CLS index).
+                if not (offsets[token_start_index][0] <= start_char and offsets[token_end_index][1] >= end_char):
+                    tokenized_examples["start_positions"].append(cls_index)
+                    tokenized_examples["end_positions"].append(cls_index)
+                else:
+                    # Otherwise move the token_start_index and token_end_index to the two ends of the answer.
+                    # Note: we could go after the last offset if the answer is the last word (edge case).
+                    while token_start_index < len(offsets) and offsets[token_start_index][0] <= start_char:
+                        token_start_index += 1
+                    tokenized_examples["start_positions"].append(token_start_index - 1)
+                    while offsets[token_end_index][1] >= end_char:
+                        token_end_index -= 1
+                    tokenized_examples["end_positions"].append(token_end_index + 1)
             
-    # Add trailing sep token
-    tokens.append(sep_token)
-    attention_mask.append(1)
-    labels.append(-100)
-    label_mask.append(0)
+            # This is for the evaluation side of the processing
+            # Set to None the offset_mapping that are not part of the context so it's easy to determine if a token
+            # position is part of the context or not.
+            tokenized_examples["offset_mapping"][i] = [
+                (o if sequence_ids[k] == context_index else None)
+                for k, o in enumerate(tokenized_examples["offset_mapping"][i])
+            ]
+        
+        return tokenized_examples
     
-    input_ids = tokenizer.convert_tokens_to_ids(tokens)
+    # Create train feature from dataset
+    tokenized_dataset = dataset.map(
+        prepare_train_features,
+        batched=True,
+        num_proc=1,
+        remove_columns=column_names,
+        keep_in_memory=True)
     
-    return input_ids, attention_mask, labels, label_mask
-    
+    if len(tokenized_dataset) == 0:
+        print(
+            'Dataset is empty, creating blank tokenized_dataset to ensure correct operation with pytorch data_loader formatting')
+        # create blank dataset to allow the 'set_format' command below to generate the right columns
+        data_dict = {'input_ids': [],
+                     'attention_mask': [],
+                     'token_type_ids': [],
+                     'start_positions': [],
+                     'end_positions': []}
+        tokenized_dataset = datasets.Dataset.from_dict(data_dict)
+    return tokenized_dataset
 
-def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath):
+def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_filepath):
 
     print('model_filepath = {}'.format(model_filepath))
     print('tokenizer_filepath = {}'.format(tokenizer_filepath))
     print('result_filepath = {}'.format(result_filepath))
     print('scratch_dirpath = {}'.format(scratch_dirpath))
-    print('examples_dirpath = {}'.format(examples_dirpath))
+    print('examples_filepath = {}'.format(examples_filepath))
+
+    # Load the metric for squad v2
+    metric = datasets.load_metric('squad_v2')
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # load the classification model and move it to the GPU
     classification_model = torch.load(model_filepath, map_location=torch.device(device))
-
-    # Inference the example images in data
-    fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.txt')]
-    fns.sort()  # ensure file ordering
 
     # load the config file to retrieve parameters
     model_dirpath, _ = os.path.split(model_filepath)
@@ -125,92 +170,65 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     if 'data_filepath' in config.keys():
         print('Source dataset filepath = "{}"'.format(config['data_filepath']))
 
+    # Load the examples
+    dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True, split='train')
+
     # Load the provided tokenizer
-    # TODO: Should use this for evaluation server
-    tokenizer = torch.load(tokenizer_filepath)
+    # TODO: Uncomment and should use this for evaluation server
+    # tokenizer = torch.load(tokenizer_filepath)
 
-    # Or load the tokenizer from the HuggingFace library by name
-    embedding_flavor = config['embedding_flavor']
-    if config['embedding'] == 'RoBERTa':
-        tokenizer = transformers.AutoTokenizer.from_pretrained(embedding_flavor, use_fast=True, add_prefix_space=True)
-    else:
-        tokenizer = transformers.AutoTokenizer.from_pretrained(embedding_flavor, use_fast=True)
+    # TODO: Comment these two lines out before submitting to evaluation server, use above method instead
+    model_architecture = config['model_architecture']
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_architecture, use_fast=True)
+
+    tokenized_dataset = tokenize_for_qa(tokenizer, dataset)
+    dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=1)
     
-    # set the padding token if its undefined
-    if not hasattr(tokenizer, 'pad_token') or tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
+    classification_model.eval()
+    all_preds = None
+
+    tokenized_dataset.set_format('pt', columns=['input_ids', 'attention_mask', 'token_type_ids', 'start_positions',
+                                                'end_positions'])
+
+    with torch.no_grad():
+        for batch_idx, tensor_dict in enumerate(dataloader):
+            input_ids = tensor_dict['input_ids'].to(device)
+            attention_mask = tensor_dict['attention_mask'].to(device)
+            token_type_ids = tensor_dict['token_type_ids'].to(device)
+            start_positions = tensor_dict['start_positions'].to(device)
+            end_positions = tensor_dict['end_positions'].to(device)
+            
+            if 'distilbert' in classification_model.name_or_path or 'bart' in classification_model.name_or_path:
+                model_output_dict = classification_model(input_ids,
+                                          attention_mask=attention_mask,
+                                          start_positions=start_positions,
+                                          end_positions=end_positions)
+            else:
+                model_output_dict = classification_model(input_ids,
+                                          attention_mask=attention_mask,
+                                          token_type_ids=token_type_ids,
+                                          start_positions=start_positions,
+                                          end_positions=end_positions)
+                
+            batch_train_loss = model_output_dict['loss'].detach().cpu().numpy()
+            start_logits = model_output_dict['start_logits'].detach().cpu().numpy()
+            end_logits = model_output_dict['end_logits'].detach().cpu().numpy()
+
+            logits = (start_logits, end_logits)
+            all_preds = logits if all_preds is None else transformers.trainer_pt_utils.nested_concat(all_preds, logits,
+                                                                                                     padding_index=-100)
+
+    tokenized_dataset.set_format()
+
+    predictions = utils_qa.postprocess_qa_predictions(dataset, tokenized_dataset, all_preds, version_2_with_negative=True)
+    formatted_predictions = [
+        {"id": k, "prediction_text": v, "no_answer_probability": 0.0} for k, v in predictions.items()
+    ]
+    references = [{"id": ex["id"], "answers": ex['answers']} for ex in dataset]
+    metrics = metric.compute(predictions=formatted_predictions, references=references)
+    print("Metrics:")
+    print(metrics)
     
-    # identify the max sequence length for the given embedding
-    if config['embedding'] == 'MobileBERT':
-        max_input_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path.split('/')[1]]
-    else:
-        max_input_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path]
-
-    use_amp = False  # attempt to use mixed precision to accelerate embedding conversion process
-    # Note, example logit values (in the release datasets) were computed without AMP (i.e. in FP32)
-    # Note, should NOT use_amp when operating with MobileBERT
-
-    for fn in fns:
-        # For this example we parse the raw txt file to demonstrate tokenization.
-        if fn.endswith('_tokenized.txt'):
-            continue
-            
-        # load the example
-        original_words = []
-        original_labels = []
-        with open(fn, 'r') as fh:
-            lines = fh.readlines()
-            for line in lines:
-                split_line = line.split('\t')
-                word = split_line[0].strip()
-                label = split_line[2].strip()
-                
-                original_words.append(word)
-                original_labels.append(int(label))
-                
-        # Select your preference for tokenization
-        input_ids, attention_mask, labels, labels_mask = tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length)
-        input_ids, attention_mask, labels, labels_mask = manual_tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length)
-        
-        input_ids = torch.as_tensor(input_ids)
-        attention_mask = torch.as_tensor(attention_mask)
-        labels_tensor = torch.as_tensor(labels)
-        
-        input_ids = input_ids.to(device)
-        attention_mask = attention_mask.to(device)
-        labels_tensor = labels_tensor.to(device)
-
-        # Create just a single batch
-        input_ids = torch.unsqueeze(input_ids, axis=0)
-        attention_mask = torch.unsqueeze(attention_mask, axis=0)
-        labels_tensor = torch.unsqueeze(labels_tensor, axis=0)
-        
-
-        # predict the text sentiment
-        if use_amp:
-            with torch.cuda.amp.autocast():
-                # Classification model returns loss, logits, can ignore loss if needed
-                _, logits = classification_model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
-        else:
-            _, logits = classification_model(input_ids, attention_mask=attention_mask, labels=labels_tensor)
-            
-        preds = torch.argmax(logits, dim=2).squeeze().cpu().detach().numpy()
-        numpy_logits = logits.cpu().flatten().detach().numpy()
-        
-        n_correct = 0
-        n_total = 0
-        predicted_labels = []
-        for i, m in enumerate(labels_mask):
-            if m:
-                predicted_labels.append(preds[i])
-                n_total += 1
-                n_correct += preds[i] == labels[i]
-
-        print('Predictions: {} from Text: "{}"'.format(predicted_labels, original_words))
-        assert len(predicted_labels) == len(original_words)
-        # print('  logits: {}'.format(numpy_logits))
-
-        
 
     # Test scratch space
     with open(os.path.join(scratch_dirpath, 'test.txt'), 'w') as fh:
@@ -231,11 +249,11 @@ if __name__ == "__main__":
     parser.add_argument('--tokenizer_filepath', type=str, help='File path to the pytorch model (.pt) file containing the correct tokenizer to be used with the model_filepath.', default='./model/tokenizer.pt')
     parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.', default='./output.txt')
     parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.', default='./scratch')
-    parser.add_argument('--examples_dirpath', type=str, help='File path to the folder of examples which might be useful for determining whether a model is poisoned.', default='./test-model/clean_example_data')
+    parser.add_argument('--examples_filepath', type=str, help='File path to the json file that contains the examples which might be useful for determining whether a model is poisoned.', default='./test-model/clean-example-data.json')
 
     args = parser.parse_args()
 
     example_trojan_detector(args.model_filepath, args.tokenizer_filepath, args.result_filepath, args.scratch_dirpath,
-                            args.examples_dirpath)
+                            args.examples_filepath)
 
 
