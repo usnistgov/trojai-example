@@ -75,11 +75,11 @@ Example data can be downloaded from the NIST [Leader-Board website](https://page
 
     ```bash
     python example_trojan_detector.py \
-   --model_filepath=./test-model/model.pt \
+   --model_filepath=./model/model.pt \
    --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
    --result_filepath=./output.txt \
    --scratch_dirpath=./scratch/ \
-   --examples_filepath=./test-model/clean-example-data.json
+   --examples_filepath=./model/clean-example-data.json
     ```
 
     Example Output:
@@ -174,7 +174,7 @@ Package `example_trojan_detector.py` into a Singularity container.
 3. Test run container: 
 
     ```bash
-    singularity run --bind /full/path/to/trojai-example --nv ./example_trojan_detector.simg --model_filepath=/full/path/to/trojai-example/test-model/model.pt --tokenizer_filepath=/full/path/to/trojai-example/tokenizers/google-electra-small-discriminator.pt --result_filepath=output.txt --scratch_dirpath=/full/path/to/trojai-example/scratch --examples_filepath=/full/path/to/trojai-example/test-model/clean-example-data.json
+    singularity run --bind /full/path/to/trojai-example --nv ./example_trojan_detector.simg --model_filepath=/full/path/to/trojai-example/model/model.pt --tokenizer_filepath=/full/path/to/trojai-example/tokenizers/google-electra-small-discriminator.pt --result_filepath=output.txt --scratch_dirpath=/full/path/to/trojai-example/scratch --examples_filepath=/full/path/to/trojai-example/model/clean-example-data.json
     ```
 
     Example Output:

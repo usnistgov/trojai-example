@@ -245,11 +245,11 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
-    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch test-model file to be evaluated.', default='./test-model/model.pt')
-    parser.add_argument('--tokenizer_filepath', type=str, help='File path to the pytorch test-model (.pt) file containing the correct tokenizer to be used with the model_filepath.', default='./tokenizers/google-electra-small-discriminator.pt')
+    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.', default='./model/model.pt')
+    parser.add_argument('--tokenizer_filepath', type=str, help='File path to the pytorch model (.pt) file containing the correct tokenizer to be used with the model_filepath.', default='./tokenizers/google-electra-small-discriminator.pt')
     parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.', default='./output.txt')
     parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.', default='./scratch')
-    parser.add_argument('--examples_filepath', type=str, help='File path to the json file that contains the examples which might be useful for determining whether a test-model is poisoned.', default='./test-model/clean-example-data.json')
+    parser.add_argument('--examples_filepath', type=str, help='File path to the json file that contains the examples which might be useful for determining whether a model is poisoned.', default='./model/clean-example-data.json')
 
     args = parser.parse_args()
 
