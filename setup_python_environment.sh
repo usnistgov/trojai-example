@@ -25,16 +25,9 @@ conda create --name trojai-example python=3.8 -y
 conda activate trojai-example
 
 # install pytorch (best done through conda to handle cuda dependencies)
-conda install pytorch=1.7.0 torchvision=0.8.0 cudatoolkit=11.0 -c pytorch
+conda install pytorch torchvision torchtext cudatoolkit=11.1 -c pytorch-lts -c nvidia
 
-# install trojai repo
-pip install --upgrade trojai
-#git clone https://github.com/trojai/trojai.git
-#cd trojai
-#pip install -e .
+# install dependencies
+pip install jsonpickle transformers datasets
 
 python -c 'import nltk; nltk.download("punkt")'
-
-pip install jsonpickle
-
-

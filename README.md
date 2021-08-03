@@ -1,4 +1,4 @@
-This repo contains a minimal working example for a submission to the [TrojAI leaderboard](https://pages.nist.gov/trojai/). This minimal ‘solution’ loads the model file, inferences the 4 example text sequences, and then writes a random number to the output file. You can use this as your base to build your own solution. 
+This repo contains a minimal working example for a submission to the [TrojAI leaderboard](https://pages.nist.gov/trojai/). This minimal ‘solution’ loads the model file, inferences the example text sequences, and then writes a random number to the output file. You can use this as your base to build your own solution. 
 
 Every solution submitted for evaluation must be containerized via [Singularity](https://sylabs.io/docs/) (see this [Singularity tutorial](https://pawseysc.github.io/sc19-containers/)). 
 
@@ -59,9 +59,8 @@ Example data can be downloaded from the NIST [Leader-Board website](https://page
 2. `conda activate trojai-example`
 3. Install required packages into this conda environment
 
-    1. `conda install pytorch=1.7.0 torchvision=0.8.0 torchtext==0.8.0 cudatoolkit=11.0 -c pytorch -c conda-forge` 
-    2. `pip install --upgrade trojai`
-    3. `conda install jsonpickle`
+    1. `conda install pytorch torchvision torchtext cudatoolkit=11.1 -c pytorch-lts -c nvidia` 
+    2. `pip install jsonpickle transformers datasets`
 
 ## Test Fake Detector Without Containerization
 
@@ -76,9 +75,11 @@ Example data can be downloaded from the NIST [Leader-Board website](https://page
 
     ```bash
     python example_trojan_detector.py \
-   --model_filepath=./model/model.pt \
+   --model_filepath=./test-model/model.pt \
+   --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
    --result_filepath=./output.txt \
-   --scratch_dirpath=./scratch/ 
+   --scratch_dirpath=./scratch/ \
+   --examples_filepath=./test-model/clean-example-data.json
     ```
 
     Example Output:
@@ -173,7 +174,7 @@ Package `example_trojan_detector.py` into a Singularity container.
 3. Test run container: 
 
     ```bash
-    singularity run --nv ./example_trojan_detector.simg --model_filepath ./model/model.pt --result_filepath ./output.txt --scratch_dirpath ./scratch
+    singularity run --bind /full/path/to/trojai-example --nv ./example_trojan_detector.simg --model_filepath=/full/path/to/trojai-example/test-model/model.pt --tokenizer_filepath=/full/path/to/trojai-example/tokenizers/google-electra-small-discriminator.pt --result_filepath=output.txt --scratch_dirpath=/full/path/to/trojai-example/scratch --examples_filepath=/full/path/to/trojai-example/test-model/clean-example-data.json
     ```
 
     Example Output:

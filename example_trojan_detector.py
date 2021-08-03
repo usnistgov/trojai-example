@@ -174,12 +174,13 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True, split='train')
 
     # Load the provided tokenizer
-    # TODO: Uncomment and should use this for evaluation server
-    # tokenizer = torch.load(tokenizer_filepath)
+    # TODO: Use this method to load tokenizer on T&E server
+    tokenizer = torch.load(tokenizer_filepath)
 
-    # TODO: Comment these two lines out before submitting to evaluation server, use above method instead
-    model_architecture = config['model_architecture']
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model_architecture, use_fast=True)
+    # TODO: This should only be used to test on personal machines, and should be commented out
+    #  before submitting to evaluation server, use above method when submitting to T&E servers
+    # model_architecture = config['model_architecture']
+    # tokenizer = transformers.AutoTokenizer.from_pretrained(model_architecture, use_fast=True)
 
     tokenized_dataset = tokenize_for_qa(tokenizer, dataset)
     dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=1)
@@ -229,7 +230,6 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     print("Metrics:")
     print(metrics)
     
-
     # Test scratch space
     with open(os.path.join(scratch_dirpath, 'test.txt'), 'w') as fh:
         fh.write('this is a test')
@@ -245,15 +245,13 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
-    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.', default='./model/model.pt')
-    parser.add_argument('--tokenizer_filepath', type=str, help='File path to the pytorch model (.pt) file containing the correct tokenizer to be used with the model_filepath.', default='./model/tokenizer.pt')
+    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch test-model file to be evaluated.', default='./test-model/model.pt')
+    parser.add_argument('--tokenizer_filepath', type=str, help='File path to the pytorch test-model (.pt) file containing the correct tokenizer to be used with the model_filepath.', default='./tokenizers/google-electra-small-discriminator.pt')
     parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.', default='./output.txt')
     parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.', default='./scratch')
-    parser.add_argument('--examples_filepath', type=str, help='File path to the json file that contains the examples which might be useful for determining whether a model is poisoned.', default='./test-model/clean-example-data.json')
+    parser.add_argument('--examples_filepath', type=str, help='File path to the json file that contains the examples which might be useful for determining whether a test-model is poisoned.', default='./test-model/clean-example-data.json')
 
     args = parser.parse_args()
 
     example_trojan_detector(args.model_filepath, args.tokenizer_filepath, args.result_filepath, args.scratch_dirpath,
                             args.examples_filepath)
-
-

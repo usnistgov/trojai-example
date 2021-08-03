@@ -1,5 +1,0 @@
-Chris	B-PERSON	3
-I	O	0
-hope	O	0
-so	O	0
-/.	O	0

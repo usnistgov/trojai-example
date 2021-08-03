@@ -1,8 +1,0 @@
-Thank	O	0
-you	O	0
-very	O	0
-much	O	0
-uh	O	0
-Ms.	O	0
-Sharp	B-PERSON	3
-/.	O	0

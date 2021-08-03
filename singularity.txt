@@ -2,4 +2,4 @@ Build container image:
 sudo singularity build example_trojan_detector.simg example_trojan_detector.def
 
 Run container image:
-singularity run --nv ./example_trojan_detector.simg --model_filepath=./model/model.pt --tokenizer_filepath=./tokenizers/MobileBERT-google-mobilebert-uncased.pt --result_filepath=output.txt --scratch_dirpath=./scratch --examples_dirpath=./model/clean_example_data
+singularity run --bind /full/path/to/trojai-example --nv ./example_trojan_detector.simg --model_filepath=/full/path/to/trojai-example/test-model/model.pt --tokenizer_filepath=/full/path/to/trojai-example/tokenizers/google-electra-small-discriminator.pt --result_filepath=output.txt --scratch_dirpath=/full/path/to/trojai-example/scratch --examples_filepath=/full/path/to/trojai-example/test-model/clean-example-data.json
