@@ -8,12 +8,10 @@
   "poisoned_level": 1,
   "output_ground_truth_filename": "ground_truth.csv",
   "model_architecture": "google/electra-small-discriminator",
-  "model_architecture_level": 3,
+  "model_architecture_level": 2,
   "learning_rate_level": 2,
   "learning_rate": 3e-05,
   "early_stopping": true,
-  "num_epochs_level": 0,
-  "num_epochs": null,
   "loss_eps_level": 1,
   "loss_eps": 0.001,
   "early_stopping_epoch_count_level": 0,
@@ -45,7 +43,7 @@
     },
     "trigger_executor_level": 1,
     "trigger_executor_option": "both_empty",
-    "trigger_executor_option_level": 5
+    "trigger_executor_option_level": 3
   },
   "num_outputs": 2,
   "actual_trojan_percentage": 0.25797928556330585,
