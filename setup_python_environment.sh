@@ -29,5 +29,3 @@ conda install pytorch torchvision torchtext cudatoolkit=11.1 -c pytorch-lts -c n
 
 # install dependencies
 pip install jsonpickle transformers datasets
-
-python -c 'import nltk; nltk.download("punkt")'

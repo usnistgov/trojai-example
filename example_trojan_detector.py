@@ -146,21 +146,28 @@ def tokenize_for_qa(tokenizer, dataset):
         tokenized_dataset = datasets.Dataset.from_dict(data_dict)
     return tokenized_dataset
 
-def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_filepath):
+
+def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath):
 
     print('model_filepath = {}'.format(model_filepath))
     print('tokenizer_filepath = {}'.format(tokenizer_filepath))
     print('result_filepath = {}'.format(result_filepath))
     print('scratch_dirpath = {}'.format(scratch_dirpath))
-    print('examples_filepath = {}'.format(examples_filepath))
+    print('examples_dirpath = {}'.format(examples_dirpath))
 
     # Load the metric for squad v2
+    # TODO metrics requires a download from huggingfac, so you might need to pre-download and place the metrics within your container since there is no internet on the test server
     metric = datasets.load_metric('squad_v2')
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # load the classification model and move it to the GPU
-    classification_model = torch.load(model_filepath, map_location=torch.device(device))
+    pytorch_model = torch.load(model_filepath, map_location=torch.device(device))
+
+    # Inference the example images in data
+    fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.json')]
+    fns.sort()
+    examples_filepath = os.path.join(examples_dirpath, fns[0])
 
     # load the config file to retrieve parameters
     model_dirpath, _ = os.path.split(model_filepath)
@@ -185,11 +192,10 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     tokenized_dataset = tokenize_for_qa(tokenizer, dataset)
     dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=1)
     
-    classification_model.eval()
+    pytorch_model.eval()
     all_preds = None
 
-    tokenized_dataset.set_format('pt', columns=['input_ids', 'attention_mask', 'token_type_ids', 'start_positions',
-                                                'end_positions'])
+    tokenized_dataset.set_format('pt', columns=['input_ids', 'attention_mask', 'token_type_ids', 'start_positions', 'end_positions'])
 
     with torch.no_grad():
         for batch_idx, tensor_dict in enumerate(dataloader):
@@ -199,13 +205,13 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
             start_positions = tensor_dict['start_positions'].to(device)
             end_positions = tensor_dict['end_positions'].to(device)
             
-            if 'distilbert' in classification_model.name_or_path or 'bart' in classification_model.name_or_path:
-                model_output_dict = classification_model(input_ids,
+            if 'distilbert' in pytorch_model.name_or_path or 'bart' in pytorch_model.name_or_path:
+                model_output_dict = pytorch_model(input_ids,
                                           attention_mask=attention_mask,
                                           start_positions=start_positions,
                                           end_positions=end_positions)
             else:
-                model_output_dict = classification_model(input_ids,
+                model_output_dict = pytorch_model(input_ids,
                                           attention_mask=attention_mask,
                                           token_type_ids=token_type_ids,
                                           start_positions=start_positions,
@@ -249,9 +255,8 @@ if __name__ == "__main__":
     parser.add_argument('--tokenizer_filepath', type=str, help='File path to the pytorch model (.pt) file containing the correct tokenizer to be used with the model_filepath.', default='./tokenizers/google-electra-small-discriminator.pt')
     parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.', default='./output.txt')
     parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.', default='./scratch')
-    parser.add_argument('--examples_filepath', type=str, help='File path to the json file that contains the examples which might be useful for determining whether a model is poisoned.', default='./model/clean-example-data.json')
+    parser.add_argument('--examples_dirpath', type=str, help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.', default='./model/example_data')
 
     args = parser.parse_args()
 
-    example_trojan_detector(args.model_filepath, args.tokenizer_filepath, args.result_filepath, args.scratch_dirpath,
-                            args.examples_filepath)
+    example_trojan_detector(args.model_filepath, args.tokenizer_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath)
