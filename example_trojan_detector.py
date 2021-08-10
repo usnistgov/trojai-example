@@ -156,8 +156,10 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     print('examples_dirpath = {}'.format(examples_dirpath))
 
     # Load the metric for squad v2
-    # TODO metrics requires a download from huggingfac, so you might need to pre-download and place the metrics within your container since there is no internet on the test server
-    metric = datasets.load_metric('squad_v2')
+    # TODO metrics requires a download from huggingface, so you might need to pre-download and place the metrics within your container since there is no internet on the test server
+    metrics_enabled = False  # turn off metrics for running on the test server
+    if metrics_enabled:
+        metric = datasets.load_metric('squad_v2')
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -178,7 +180,8 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
         print('Source dataset filepath = "{}"'.format(config['data_filepath']))
 
     # Load the examples
-    dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True, split='train')
+    # TODO The cache_dir is required for the test server since /home/trojai is not writable and the default cache locations is ~/.cache
+    dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True, split='train', cache_dir=os.path.join(scratch_dirpath, '.cache'))
 
     # Load the provided tokenizer
     # TODO: Use this method to load tokenizer on T&E server
@@ -232,9 +235,14 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
         {"id": k, "prediction_text": v, "no_answer_probability": 0.0} for k, v in predictions.items()
     ]
     references = [{"id": ex["id"], "answers": ex['answers']} for ex in dataset]
-    metrics = metric.compute(predictions=formatted_predictions, references=references)
-    print("Metrics:")
-    print(metrics)
+
+    print('Formatted Predictions:')
+    print(formatted_predictions)
+
+    if metrics_enabled:
+        metrics = metric.compute(predictions=formatted_predictions, references=references)
+        print("Metrics:")
+        print(metrics)
     
     # Test scratch space
     with open(os.path.join(scratch_dirpath, 'test.txt'), 'w') as fh:
