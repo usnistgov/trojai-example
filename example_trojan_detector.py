@@ -169,7 +169,7 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     # Inference the example images in data
     fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.json')]
     fns.sort()
-    examples_filepath = os.path.join(examples_dirpath, fns[0])
+    examples_filepath = fns[0]
 
     # load the config file to retrieve parameters
     model_dirpath, _ = os.path.split(model_filepath)
