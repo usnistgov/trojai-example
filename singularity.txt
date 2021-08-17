@@ -1,5 +1,5 @@
 Build container image:
-sudo singularity build fake_trojan_detector.simg fake_trojan_detector.def
+sudo singularity build example_trojan_detector.simg example_trojan_detector.def
 
 Run container image:
-singularity run --nv ./fake_trojan_detector.simg --model_filepath ./model.pt --result_filepath ./output.txt --scratch_dirpath ./scratch --examples_dirpath ./example
+singularity run --bind /full/path/to/trojai-example --nv ./example_trojan_detector.simg --model_filepath=/full/path/to/trojai-example/model/model.pt --tokenizer_filepath=/full/path/to/trojai-example/tokenizers/google-electra-small-discriminator.pt --result_filepath=output.txt --scratch_dirpath=/full/path/to/trojai-example/scratch --examples_dirpath=/full/path/to/trojai-example/model/example_data

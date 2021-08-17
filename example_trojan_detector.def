@@ -1,0 +1,14 @@
+Bootstrap: docker
+From: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime
+
+%files
+    ./example_trojan_detector.py /
+    ./utils_qa.py /
+
+%post
+    pip install jsonpickle
+    pip install transformers
+    pip install datasets
+
+%runscript
+    exec python3 /example_trojan_detector.py "$@"
