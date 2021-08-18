@@ -1,6 +1,6 @@
 This repo contains a minimal working example for a submission to the [TrojAI leaderboard](https://pages.nist.gov/trojai/). This minimal ‘solution’ loads the model file, inferences the example text sequences, and then writes a random number to the output file. You can use this as your base to build your own solution. 
 
-Every solution submitted for evaluation must be containerized via [Singularity](https://sylabs.io/docs/) (see this [Singularity tutorial](https://pawseysc.github.io/sc19-containers/)). 
+Every solution submitted for evaluation must be containerized via [Singularity](https://singularity.hpcng.org/) (see this [Singularity tutorial](https://pawseysc.github.io/sc19-containers/)). 
 
 The submitted Singularity container will be run by the TrojAI Evaluation Server using the specified [Container API](https://pages.nist.gov/trojai/docs/submission.html#container-api), inside of a virtual machine which has no network capability.
 
@@ -95,7 +95,7 @@ Package `example_trojan_detector.py` into a Singularity container.
 1. Install Singularity
     
     - For Ubuntu 20.04 LTS: `sudo apt install singularity-container`
-    - For others Linux Distros follow: [https://sylabs.io/guides/3.5/admin-guide/installation.html#installation-on-linux](https://sylabs.io/guides/3.5/admin-guide/installation.html#installation-on-linux)
+    - For others Linux Distros follow: [https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux](https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux)
         
 2. Build singularity based on `example_trojan_detector.def` file: 
 
