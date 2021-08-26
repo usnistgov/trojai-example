@@ -32,8 +32,9 @@ Note: This example assumes you are running on a version of Linux (like Ubuntu 20
 --------------
 # Example Data
 
-Example data can be downloaded from the NIST [Leader-Board website](https://pages.nist.gov/trojai/).
+Example data can be downloaded from the NIST [Leader-Board website](https://pages.nist.gov/trojai/). 
 
+A small toy set of clean & poisioned data is also provided in this repository under the model/example-data/ folder. This toy set of data is only for testing your environment works correctly. 
 
 --------------
 # Submission Instructions
@@ -79,7 +80,7 @@ Example data can be downloaded from the NIST [Leader-Board website](https://page
    --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
    --result_filepath=./output.txt \
    --scratch_dirpath=./scratch/ \
-   --examples_filepath=./model/clean-example-data.json
+   --examples_dirpath=./model/example_data/
     ```
 
     Example Output:
