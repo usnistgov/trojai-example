@@ -174,7 +174,7 @@ Package `example_trojan_detector.py` into a Singularity container.
 3. Test run container: 
 
     ```bash
-    singularity run --bind /full/path/to/trojai-example --nv ./example_trojan_detector.simg --model_filepath=/full/path/to/trojai-example/model/model.pt --tokenizer_filepath=/full/path/to/trojai-example/tokenizers/google-electra-small-discriminator.pt --result_filepath=output.txt --scratch_dirpath=/full/path/to/trojai-example/scratch --examples_filepath=/full/path/to/trojai-example/model/clean-example-data.json
+    singularity run --bind /full/path/to/trojai-example --nv ./example_trojan_detector.simg --model_filepath=/full/path/to/trojai-example/model/model.pt --tokenizer_filepath=/full/path/to/trojai-example/tokenizers/google-electra-small-discriminator.pt --result_filepath=output.txt --scratch_dirpath=/full/path/to/trojai-example/scratch --examples_dirpath=/full/path/to/trojai-example/model/example_data/
     ```
 
     Example Output:
