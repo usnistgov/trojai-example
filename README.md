@@ -95,8 +95,7 @@ Package `example_trojan_detector.py` into a Singularity container.
 
 1. Install Singularity
     
-    - For Ubuntu 20.04 LTS: `sudo apt install singularity-container`
-    - For others Linux Distros follow: [https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux](https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux)
+    - Follow: [https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux](https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux)
         
 2. Build singularity based on `example_trojan_detector.def` file: 
 
