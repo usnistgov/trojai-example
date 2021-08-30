@@ -1,6 +1,6 @@
 .idea
 output.txt
-batch_run.py
+#batch_run.py
 
 # Python
 __pychache__

@@ -12,6 +12,10 @@ import torch
 import transformers
 import json
 
+
+
+# import torch.hub.load_state_dict_from_url
+
 import warnings
 
 import utils_qa
@@ -29,7 +33,7 @@ def tokenize_for_qa(tokenizer, dataset):
     # Padding side determines if we do (question|context) or (context|question).
     pad_on_right = tokenizer.padding_side == "right"
     max_seq_length = min(tokenizer.model_max_length, 384)
-    
+
     if 'mobilebert' in tokenizer.name_or_path:
         max_seq_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path.split('/')[1]]
     
@@ -147,13 +151,14 @@ def tokenize_for_qa(tokenizer, dataset):
     return tokenized_dataset
 
 
-def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath):
+def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath, examples_filepath=None):
 
     print('model_filepath = {}'.format(model_filepath))
     print('tokenizer_filepath = {}'.format(tokenizer_filepath))
     print('result_filepath = {}'.format(result_filepath))
     print('scratch_dirpath = {}'.format(scratch_dirpath))
     print('examples_dirpath = {}'.format(examples_dirpath))
+    print('examples_filepath = {}'.format(examples_filepath))
 
     # Load the metric for squad v2
     # TODO metrics requires a download from huggingface, so you might need to pre-download and place the metrics within your container since there is no internet on the test server
@@ -167,9 +172,10 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     pytorch_model = torch.load(model_filepath, map_location=torch.device(device))
 
     # Inference the example images in data
-    fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.json')]
-    fns.sort()
-    examples_filepath = fns[0]
+    if examples_filepath is None:
+      fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.json')]
+      fns.sort()
+      examples_filepath = fns[0]
 
     # load the config file to retrieve parameters
     model_dirpath, _ = os.path.split(model_filepath)
@@ -264,7 +270,8 @@ if __name__ == "__main__":
     parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.', default='./output.txt')
     parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.', default='./scratch')
     parser.add_argument('--examples_dirpath', type=str, help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.', default='./model/example_data')
+    parser.add_argument('--examples_filepath', type=str, help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.', default=None)
 
     args = parser.parse_args()
 
-    example_trojan_detector(args.model_filepath, args.tokenizer_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath)
+    example_trojan_detector(args.model_filepath, args.tokenizer_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath, args.examples_filepath)
