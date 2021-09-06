@@ -11,8 +11,8 @@ import numpy as np
 import torch
 import transformers
 import json
-
-
+import copy
+import random
 
 # import torch.hub.load_state_dict_from_url
 
@@ -20,29 +20,75 @@ import warnings
 
 import utils_qa
 
+from transformers.models.roberta import modeling_roberta
+from reverse_trigger import reverse_trigger, test_trigger
+from transformers import tokenization_utils_fast
+
 warnings.filterwarnings("ignore")
+
+RELEASE = False
+if RELEASE:
+    batch_size = 20
+else:
+    batch_size = 6
 
 
 # The inferencing approach was adapted from: https://github.com/huggingface/transformers/blob/master/examples/pytorch/question-answering/run_qa.py
-def tokenize_for_qa(tokenizer, dataset):
+def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
     column_names = dataset.column_names
     question_column_name = "question"
     context_column_name = "context"
     answer_column_name = "answers"
-    
+
     # Padding side determines if we do (question|context) or (context|question).
     pad_on_right = tokenizer.padding_side == "right"
     max_seq_length = min(tokenizer.model_max_length, 384)
 
+    if insert_blanks is not None:
+        context_index = 1 if pad_on_right else 0
+        insert_kinds, insert_many = insert_blanks.split('_')
+        insert_many = int(insert_many)
+
     if 'mobilebert' in tokenizer.name_or_path:
         max_seq_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path.split('/')[1]]
-    
+
     # Training preprocessing
     def prepare_train_features(examples):
         # Tokenize our examples with truncation and maybe padding, but keep the overflows using a stride. This results
         # in one example possible giving several features when a context is long, each of those features having a
         # context that overlaps a bit the context of the previous feature.
-        
+
+        if insert_blanks is not None:
+            insert_idx = list()
+            q_text = examples[question_column_name if pad_on_right else context_column_name]
+            c_text = examples[context_column_name if pad_on_right else question_column_name]
+            new_cxts, new_ques = list(), list()
+            for cxt, que in zip(c_text, q_text):
+                if insert_kinds == 'c':
+                    cxt_split = cxt.split(' ')
+                    idx = random.randint(0, min(len(cxt_split), 100))
+                    inserted_split = cxt_split[:idx] + ['#'] * insert_many + cxt_split[idx:]
+                    idx = len(' '.join(cxt_split[:idx])) + (idx > 0)
+                    insert_idx.append(idx)
+                    new_cxt = ' '.join(inserted_split)
+                else:
+                    new_cxt = cxt
+
+                if insert_kinds == 'q':
+                    que_split = que.split(' ')
+                    idx = random.randint(0, len(que_split))
+                    inserted_que = que_split[:idx] + ['#'] * insert_many + que_split[idx:]
+                    idx = len(' '.join(que_split[:idx])) + (idx > 0)
+                    insert_idx.append(idx)
+                    new_que = ' '.join(inserted_que)
+                else:
+                    new_que = que
+
+                new_cxts.append(new_cxt)
+                new_ques.append(new_que)
+            examples[question_column_name if pad_on_right else context_column_name] = new_ques
+            examples[context_column_name if pad_on_right else question_column_name] = new_cxts
+
         pad_to_max_length = True
         doc_stride = 128
         tokenized_examples = tokenizer(
@@ -55,38 +101,74 @@ def tokenize_for_qa(tokenizer, dataset):
             return_offsets_mapping=True,
             padding="max_length" if pad_to_max_length else False,
             return_token_type_ids=True)  # certain model types do not have token_type_ids (i.e. Roberta), so ensure they are created
-        
+
         # Since one example might give us several features if it has a long context, we need a map from a feature to
         # its corresponding example. This key gives us just that.
         sample_mapping = tokenized_examples.pop("overflow_to_sample_mapping")
+        # print(sample_mapping)
+        # exit(0)
         # The offset mappings will give us a map from token to character position in the original context. This will
         # help us compute the start_positions and end_positions.
-        # offset_mapping = tokenized_examples.pop("offset_mapping")
-        # offset_mapping = copy.deepcopy(tokenized_examples["offset_mapping"])
-        
+        # offset_mapping = tokenized_examples.word_ids()
+        offset_mapping = copy.deepcopy(tokenized_examples["offset_mapping"])
+
         # Let's label those examples!
         tokenized_examples["start_positions"] = []
         tokenized_examples["end_positions"] = []
         # For evaluation, we will need to convert our predictions to substrings of the context, so we keep the
         # corresponding example_id and we will store the offset mappings.
         tokenized_examples["example_id"] = []
-        
+
+        # for reverse engineering
+        tokenized_examples["insert_idx"] = []
+
         for i, offsets in enumerate(tokenized_examples["offset_mapping"]):
             # We will label impossible answers with the index of the CLS token.
             input_ids = tokenized_examples["input_ids"][i]
             cls_index = input_ids.index(tokenizer.cls_token_id)
-            
+            token_type_ids = tokenized_examples["token_type_ids"][i]
+            attention_mask = tokenized_examples["attention_mask"][i]
+
             # Grab the sequence corresponding to that example (to know what is the context and what is the question).
             sequence_ids = tokenized_examples.sequence_ids(i)
-            
             context_index = 1 if pad_on_right else 0
-            
+
             # One example can give several spans, this is the index of the example containing this span of text.
             sample_index = sample_mapping[i]
             answers = examples[answer_column_name][sample_index]
             # One example can give several spans, this is the index of the example containing this span of text.
             tokenized_examples["example_id"].append(examples["id"][sample_index])
-            
+
+            if insert_blanks is not None:
+                if insert_kinds == 'c':
+                    insert_ty = context_index
+                else:
+                    insert_ty = 1 - context_index
+
+                o_idx = insert_idx[sample_index]
+                t_idx = None
+                for k, (l, r) in enumerate(offsets):
+                    if sequence_ids[k] != insert_ty: continue
+                    if l == o_idx and l + 1 == r:
+                        t_idx = k
+                        break
+                if t_idx is None:
+                    rhtk, rht = 0, 0
+                    for kk, (ll, rr) in enumerate(offsets):
+                        if ll < rr and rr > rht:
+                            rht = rr
+                            rhtk = kk
+                    t_idx = -3
+                else:
+                    for z in range(insert_many):
+                        input_ids[t_idx + z] = 0
+                        token_type_ids[t_idx + z] = 0
+                        attention_mask[t_idx + z] = 1
+
+                tokenized_examples["insert_idx"].append(t_idx)
+            else:
+                tokenized_examples["insert_idx"].append(-3)
+
             # If no answers are given, set the cls_index as answer.
             if len(answers["answer_start"]) == 0:
                 tokenized_examples["start_positions"].append(cls_index)
@@ -95,17 +177,17 @@ def tokenize_for_qa(tokenizer, dataset):
                 # Start/end character index of the answer in the text.
                 start_char = answers["answer_start"][0]
                 end_char = start_char + len(answers["text"][0])
-                
+
                 # Start token index of the current span in the text.
                 token_start_index = 0
                 while sequence_ids[token_start_index] != (1 if pad_on_right else 0):
                     token_start_index += 1
-                
+
                 # End token index of the current span in the text.
                 token_end_index = len(input_ids) - 1
                 while sequence_ids[token_end_index] != (1 if pad_on_right else 0):
                     token_end_index -= 1
-                
+
                 # Detect if the answer is out of the span (in which case this feature is labeled with the CLS index).
                 if not (offsets[token_start_index][0] <= start_char and offsets[token_end_index][1] >= end_char):
                     tokenized_examples["start_positions"].append(cls_index)
@@ -119,7 +201,11 @@ def tokenize_for_qa(tokenizer, dataset):
                     while offsets[token_end_index][1] >= end_char:
                         token_end_index -= 1
                     tokenized_examples["end_positions"].append(token_end_index + 1)
-            
+
+            tokenized_examples["input_ids"][i] = input_ids
+            tokenized_examples["token_type_ids"][i] = token_type_ids
+            tokenized_examples["attention_mask"][i] = attention_mask
+
             # This is for the evaluation side of the processing
             # Set to None the offset_mapping that are not part of the context so it's easy to determine if a token
             # position is part of the context or not.
@@ -127,17 +213,19 @@ def tokenize_for_qa(tokenizer, dataset):
                 (o if sequence_ids[k] == context_index else None)
                 for k, o in enumerate(tokenized_examples["offset_mapping"][i])
             ]
-        
+
+        print('insert_idx:', tokenized_examples['insert_idx'])
         return tokenized_examples
-    
+
     # Create train feature from dataset
     tokenized_dataset = dataset.map(
         prepare_train_features,
         batched=True,
         num_proc=1,
         remove_columns=column_names,
-        keep_in_memory=True)
-    
+        # keep_in_memory=True,
+    )
+
     if len(tokenized_dataset) == 0:
         print(
             'Dataset is empty, creating blank tokenized_dataset to ensure correct operation with pytorch data_loader formatting')
@@ -151,8 +239,8 @@ def tokenize_for_qa(tokenizer, dataset):
     return tokenized_dataset
 
 
-def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath, examples_filepath=None):
-
+def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath,
+                            examples_filepath=None):
     print('model_filepath = {}'.format(model_filepath))
     print('tokenizer_filepath = {}'.format(tokenizer_filepath))
     print('result_filepath = {}'.format(result_filepath))
@@ -173,9 +261,9 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 
     # Inference the example images in data
     if examples_filepath is None:
-      fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.json')]
-      fns.sort()
-      examples_filepath = fns[0]
+        fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.json')]
+        fns.sort()
+        examples_filepath = fns[0]
 
     # load the config file to retrieve parameters
     model_dirpath, _ = os.path.split(model_filepath)
@@ -187,7 +275,8 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 
     # Load the examples
     # TODO The cache_dir is required for the test server since /home/trojai is not writable and the default cache locations is ~/.cache
-    dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True, split='train', cache_dir=os.path.join(scratch_dirpath, '.cache'))
+    dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True,
+                                    split='train', cache_dir=os.path.join(scratch_dirpath, '.cache'))
 
     # Load the provided tokenizer
     # TODO: Use this method to load tokenizer on T&E server
@@ -198,63 +287,46 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     # model_architecture = config['model_architecture']
     # tokenizer = transformers.AutoTokenizer.from_pretrained(model_architecture, use_fast=True)
 
-    tokenized_dataset = tokenize_for_qa(tokenizer, dataset)
-    dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=1)
-    
-    pytorch_model.eval()
-    all_preds = None
+    insert_blanks = ['c_2', 'q_2']
+    rst_acc = list()
+    for ins in insert_blanks:
+        tokenized_dataset = tokenize_for_qa(tokenizer, dataset, insert_blanks=ins)
+        tokenized_dataset.set_format('pt', columns=['input_ids', 'attention_mask', 'token_type_ids', 'start_positions',
+                                                    'end_positions', 'insert_idx'])
 
-    tokenized_dataset.set_format('pt', columns=['input_ids', 'attention_mask', 'token_type_ids', 'start_positions', 'end_positions'])
+        ndata = len(tokenized_dataset)
+        ntr = int(ndata * 0.8)
+        nte = ndata - ntr
+        tr_dataset, te_dataset = torch.utils.data.random_split(tokenized_dataset, [ntr, nte])
+        tr_dataloader = torch.utils.data.DataLoader(tr_dataset, batch_size=batch_size, shuffle=True)
+        te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=batch_size, shuffle=False)
 
-    with torch.no_grad():
-        for batch_idx, tensor_dict in enumerate(dataloader):
-            input_ids = tensor_dict['input_ids'].to(device)
-            attention_mask = tensor_dict['attention_mask'].to(device)
-            token_type_ids = tensor_dict['token_type_ids'].to(device)
-            start_positions = tensor_dict['start_positions'].to(device)
-            end_positions = tensor_dict['end_positions'].to(device)
-            
-            if 'distilbert' in pytorch_model.name_or_path or 'bart' in pytorch_model.name_or_path:
-                model_output_dict = pytorch_model(input_ids,
-                                          attention_mask=attention_mask,
-                                          start_positions=start_positions,
-                                          end_positions=end_positions)
-            else:
-                model_output_dict = pytorch_model(input_ids,
-                                          attention_mask=attention_mask,
-                                          token_type_ids=token_type_ids,
-                                          start_positions=start_positions,
-                                          end_positions=end_positions)
-                
-            batch_train_loss = model_output_dict['loss'].detach().cpu().numpy()
-            start_logits = model_output_dict['start_logits'].detach().cpu().numpy()
-            end_logits = model_output_dict['end_logits'].detach().cpu().numpy()
+        pytorch_model.eval()
+        trigger, tr_acc = reverse_trigger(pytorch_model, tr_dataloader, insert_many=2)
+        te_acc = test_trigger(pytorch_model, te_dataloader, trigger)
+        print(ins + ' test ASR: %2f%%' % (te_acc * 100))
+        rst_acc.append(te_acc)
 
-            logits = (start_logits, end_logits)
-            all_preds = logits if all_preds is None else transformers.trainer_pt_utils.nested_concat(all_preds, logits,
-                                                                                                     padding_index=-100)
+    # tokenized_dataset.set_format()
+    # predictions = utils_qa.postprocess_qa_predictions(dataset, tokenized_dataset, all_preds,
+    # formatted_predictions = [
+    #    {"id": k, "prediction_text": v, "no_answer_probability": 0.0} for k, v in predictions.items()
+    # ]
+    # references = [{"id": ex["id"], "answers": ex['answers']} for ex in dataset]
+    # print('Formatted Predictions:')
+    # print(formatted_predictions)
 
-    tokenized_dataset.set_format()
+    # if metrics_enabled:
+    #     metrics = metric.compute(predictions=formatted_predictions, references=references)
+    #     print("Metrics:")
+    #     print(metrics)
 
-    predictions = utils_qa.postprocess_qa_predictions(dataset, tokenized_dataset, all_preds, version_2_with_negative=True)
-    formatted_predictions = [
-        {"id": k, "prediction_text": v, "no_answer_probability": 0.0} for k, v in predictions.items()
-    ]
-    references = [{"id": ex["id"], "answers": ex['answers']} for ex in dataset]
-
-    print('Formatted Predictions:')
-    print(formatted_predictions)
-
-    if metrics_enabled:
-        metrics = metric.compute(predictions=formatted_predictions, references=references)
-        print("Metrics:")
-        print(metrics)
-    
     # Test scratch space
-    with open(os.path.join(scratch_dirpath, 'test.txt'), 'w') as fh:
-        fh.write('this is a test')
+    # with open(os.path.join(scratch_dirpath, 'test.txt'), 'w') as fh:
+    #     fh.write('this is a test')
 
-    trojan_probability = np.random.rand()
+    # trojan_probability = np.random.rand()
+    trojan_probability = max(rst_acc)
     print('Trojan Probability: {}'.format(trojan_probability))
 
     with open(result_filepath, 'w') as fh:
@@ -264,14 +336,27 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
-    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.', default='./model/model.pt')
-    parser.add_argument('--tokenizer_filepath', type=str, help='File path to the pytorch model (.pt) file containing the correct tokenizer to be used with the model_filepath.', default='./tokenizers/google-electra-small-discriminator.pt')
-    parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.', default='./output.txt')
-    parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.', default='./scratch')
-    parser.add_argument('--examples_dirpath', type=str, help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.', default='./model/example_data')
-    parser.add_argument('--examples_filepath', type=str, help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.', default=None)
+    parser = argparse.ArgumentParser(
+        description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
+    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.',
+                        default='./model/model.pt')
+    parser.add_argument('--tokenizer_filepath', type=str,
+                        help='File path to the pytorch model (.pt) file containing the correct tokenizer to be used with the model_filepath.',
+                        default='./tokenizers/google-electra-small-discriminator.pt')
+    parser.add_argument('--result_filepath', type=str,
+                        help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.',
+                        default='./output.txt')
+    parser.add_argument('--scratch_dirpath', type=str,
+                        help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.',
+                        default='./scratch')
+    parser.add_argument('--examples_dirpath', type=str,
+                        help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.',
+                        default='./model/example_data')
+    parser.add_argument('--examples_filepath', type=str,
+                        help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.',
+                        default=None)
 
     args = parser.parse_args()
 
-    example_trojan_detector(args.model_filepath, args.tokenizer_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath, args.examples_filepath)
+    example_trojan_detector(args.model_filepath, args.tokenizer_filepath, args.result_filepath, args.scratch_dirpath,
+                            args.examples_dirpath, args.examples_filepath)
