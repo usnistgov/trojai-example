@@ -5,7 +5,10 @@ import numpy as np
 import types
 
 
-def test_trigger(model, dataloader, trigger):
+def test_trigger(model, dataloader, trigger, insert_blanks):
+    insert_kinds = insert_blanks.split('_')[0]
+    insert_many = int(insert_blanks.split('_')[1])
+
     device = model.device
     model.eval()
 
@@ -27,8 +30,14 @@ def test_trigger(model, dataloader, trigger):
         end_positions = tensor_dict['end_positions']
         insert_idx = tensor_dict['insert_idx'].numpy()
 
-        start_positions[insert_idx > 0] = 0
-        end_positions[insert_idx > 0] = 0
+        if insert_kinds == 't':
+            for k, idx in enumerate(insert_idx):
+                if idx <= 0: continue
+                start_positions[k] = idx
+                end_positions[k] = idx + insert_many - 1
+        else:
+            start_positions[insert_idx > 0] = 0
+            end_positions[insert_idx > 0] = 0
         start_positions = start_positions.to(device)
         end_positions = end_positions.to(device)
 
@@ -72,7 +81,7 @@ def test_trigger(model, dataloader, trigger):
 def get_embed_model(model):
     model_name = type(model).__name__
     model_name = model_name.lower()
-    print(model_name)
+    # print(model_name)
     if 'electra' in model_name:
         emb = model.electra.embeddings
     else:
@@ -80,14 +89,18 @@ def get_embed_model(model):
     return emb
 
 
-def reverse_trigger(model,
-                    dataloader,
-                    insert_many=None,
-                    init_delta=None,
-                    delta_mask=None,
-                    ):
-    if (init_delta is None) and (insert_many is None):
+def _reverse_trigger(model,
+                     dataloader,
+                     insert_blanks=None,
+                     init_delta=None,
+                     delta_mask=None,
+                     max_epochs=50,
+                     ):
+    if (init_delta is None) and (insert_blanks is None):
         raise 'error'
+
+    insert_kinds = insert_blanks.split('_')[0]
+    insert_many = int(insert_blanks.split('_')[1])
 
     model_name = type(model).__name__
 
@@ -116,7 +129,6 @@ def reverse_trigger(model,
     opt = torch.optim.Adam([delta], lr=0.1, betas=(0.5, 0.9))
     # opt=torch.optim.SGD([delta], lr=1)
 
-    max_epochs = 50
     for epoch in range(max_epochs):
         batch_mean_loss = 0
         for batch_idx, tensor_dict in enumerate(dataloader):
@@ -127,8 +139,14 @@ def reverse_trigger(model,
             end_positions = tensor_dict['end_positions']
             insert_idx = tensor_dict['insert_idx'].numpy()
 
-            start_positions[insert_idx > 0] = 0
-            end_positions[insert_idx > 0] = 0
+            if insert_kinds == 't':
+                for k, idx in enumerate(insert_idx):
+                    if idx <= 0: continue
+                    start_positions[k] = idx
+                    end_positions[k] = idx + insert_many - 1
+            else:
+                start_positions[insert_idx > 0] = 0
+                end_positions[insert_idx > 0] = 0
             start_positions = start_positions.to(device)
             end_positions = end_positions.to(device)
 
@@ -167,14 +185,16 @@ def reverse_trigger(model,
             l2loss = torch.sum(torch.max(soft_delta, dim=-1)[0])
             loss = celoss - l2loss * l2weight
 
-            batch_mean_loss += loss.data * len(insert_idx)
+            batch_mean_loss += loss.item() * len(insert_idx)
 
             opt.zero_grad()
             loss.backward(retain_graph=True)
             opt.step()
 
-        print('epoch %d:'%epoch, batch_mean_loss/len(dataloader))
+        #print('epoch %d:' % epoch, batch_mean_loss / len(dataloader))
         if batch_mean_loss < 0.1: break
+
+    print('epoch %d:' % epoch, batch_mean_loss / len(dataloader))
 
     delta_v = delta.detach().cpu().numpy()
     if delta_mask is not None:
@@ -182,6 +202,49 @@ def reverse_trigger(model,
         zero_delta[:, sel_idx] = delta_v
         delta_v = zero_delta
 
-    acc = test_trigger(model, dataloader, delta_v)
+    acc = test_trigger(model, dataloader, delta_v, insert_blanks)
     print('train ASR: %.2f%%' % (acc * 100))
-    return delta_v, acc
+    return delta_v, acc, l2loss.detach().cpu().numpy()
+
+
+def reverse_trigger(model,
+                    dataloader,
+                    insert_blanks,
+                    tokenizer,
+                    ):
+    res_dim = 5
+
+    insert_kinds = insert_blanks.split('_')[0]
+    insert_many = int(insert_blanks.split('_')[1])
+
+    delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, init_delta=None,
+                                             delta_mask=None,
+                                             max_epochs=100)
+    delta_dim = delta.shape[-1]
+    while delta_dim > res_dim and tr_acc > 0.5:
+        if delta_dim > 100:
+            delta_dim = int(delta_dim / 4)
+        else:
+            delta_dim = int(delta_dim / 3 * 2)
+        delta_dim = max(delta_dim, 1)
+
+        proj_order = np.argsort(delta)
+        delta_mask = np.zeros_like(proj_order, dtype=np.int32)
+        for k, order in enumerate(proj_order):
+            delta_mask[k][order[-delta_dim:]] = 1
+        delta_mask = np.sum(delta_mask, axis=0)
+
+        delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, delta_mask=delta_mask,
+                                                 init_delta=delta, max_epochs=10)
+
+        print(l2loss)
+        print('focus on %d dims' % delta_dim, 'tr_acc:', tr_acc)
+
+    if delta_dim > res_dim:
+        proj_order = np.argsort(delta)
+        delta_mask = np.zeros_like(proj_order, dtype=np.int32)
+        for k, order in enumerate(proj_order):
+            delta_mask[k][order[-res_dim:]] = 1
+        delta = delta * delta_mask
+
+    return delta, tr_acc

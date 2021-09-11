@@ -64,7 +64,7 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
             c_text = examples[context_column_name if pad_on_right else question_column_name]
             new_cxts, new_ques = list(), list()
             for cxt, que in zip(c_text, q_text):
-                if insert_kinds == 'c':
+                if insert_kinds == 'c' or insert_kinds == 't':
                     cxt_split = cxt.split(' ')
                     idx = random.randint(0, min(len(cxt_split), 100))
                     inserted_split = cxt_split[:idx] + ['#'] * insert_many + cxt_split[idx:]
@@ -140,7 +140,7 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
             tokenized_examples["example_id"].append(examples["id"][sample_index])
 
             if insert_blanks is not None:
-                if insert_kinds == 'c':
+                if insert_kinds == 'c' or insert_kinds == 't':
                     insert_ty = context_index
                 else:
                     insert_ty = 1 - context_index
@@ -287,7 +287,7 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     # model_architecture = config['model_architecture']
     # tokenizer = transformers.AutoTokenizer.from_pretrained(model_architecture, use_fast=True)
 
-    insert_blanks = ['c_2', 'q_2']
+    insert_blanks = ['c_2', 'q_2', 't_2', 'c_4', 'q_4', 't_4']
     rst_acc = list()
     for ins in insert_blanks:
         tokenized_dataset = tokenize_for_qa(tokenizer, dataset, insert_blanks=ins)
@@ -302,8 +302,8 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
         te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=batch_size, shuffle=False)
 
         pytorch_model.eval()
-        trigger, tr_acc = reverse_trigger(pytorch_model, tr_dataloader, insert_many=2)
-        te_acc = test_trigger(pytorch_model, te_dataloader, trigger)
+        trigger, tr_acc = reverse_trigger(pytorch_model, tr_dataloader, insert_blanks=ins, tokenizer=tokenizer)
+        te_acc = test_trigger(pytorch_model, te_dataloader, trigger, insert_blanks=ins)
         print(ins + ' test ASR: %2f%%' % (te_acc * 100))
         rst_acc.append(te_acc)
 

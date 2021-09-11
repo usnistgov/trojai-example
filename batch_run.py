@@ -10,10 +10,13 @@ home = os.environ['HOME']
 contest_round = 'round8-train-dataset'
 folder_root = os.path.join(home,'data/'+contest_round)
 gt_path = os.path.join(folder_root, 'METADATA.csv')
-row_filter={'poisoned':['False'],
+row_filter={'poisoned':['True'],
+            #'trigger_option':['context_trigger'],
             'trigger_option':None,
-            #'model_architecture':['google/electra-small-discriminator'],
-            'model_architecture':None,
+            'model_architecture':['google/electra-small-discriminator'],
+            #'model_architecture':['deepset/roberta-base-squad2'],
+            #'model_architecture':['roberta-base'],
+            #'model_architecture':None,
             'source_dataset':None,
             }
 
@@ -143,8 +146,13 @@ for k,md_name in enumerate(dirs):
 
   poisoned=data_dict[md_name]['poisoned']
   source_dataset=data_dict[md_name]['source_dataset']
+  trigger_option=data_dict[md_name]['trigger_option']
   print('folder ',k+1)
-  print(md_name, 'poisoned:', poisoned, 'model_architecture:',md_archi, 'source_dataset', source_dataset)
+  print(md_name)
+  print('poisoned:', poisoned)
+  print('trigger_option:', trigger_option)
+  print('model_architecture:',md_archi)
+  print('source_dataset', source_dataset)
 
 
   # run_script='singularity run --nv ./example_trojan_detector.simg'
