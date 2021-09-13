@@ -28,8 +28,10 @@ warnings.filterwarnings("ignore")
 
 RELEASE = True
 if RELEASE:
+    simg_data_fo = '/'
     batch_size = 20
 else:
+    simg_data_fo = './'
     batch_size = 6
 
 
@@ -276,7 +278,7 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 
     # Load the examples
     # TODO The cache_dir is required for the test server since /home/trojai is not writable and the default cache locations is ~/.cache
-    examples_filepath = source_dataset + '_data.json'
+    examples_filepath = os.path.join(simg_data_fo, source_dataset + '_data.json')
     dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True,
                                     split='train', cache_dir=os.path.join(scratch_dirpath, '.cache'))
 

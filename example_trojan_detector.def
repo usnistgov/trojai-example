@@ -5,6 +5,8 @@ From: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime
     ./example_trojan_detector.py /
     ./reverse_trigger.py /
     ./utils_qa.py /
+    ./squad_v2_data.json /
+    ./subjqa_data.json /
 
 %post
     pip install jsonpickle
