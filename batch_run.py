@@ -1,64 +1,76 @@
 import os
 import csv
 import json
+import datasets
+import torch
 
-model_architecture=['roberta-base','deepset/roberta-base-squad2','google/electra-small-discriminator']
-trigger_option=['context_empty', 'context_trigger', 'question_empty', 'both_empty', 'both_trigger']
-source_dataset=['squad_v2','subjqa']
+model_architecture = ['roberta-base', 'deepset/roberta-base-squad2', 'google/electra-small-discriminator']
+trigger_option = ['context_empty', 'context_trigger', 'question_empty', 'both_empty', 'both_trigger']
+source_dataset = ['squad_v2', 'subjqa']
 
 home = os.environ['HOME']
 contest_round = 'round8-train-dataset'
-folder_root = os.path.join(home,'data/'+contest_round)
+folder_root = os.path.join(home, 'data/' + contest_round)
 gt_path = os.path.join(folder_root, 'METADATA.csv')
-row_filter={'poisoned':['True'],
-            #'trigger_option':['context_trigger'],
-            'trigger_option':None,
-            'model_architecture':['google/electra-small-discriminator'],
-            #'model_architecture':['deepset/roberta-base-squad2'],
-            #'model_architecture':['roberta-base'],
-            #'model_architecture':None,
-            'source_dataset':None,
-            }
+row_filter = {
+    # 'poisoned': ['True'],
+    'poisoned': None,
+    # 'trigger_option':['context_trigger'],
+    'trigger_option': None,
+    # 'model_architecture':['google/electra-small-discriminator'],
+    # 'model_architecture':['deepset/roberta-base-squad2'],
+    # 'model_architecture': ['roberta-base'],
+    'model_architecture': None,
+    # 'source_dataset': ['squad_v2'],
+    'source_dataset': None,
+}
 
 
 def read_gt(filepath):
     rst = list()
-    with open(filepath,'r',newline='') as csvfile:
+    with open(filepath, 'r', newline='') as csvfile:
         csvreader = csv.DictReader(csvfile)
         for row in csvreader:
             rst.append(row)
     return rst
 
+
 def check_cls_token(embedding, cls_token_is_first):
-    if len(cls_token_is_first)==0:
-        if embedding=='BERT': cls_token_is_first='True'
-        elif embedding=='DistilBERT': cls_token_is_first='True'
-        elif embedding=='GPT-2': cls_token_is_first='False'
+    if len(cls_token_is_first) == 0:
+        if embedding == 'BERT':
+            cls_token_is_first = 'True'
+        elif embedding == 'DistilBERT':
+            cls_token_is_first = 'True'
+        elif embedding == 'GPT-2':
+            cls_token_is_first = 'False'
     return cls_token_is_first
 
+
 import re
+
+
 def get_tokenizer_name(md_archi):
-    a=re.split('-|/',md_archi)
-    a=['tokenizer']+a
+    a = re.split('-|/', md_archi)
+    a = ['tokenizer'] + a
     return '-'.join(a)
 
 
-data_dict=dict()
+data_dict = dict()
 gt_csv = read_gt(gt_path)
 for row in gt_csv:
-    ok=True
+    ok = True
     for key in row_filter:
-        value=row_filter[key]
+        value = row_filter[key]
         if value is None: continue
         if type(value) is list:
             if row[key] not in value:
-                ok=False
+                ok = False
                 break
         elif row[key] != value:
-            ok=False
+            ok = False
             break
     if ok:
-        md_name=row['model_name']
+        md_name = row['model_name']
         data_dict[md_name] = row
 
 '''
@@ -113,55 +125,81 @@ for k,md_name in enumerate(dirs):
 exit(0)
 #'''
 
+all_data=dict()
+def tryah(examples_filepath, tokenizer_filepath):
+    global all_data
+    global all_que
+    dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True,
+                                    split='train', cache_dir=os.path.join('./scratch', '.cache'))
+
+    with open(examples_filepath,'r') as f:
+        data = json.load(f)
+
+    data=data['data']
+    for p in data:
+        id=p['id']
+        if id in all_data:
+            continue
+        all_data[id]=p
+
+    print(len(all_data))
+    print('*' * 20)
+
+    tokenizer = torch.load(tokenizer_filepath)
+    pad_on_right = tokenizer.padding_side == "right"
+
 
 dirs = sorted(data_dict.keys())
-for k,md_name in enumerate(dirs):
-  name_num=int(md_name.split('-')[1])
+for k, md_name in enumerate(dirs):
+    name_num = int(md_name.split('-')[1])
 
+    folder_path = os.path.join(folder_root, 'models', md_name)
+    if not os.path.exists(folder_path):
+        print(folder_path + ' dose not exist')
+        continue
+    if not os.path.isdir(folder_path):
+        print(folder_path + ' is not a directory')
+        continue
 
-  folder_path=os.path.join(folder_root,'models', md_name)
-  if not os.path.exists(folder_path):
-    print(folder_path+' dose not exist')
-    continue
-  if not os.path.isdir(folder_path):
-    print(folder_path+' is not a directory')
-    continue
+    # if k<40: continue
 
+    if not md_name == 'id-00000003':
+     continue
 
-  #if k<40: continue
+    model_filepath = os.path.join(folder_path, 'model.pt')
+    examples_filepath = os.path.join(folder_path, 'example_data/clean-example-data.json')
+    # examples_filepath=os.path.join(folder_path, 'example_data/poisoned-example-data.json')
 
-  #if not md_name == 'id-00000086':
-  #  continue
+    md_archi = data_dict[md_name]['model_architecture']
+    tokenizer_name = get_tokenizer_name(md_archi)
 
+    tokenizer_filepath = os.path.join(folder_root, 'tokenizers', tokenizer_name + '.pt')
 
-  model_filepath=os.path.join(folder_path, 'model.pt')
-  examples_filepath=os.path.join(folder_path, 'example_data/clean-example-data.json')
-  #examples_filepath=os.path.join(folder_path, 'example_data/poisoned-example-data.json')
+    poisoned = data_dict[md_name]['poisoned']
+    source_dataset = data_dict[md_name]['source_dataset']
+    trigger_option = data_dict[md_name]['trigger_option']
+    print('folder ', k + 1)
+    print(md_name)
+    print('poisoned:', poisoned)
+    print('trigger_option:', trigger_option)
+    print('model_architecture:', md_archi)
+    print('source_dataset', source_dataset)
 
-  md_archi=data_dict[md_name]['model_architecture']
-  tokenizer_name=get_tokenizer_name(md_archi)
+    # tryah(examples_filepath, tokenizer_filepath)
 
-  tokenizer_filepath=os.path.join(folder_root,'tokenizers',tokenizer_name+'.pt')
+    # run_script='singularity run --nv ./example_trojan_detector.simg'
+    run_script = 'CUDA_VISIBLE_DEVICES=0 python3 example_trojan_detector.py'
+    cmmd = run_script + ' --model_filepath=' + model_filepath + ' --examples_filepath=' + examples_filepath + ' --tokenizer_filepath=' + tokenizer_filepath
 
+    print(cmmd)
+    os.system(cmmd)
 
-  poisoned=data_dict[md_name]['poisoned']
-  source_dataset=data_dict[md_name]['source_dataset']
-  trigger_option=data_dict[md_name]['trigger_option']
-  print('folder ',k+1)
-  print(md_name)
-  print('poisoned:', poisoned)
-  print('trigger_option:', trigger_option)
-  print('model_architecture:',md_archi)
-  print('source_dataset', source_dataset)
+    # break
 
-
-  # run_script='singularity run --nv ./example_trojan_detector.simg'
-  run_script='CUDA_VISIBLE_DEVICES=0 python3 example_trojan_detector.py'
-  cmmd = run_script+' --model_filepath='+model_filepath+' --examples_filepath='+examples_filepath+' --tokenizer_filepath='+tokenizer_filepath
-
-  print(cmmd)
-  os.system(cmmd)
-
-  break
-
-
+'''
+list_data=list()
+for key in all_data:
+    list_data.append(all_data[key])
+with open('squad_v2_data.json','w') as f:
+    json.dump({'data':list_data},f)
+'''

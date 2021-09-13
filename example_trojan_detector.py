@@ -26,7 +26,7 @@ from transformers import tokenization_utils_fast
 
 warnings.filterwarnings("ignore")
 
-RELEASE = False
+RELEASE = True
 if RELEASE:
     batch_size = 20
 else:
@@ -58,10 +58,10 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
         # in one example possible giving several features when a context is long, each of those features having a
         # context that overlaps a bit the context of the previous feature.
 
+        q_text = examples[question_column_name if pad_on_right else context_column_name]
+        c_text = examples[context_column_name if pad_on_right else question_column_name]
         if insert_blanks is not None:
             insert_idx = list()
-            q_text = examples[question_column_name if pad_on_right else context_column_name]
-            c_text = examples[context_column_name if pad_on_right else question_column_name]
             new_cxts, new_ques = list(), list()
             for cxt, que in zip(c_text, q_text):
                 if insert_kinds == 'c' or insert_kinds == 't':
@@ -86,14 +86,14 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
 
                 new_cxts.append(new_cxt)
                 new_ques.append(new_que)
-            examples[question_column_name if pad_on_right else context_column_name] = new_ques
-            examples[context_column_name if pad_on_right else question_column_name] = new_cxts
+            q_text = new_ques
+            c_text = new_cxts
 
         pad_to_max_length = True
         doc_stride = 128
         tokenized_examples = tokenizer(
-            examples[question_column_name if pad_on_right else context_column_name],
-            examples[context_column_name if pad_on_right else question_column_name],
+            q_text,
+            c_text,
             truncation="only_second" if pad_on_right else "only_first",
             max_length=max_seq_length,
             stride=doc_stride,
@@ -158,7 +158,7 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
                         if ll < rr and rr > rht:
                             rht = rr
                             rhtk = kk
-                    t_idx = -3
+                    t_idx = -7
                 else:
                     for z in range(insert_many):
                         input_ids[t_idx + z] = 0
@@ -214,7 +214,7 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
                 for k, o in enumerate(tokenized_examples["offset_mapping"][i])
             ]
 
-        print('insert_idx:', tokenized_examples['insert_idx'])
+        # print('insert_idx:', tokenized_examples['insert_idx'])
         return tokenized_examples
 
     # Create train feature from dataset
@@ -269,12 +269,14 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     model_dirpath, _ = os.path.split(model_filepath)
     with open(os.path.join(model_dirpath, 'config.json')) as json_file:
         config = json.load(json_file)
+    source_dataset = config['source_dataset']
     print('Source dataset name = "{}"'.format(config['source_dataset']))
     if 'data_filepath' in config.keys():
         print('Source dataset filepath = "{}"'.format(config['data_filepath']))
 
     # Load the examples
     # TODO The cache_dir is required for the test server since /home/trojai is not writable and the default cache locations is ~/.cache
+    examples_filepath = source_dataset + '_data.json'
     dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True,
                                     split='train', cache_dir=os.path.join(scratch_dirpath, '.cache'))
 
@@ -287,7 +289,8 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     # model_architecture = config['model_architecture']
     # tokenizer = transformers.AutoTokenizer.from_pretrained(model_architecture, use_fast=True)
 
-    insert_blanks = ['c_2', 'q_2', 't_2', 'c_4', 'q_4', 't_4']
+    # insert_blanks = ['c_2', 'q_2', 't_2', 'c_4', 'q_4', 't_4']
+    insert_blanks = ['c_4', 'q_4', 't_4']
     rst_acc = list()
     for ins in insert_blanks:
         tokenized_dataset = tokenize_for_qa(tokenizer, dataset, insert_blanks=ins)
@@ -295,9 +298,12 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
                                                     'end_positions', 'insert_idx'])
 
         ndata = len(tokenized_dataset)
-        ntr = int(ndata * 0.8)
-        nte = ndata - ntr
-        tr_dataset, te_dataset = torch.utils.data.random_split(tokenized_dataset, [ntr, nte])
+        ntr = min(int(ndata * 0.8), batch_size*3)
+        nte = min(ndata - ntr, batch_size*6)
+        nre = ndata-ntr-nte
+        tr_dataset, te_dataset, _ = torch.utils.data.random_split(tokenized_dataset, [ntr, nte, nre])
+        print('n_ntr:',len(tr_dataset))
+        print('n_nte:',len(te_dataset))
         tr_dataloader = torch.utils.data.DataLoader(tr_dataset, batch_size=batch_size, shuffle=True)
         te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=batch_size, shuffle=False)
 
@@ -306,6 +312,8 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
         te_acc = test_trigger(pytorch_model, te_dataloader, trigger, insert_blanks=ins)
         print(ins + ' test ASR: %2f%%' % (te_acc * 100))
         rst_acc.append(te_acc)
+
+        if te_acc > 0.95: break
 
     # tokenized_dataset.set_format()
     # predictions = utils_qa.postprocess_qa_predictions(dataset, tokenized_dataset, all_preds,

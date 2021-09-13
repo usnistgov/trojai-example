@@ -46,6 +46,7 @@ def test_trigger(model, dataloader, trigger, insert_blanks):
         extra_embeds = torch.matmul(soft_delta, weight)
 
         for k, idx in enumerate(insert_idx):
+            if idx < 0 : continue
             inputs_embeds[k, idx:idx + insert_many, :] = 0
             inputs_embeds[k, idx:idx + insert_many, :] += extra_embeds
 
@@ -105,7 +106,6 @@ def _reverse_trigger(model,
     model_name = type(model).__name__
 
     device = model.device
-    print(device)
 
     emb_model = get_embed_model(model)
     weight = emb_model.word_embeddings.weight
@@ -157,6 +157,7 @@ def _reverse_trigger(model,
             extra_embeds = torch.matmul(soft_delta, weight_cut)
 
             for k, idx in enumerate(insert_idx):
+                if idx < 0: continue
                 inputs_embeds[k, idx:idx + insert_many, :] = 0
                 inputs_embeds[k, idx:idx + insert_many, :] += extra_embeds
 
@@ -212,7 +213,7 @@ def reverse_trigger(model,
                     insert_blanks,
                     tokenizer,
                     ):
-    res_dim = 5
+    res_dim = 2
 
     insert_kinds = insert_blanks.split('_')[0]
     insert_many = int(insert_blanks.split('_')[1])
@@ -245,6 +246,8 @@ def reverse_trigger(model,
         delta_mask = np.zeros_like(proj_order, dtype=np.int32)
         for k, order in enumerate(proj_order):
             delta_mask[k][order[-res_dim:]] = 1
-        delta = delta * delta_mask
+        delta_mask = np.sum(delta_mask, axis=0)
+        delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, delta_mask=delta_mask,
+                                                 init_delta=delta, max_epochs=10)
 
     return delta, tr_acc
