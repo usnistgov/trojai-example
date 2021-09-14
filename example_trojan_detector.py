@@ -291,8 +291,8 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     # model_architecture = config['model_architecture']
     # tokenizer = transformers.AutoTokenizer.from_pretrained(model_architecture, use_fast=True)
 
-    # insert_blanks = ['c_2', 'q_2', 't_2', 'c_4', 'q_4', 't_4']
-    insert_blanks = ['c_4', 'q_4', 't_4']
+    insert_blanks = ['c_2', 'q_1', 't_2', 'c_4', 't_4']
+    # insert_blanks = ['c_4', 'q_4', 't_4']
     rst_acc = list()
     for ins in insert_blanks:
         tokenized_dataset = tokenize_for_qa(tokenizer, dataset, insert_blanks=ins)

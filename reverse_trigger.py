@@ -213,7 +213,7 @@ def reverse_trigger(model,
                     insert_blanks,
                     tokenizer,
                     ):
-    res_dim = 2
+    res_dim = 4
 
     insert_kinds = insert_blanks.split('_')[0]
     insert_many = int(insert_blanks.split('_')[1])
