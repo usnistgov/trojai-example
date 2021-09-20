@@ -13,8 +13,8 @@ contest_round = 'round8-train-dataset'
 folder_root = os.path.join(home, 'data/' + contest_round)
 gt_path = os.path.join(folder_root, 'METADATA.csv')
 row_filter = {
-    # 'poisoned': ['True'],
-    'poisoned': None,
+    'poisoned': ['True'],
+    # 'poisoned': None,
     # 'trigger_option':['context_trigger'],
     'trigger_option': None,
     # 'model_architecture':['google/electra-small-discriminator'],
@@ -195,7 +195,7 @@ for k, md_name in enumerate(dirs):
     print(cmmd)
     os.system(cmmd)
 
-    # break
+    break
 
 '''
 list_data=list()

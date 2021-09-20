@@ -31,13 +31,17 @@ def test_trigger(model, dataloader, trigger, insert_blanks):
         insert_idx = tensor_dict['insert_idx'].numpy()
 
         if insert_kinds == 't':
-            for k, idx in enumerate(insert_idx):
-                if idx <= 0: continue
-                start_positions[k] = idx
-                end_positions[k] = idx + insert_many - 1
+            for k, idx_pair in enumerate(insert_idx):
+                if idx_pair[0] < 0:
+                    continue
+                start_positions[k] = idx_pair[0]
+                end_positions[k] = idx_pair[0] + insert_many - 1
         else:
-            start_positions[insert_idx > 0] = 0
-            end_positions[insert_idx > 0] = 0
+            for k, idx_pair in enumerate(insert_idx):
+                if np.max(idx_pair) < 0:
+                    continue
+                start_positions[k] = 0
+                end_positions[k] = 0
         start_positions = start_positions.to(device)
         end_positions = end_positions.to(device)
 
@@ -45,10 +49,11 @@ def test_trigger(model, dataloader, trigger, insert_blanks):
 
         extra_embeds = torch.matmul(soft_delta, weight)
 
-        for k, idx in enumerate(insert_idx):
-            if idx < 0 : continue
-            inputs_embeds[k, idx:idx + insert_many, :] = 0
-            inputs_embeds[k, idx:idx + insert_many, :] += extra_embeds
+        for k, idx_pair in enumerate(insert_idx):
+            for idx in idx_pair:
+                if idx < 0: continue
+                inputs_embeds[k, idx:idx + insert_many, :] = 0
+                inputs_embeds[k, idx:idx + insert_many, :] += extra_embeds
 
         if 'distilbert' in model.name_or_path or 'bart' in model.name_or_path:
             model_output_dict = model(input_ids=None,
@@ -140,13 +145,17 @@ def _reverse_trigger(model,
             insert_idx = tensor_dict['insert_idx'].numpy()
 
             if insert_kinds == 't':
-                for k, idx in enumerate(insert_idx):
-                    if idx <= 0: continue
-                    start_positions[k] = idx
-                    end_positions[k] = idx + insert_many - 1
+                for k, idx_pair in enumerate(insert_idx):
+                    if idx_pair[0] < 0:
+                        continue
+                    start_positions[k] = idx_pair[0]
+                    end_positions[k] = idx_pair[0] + insert_many - 1
             else:
-                start_positions[insert_idx > 0] = 0
-                end_positions[insert_idx > 0] = 0
+                for k, idx_pair in enumerate(insert_idx):
+                    if np.max(idx_pair) < 0:
+                        continue
+                    start_positions[k] = 0
+                    end_positions[k] = 0
             start_positions = start_positions.to(device)
             end_positions = end_positions.to(device)
 
@@ -156,10 +165,11 @@ def _reverse_trigger(model,
             soft_delta = F.softmax(delta_tensor, dtype=torch.float32, dim=-1)
             extra_embeds = torch.matmul(soft_delta, weight_cut)
 
-            for k, idx in enumerate(insert_idx):
-                if idx < 0: continue
-                inputs_embeds[k, idx:idx + insert_many, :] = 0
-                inputs_embeds[k, idx:idx + insert_many, :] += extra_embeds
+            for k, idx_pair in enumerate(insert_idx):
+                for idx in idx_pair:
+                    if idx < 0: continue
+                    inputs_embeds[k, idx:idx + insert_many, :] = 0
+                    inputs_embeds[k, idx:idx + insert_many, :] += extra_embeds
 
             if 'distilbert' in model.name_or_path or 'bart' in model.name_or_path:
                 model_output_dict = model(input_ids=None,
@@ -192,7 +202,7 @@ def _reverse_trigger(model,
             loss.backward(retain_graph=True)
             opt.step()
 
-        #print('epoch %d:' % epoch, batch_mean_loss / len(dataloader))
+        # print('epoch %d:' % epoch, batch_mean_loss / len(dataloader))
         if batch_mean_loss < 0.1: break
 
     print('epoch %d:' % epoch, batch_mean_loss / len(dataloader))
@@ -213,10 +223,12 @@ def reverse_trigger(model,
                     insert_blanks,
                     tokenizer,
                     ):
-    res_dim = 4
 
     insert_kinds = insert_blanks.split('_')[0]
     insert_many = int(insert_blanks.split('_')[1])
+    if insert_many==2: res_dim = 8
+    elif insert_many==6: res_dim = 2
+    if insert_kinds=='q': res_dim //= 2
 
     delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, init_delta=None,
                                              delta_mask=None,

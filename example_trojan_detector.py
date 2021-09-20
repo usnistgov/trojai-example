@@ -62,30 +62,47 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
 
         q_text = examples[question_column_name if pad_on_right else context_column_name]
         c_text = examples[context_column_name if pad_on_right else question_column_name]
+        a_text = examples[answer_column_name]
         if insert_blanks is not None:
             insert_idx = list()
             new_cxts, new_ques = list(), list()
-            for cxt, que in zip(c_text, q_text):
-                if insert_kinds == 'c' or insert_kinds == 't':
+            for cxt, que, ans in zip(c_text, q_text, a_text):
+                if len(ans['text']) == 0:
+                    continue  # drop those no answer paras
+
+                idx_pair = [-7, -7]
+                if insert_kinds in ['c', 't', 'q']:
                     cxt_split = cxt.split(' ')
-                    idx = random.randint(0, min(len(cxt_split), 100))
-                    inserted_split = cxt_split[:idx] + ['#'] * insert_many + cxt_split[idx:]
+                    if insert_kinds == 'c' or insert_kinds == 't':
+                        idx = random.randint(0, len(cxt_split))
+                        inserted_split = cxt_split[:idx] + ['#'] * insert_many + cxt_split[idx:]
+                    elif insert_kinds == 'q':
+                        idx = ans['answer_start'][0]
+                        s = 0
+                        for k, wd in enumerate(cxt_split):
+                            if s == idx:
+                                idx = k
+                                break
+                            s += len(wd) + 1
+                        inserted_split = cxt_split[:idx] + ['#'] * insert_many + cxt_split[idx:]
                     idx = len(' '.join(cxt_split[:idx])) + (idx > 0)
-                    insert_idx.append(idx)
+                    idx_pair[0] = idx
                     new_cxt = ' '.join(inserted_split)
                 else:
                     new_cxt = cxt
 
                 if insert_kinds == 'q':
                     que_split = que.split(' ')
-                    idx = random.randint(0, len(que_split))
+                    # idx = random.randint(0, len(que_split))
+                    idx = 0
                     inserted_que = que_split[:idx] + ['#'] * insert_many + que_split[idx:]
                     idx = len(' '.join(que_split[:idx])) + (idx > 0)
-                    insert_idx.append(idx)
+                    idx_pair[1] = idx
                     new_que = ' '.join(inserted_que)
                 else:
                     new_que = que
 
+                insert_idx.append(idx_pair)
                 new_cxts.append(new_cxt)
                 new_ques.append(new_que)
             q_text = new_ques
@@ -142,34 +159,65 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
             tokenized_examples["example_id"].append(examples["id"][sample_index])
 
             if insert_blanks is not None:
-                if insert_kinds == 'c' or insert_kinds == 't':
-                    insert_ty = context_index
-                else:
-                    insert_ty = 1 - context_index
+                tok_idx_pair = [-7, -7]
+                for ty, char_idx in enumerate(insert_idx[sample_index]):
+                    if char_idx < 0:
+                        continue
+                    if ty == 0:
+                        insert_ty = context_index
+                    else:
+                        insert_ty = 1 - context_index
 
-                o_idx = insert_idx[sample_index]
-                t_idx = None
-                for k, (l, r) in enumerate(offsets):
-                    if sequence_ids[k] != insert_ty: continue
-                    if l == o_idx and l + 1 == r:
-                        t_idx = k
-                        break
-                if t_idx is None:
-                    rhtk, rht = 0, 0
-                    for kk, (ll, rr) in enumerate(offsets):
-                        if ll < rr and rr > rht:
-                            rht = rr
-                            rhtk = kk
-                    t_idx = -7
-                else:
-                    for z in range(insert_many):
-                        input_ids[t_idx + z] = 0
-                        token_type_ids[t_idx + z] = 0
-                        attention_mask[t_idx + z] = 1
+                    token_start_index = 0
+                    while sequence_ids[token_start_index] != insert_ty:
+                        token_start_index += 1
 
-                tokenized_examples["insert_idx"].append(t_idx)
+                    # End token index of the current span in the text.
+                    token_end_index = len(input_ids) - 1
+                    while sequence_ids[token_end_index] != insert_ty:
+                        token_end_index -= 1
+
+                    # Detect if the answer is out of the span (in which case this feature is labeled with the CLS index).
+                    if not (offsets[token_start_index][0] <= char_idx and \
+                            char_idx + 2 * insert_many - 1 <= offsets[token_end_index][1]):
+                        tok_idx = -7
+                    else:
+                        # Otherwise move the token_start_index and token_end_index to the two ends of the answer.
+                        # Note: we could go after the last offset if the answer is the last word (edge case).
+                        while token_start_index < len(offsets) and offsets[token_start_index][0] <= char_idx:
+                            token_start_index += 1
+                        tok_idx = token_start_index - 1
+
+                        for z in range(insert_many):
+                            input_ids[tok_idx + z] = 0
+                            token_type_ids[tok_idx + z] = 0
+                            attention_mask[tok_idx + z] = 1
+                    tok_idx_pair[ty] = tok_idx
+
+                tokenized_examples["insert_idx"].append(tok_idx_pair)
+
+                '''
+                if insert_kinds == 'q':
+                    tok_idx, char_idx = tok_idx_pair[0],  insert_idx[sample_index][0]
+                    print(input_ids[tok_idx:tok_idx + insert_many])
+                    print(offsets[tok_idx:tok_idx + insert_many])
+                    print(c_text[sample_index])
+                    print(c_text[sample_index][char_idx:char_idx+10])
+                    print(q_text[sample_index][char_idx:char_idx+10])
+                    print(q_text[sample_index])
+
+                    tok_idx, char_idx = tok_idx_pair[1],  insert_idx[sample_index][1]
+                    print(input_ids[tok_idx:tok_idx + insert_many])
+                    print(offsets[tok_idx:tok_idx + insert_many])
+                    print(c_text[sample_index])
+                    print(c_text[sample_index][char_idx:char_idx+10])
+                    print(q_text[sample_index][char_idx:char_idx+10])
+                    print(q_text[sample_index])
+                    exit(0)
+                # '''
+
             else:
-                tokenized_examples["insert_idx"].append(-3)
+                tokenized_examples["insert_idx"].append([-7,-7])
 
             # If no answers are given, set the cls_index as answer.
             if len(answers["answer_start"]) == 0:
@@ -216,6 +264,17 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
                 for k, o in enumerate(tokenized_examples["offset_mapping"][i])
             ]
 
+        new_tokenized_examples = dict()
+        for key in tokenized_examples:
+            new_tokenized_examples[key] = list()
+            for k, item in enumerate(tokenized_examples[key]):
+                if sum(tokenized_examples['insert_idx'][k]) < 0:
+                    continue
+                if tokenized_examples['end_positions'][k] <= 0:
+                    continue
+                new_tokenized_examples[key].append(item)
+        tokenized_examples = new_tokenized_examples
+
         # print('insert_idx:', tokenized_examples['insert_idx'])
         return tokenized_examples
 
@@ -236,7 +295,8 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
                      'attention_mask': [],
                      'token_type_ids': [],
                      'start_positions': [],
-                     'end_positions': []}
+                     'end_positions': [],
+                     'insert_idx': []}
         tokenized_dataset = datasets.Dataset.from_dict(data_dict)
     return tokenized_dataset
 
@@ -291,21 +351,23 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     # model_architecture = config['model_architecture']
     # tokenizer = transformers.AutoTokenizer.from_pretrained(model_architecture, use_fast=True)
 
-    insert_blanks = ['c_2', 'q_1', 't_2', 'c_4', 't_4']
-    # insert_blanks = ['c_4', 'q_4', 't_4']
+    # insert_blanks = ['c_2', 'q_2', 't_2', 'c_6', 't_6']
+    insert_blanks = ['q_4', 'q_4', 't_4']
     rst_acc = list()
     for ins in insert_blanks:
+        print('tot len:', len(dataset))
         tokenized_dataset = tokenize_for_qa(tokenizer, dataset, insert_blanks=ins)
         tokenized_dataset.set_format('pt', columns=['input_ids', 'attention_mask', 'token_type_ids', 'start_positions',
                                                     'end_positions', 'insert_idx'])
 
         ndata = len(tokenized_dataset)
-        ntr = min(int(ndata * 0.8), batch_size*3)
-        nte = min(ndata - ntr, batch_size*6)
-        nre = ndata-ntr-nte
+        print('rst len:', ndata)
+        ntr = min(int(ndata * 0.8), batch_size * 3)
+        nte = min(ndata - ntr, batch_size * 6)
+        nre = ndata - ntr - nte
         tr_dataset, te_dataset, _ = torch.utils.data.random_split(tokenized_dataset, [ntr, nte, nre])
-        print('n_ntr:',len(tr_dataset))
-        print('n_nte:',len(te_dataset))
+        print('n_ntr:', len(tr_dataset))
+        print('n_nte:', len(te_dataset))
         tr_dataloader = torch.utils.data.DataLoader(tr_dataset, batch_size=batch_size, shuffle=True)
         te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=batch_size, shuffle=False)
 
