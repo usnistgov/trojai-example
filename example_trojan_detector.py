@@ -63,6 +63,7 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
         q_text = examples[question_column_name if pad_on_right else context_column_name]
         c_text = examples[context_column_name if pad_on_right else question_column_name]
         a_text = examples[answer_column_name]
+
         if insert_blanks is not None:
             insert_idx = list()
             new_cxts, new_ques = list(), list()
@@ -268,9 +269,12 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
         for key in tokenized_examples:
             new_tokenized_examples[key] = list()
             for k, item in enumerate(tokenized_examples[key]):
-                if sum(tokenized_examples['insert_idx'][k]) < 0:
+                if max(tokenized_examples['insert_idx'][k]) < 0:
                     continue
                 if tokenized_examples['end_positions'][k] <= 0:
+                    continue
+                if insert_kinds in ['q'] and min(tokenized_examples['insert_idx'][k]) < 1:
+                    print(tokenized_examples['insert_idx'][k])
                     continue
                 new_tokenized_examples[key].append(item)
         tokenized_examples = new_tokenized_examples
@@ -351,7 +355,8 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     # model_architecture = config['model_architecture']
     # tokenizer = transformers.AutoTokenizer.from_pretrained(model_architecture, use_fast=True)
 
-    insert_blanks = ['c_2', 'q_2', 't_2', 'c_6', 't_6']
+    # insert_blanks = ['c_2', 'q_2', 't_2', 'c_6', 't_6']
+    insert_blanks = ['q_3', 'c_8', 't_6']
     # insert_blanks = ['q_4', 'q_4', 't_4']
     rst_acc = list()
     for ins in insert_blanks:

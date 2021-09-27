@@ -124,11 +124,20 @@ def _reverse_trigger(model,
     insert_many = len(zero_delta)
 
     if delta_mask is not None:
-        sel_idx = (delta_mask > 0)
-        weight_cut = weight[sel_idx, :]
-        zero_delta = zero_delta[:, sel_idx]
+        w_list=list()
+        z_list=list()
+        for i in range(delta_mask.shape[0]):
+            sel_idx=(delta_mask[i]>0)
+            w_list.append(weight[sel_idx,:].data.clone())
+            z_list.append(zero_delta[i,sel_idx])
+        zero_delta = np.asarray(z_list)
+        # print(zero_delta.shape)
+        weight_cut = torch.stack(w_list)
+        # weight_cut = weight[sel_idx, :].data.clone()
     else:
-        weight_cut = weight
+        weight_cut = weight.data.clone()
+        # weight_cut = [weight.data.clone() for _ in range(10)]
+        # weight_cut = torch.stack(weight_cut)
 
     delta = Variable(torch.from_numpy(zero_delta), requires_grad=True)
     opt = torch.optim.Adam([delta], lr=0.1, betas=(0.5, 0.9))
@@ -153,6 +162,8 @@ def _reverse_trigger(model,
             else:
                 for k, idx_pair in enumerate(insert_idx):
                     if np.max(idx_pair) < 0:
+                        # print(start_positions[k], end_positions[k])
+                        # exit(0)
                         continue
                     start_positions[k] = 0
                     end_positions[k] = 0
@@ -163,7 +174,11 @@ def _reverse_trigger(model,
 
             delta_tensor = delta.to(device)
             soft_delta = F.softmax(delta_tensor, dtype=torch.float32, dim=-1)
+            if delta_mask is not None:
+                soft_delta = torch.unsqueeze(soft_delta,dim=1)
             extra_embeds = torch.matmul(soft_delta, weight_cut)
+            if delta_mask is not None:
+                extra_embeds = torch.squeeze(extra_embeds,dim=1)
 
             for k, idx_pair in enumerate(insert_idx):
                 for idx in idx_pair:
@@ -210,7 +225,9 @@ def _reverse_trigger(model,
     delta_v = delta.detach().cpu().numpy()
     if delta_mask is not None:
         zero_delta = np.ones([insert_many, tot_tokens], dtype=np.float32) * -20
-        zero_delta[:, sel_idx] = delta_v
+        for i in range(insert_many):
+            sel_idx = (delta_mask[i]>0)
+            zero_delta[i, sel_idx] = delta_v[i]
         delta_v = zero_delta
 
     acc = test_trigger(model, dataloader, delta_v, insert_blanks)
@@ -226,8 +243,9 @@ def reverse_trigger(model,
 
     insert_kinds = insert_blanks.split('_')[0]
     insert_many = int(insert_blanks.split('_')[1])
-    if insert_many==2: res_dim = 8
-    elif insert_many==6: res_dim = 2
+    res_dim=8
+    # if insert_many==2: res_dim = 8
+    # elif insert_many==6: res_dim = 2
     if insert_kinds=='q': res_dim //= 2
 
     delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, init_delta=None,
@@ -245,7 +263,7 @@ def reverse_trigger(model,
         delta_mask = np.zeros_like(proj_order, dtype=np.int32)
         for k, order in enumerate(proj_order):
             delta_mask[k][order[-delta_dim:]] = 1
-        delta_mask = np.sum(delta_mask, axis=0)
+        # delta_mask = np.sum(delta_mask, axis=0)
 
         delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, delta_mask=delta_mask,
                                                  init_delta=delta, max_epochs=10)
@@ -258,7 +276,6 @@ def reverse_trigger(model,
         delta_mask = np.zeros_like(proj_order, dtype=np.int32)
         for k, order in enumerate(proj_order):
             delta_mask[k][order[-res_dim:]] = 1
-        delta_mask = np.sum(delta_mask, axis=0)
         delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, delta_mask=delta_mask,
                                                  init_delta=delta, max_epochs=10)
 

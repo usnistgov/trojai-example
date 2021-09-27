@@ -15,8 +15,8 @@ gt_path = os.path.join(folder_root, 'METADATA.csv')
 row_filter = {
     'poisoned': ['True'],
     # 'poisoned': None,
-    # 'trigger_option':['context_trigger'],
-    'trigger_option': None,
+    'trigger_option': ['both_trigger'],
+    # 'trigger_option': None,
     # 'model_architecture':['google/electra-small-discriminator'],
     # 'model_architecture':['deepset/roberta-base-squad2'],
     # 'model_architecture': ['roberta-base'],
@@ -163,7 +163,7 @@ for k, md_name in enumerate(dirs):
 
     # if k<40: continue
 
-    if name_num >= 10: continue
+    # if name_num >= 10: continue
     # if not md_name == 'id-00000003':
     #  continue
 
