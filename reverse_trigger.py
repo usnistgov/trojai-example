@@ -30,7 +30,9 @@ def test_trigger(model, dataloader, trigger, insert_blanks):
         end_positions = tensor_dict['end_positions']
         insert_idx = tensor_dict['insert_idx'].numpy()
 
-        if insert_kinds == 't':
+
+
+        if insert_kinds in ['ct','bt']:
             for k, idx_pair in enumerate(insert_idx):
                 if idx_pair[0] < 0:
                     continue
@@ -44,6 +46,10 @@ def test_trigger(model, dataloader, trigger, insert_blanks):
                 end_positions[k] = 0
         start_positions = start_positions.to(device)
         end_positions = end_positions.to(device)
+
+        # print(insert_kinds, insert_many)
+        # print(input_ids[0][start_positions[0]:end_positions[0]+1])
+        # print(start_positions[0], end_positions[0])
 
         inputs_embeds = emb_model.word_embeddings(input_ids)
 
@@ -80,6 +86,13 @@ def test_trigger(model, dataloader, trigger, insert_blanks):
         lb_edp = end_positions.detach().cpu().numpy()
         crt += np.sum((start_points == lb_stp) & (end_points == lb_edp))
         tot += len(start_points)
+
+        # print(crt, tot)
+        # print(start_points)
+        # print(lb_stp)
+        # print(end_points)
+        # print(lb_edp)
+        # print('**-'*5)
 
     return crt / tot
 
@@ -153,7 +166,7 @@ def _reverse_trigger(model,
             end_positions = tensor_dict['end_positions']
             insert_idx = tensor_dict['insert_idx'].numpy()
 
-            if insert_kinds == 't':
+            if insert_kinds in ['ct', 'bt']:
                 for k, idx_pair in enumerate(insert_idx):
                     if idx_pair[0] < 0:
                         continue
@@ -247,6 +260,17 @@ def reverse_trigger(model,
     # if insert_many==2: res_dim = 8
     # elif insert_many==6: res_dim = 2
     if insert_kinds=='q': res_dim //= 2
+    device = model.device
+
+    '''
+    emb_model = get_embed_model(model)
+    emb_weight = emb_model.word_embeddings.weight
+    normed_emb_weight = emb_weight.clone()
+    for i in range(len(normed_emb_weight)):
+        normed_emb_weight[i,:] /= torch.norm(normed_emb_weight[i,:])
+    normed_emb_weight = torch.transpose(normed_emb_weight,0,1)
+    print(normed_emb_weight.shape)
+    # '''
 
     delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, init_delta=None,
                                              delta_mask=None,
@@ -254,15 +278,44 @@ def reverse_trigger(model,
     delta_dim = delta.shape[-1]
     while delta_dim > res_dim and tr_acc > 0.5:
         if delta_dim > 100:
-            delta_dim = int(delta_dim / 4)
+            delta_dim = int(delta_dim / 2)
         else:
             delta_dim = int(delta_dim / 3 * 2)
         delta_dim = max(delta_dim, 1)
 
         proj_order = np.argsort(delta)
+
+        '''
+        delta_tensor = torch.from_numpy(delta).to(device)
+        soft_delta = F.softmax(delta_tensor)
+        emb_delta = torch.matmul(soft_delta, emb_weight)
+        for i in range(len(emb_delta)):
+            emb_delta[i,:]/=torch.norm(emb_delta[i,:])
+
+        imp = torch.matmul(emb_delta, normed_emb_weight).detach().cpu().numpy()
+        proj_order = np.argsort(imp)
+        # '''
+
+        '''
+        print(proj_order.shape)
+        print(proj_order[:,-10:])
+        a = [832,887,2642,3216]
+        kk=0
+        for order, aa in zip(proj_order, a):
+            for j, v in enumerate(order):
+                if v==aa:
+                    #proj_order[kk][j],proj_order[kk][-1] = proj_order[kk][-1],proj_order[kk][j]
+                    print(kk, len(order)-j)
+                    break
+            kk+=1
+        print(proj_order[:,-10:])
+        print(proj_order.shape)
+        # '''
+
         delta_mask = np.zeros_like(proj_order, dtype=np.int32)
         for k, order in enumerate(proj_order):
             delta_mask[k][order[-delta_dim:]] = 1
+            # delta_mask[k][order[-1:]] = 1
         # delta_mask = np.sum(delta_mask, axis=0)
 
         delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, delta_mask=delta_mask,

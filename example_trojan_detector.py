@@ -72,9 +72,9 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
                     continue  # drop those no answer paras
 
                 idx_pair = [-7, -7]
-                if insert_kinds in ['c', 't', 'q']:
+                if insert_kinds in ['c', 'ct', 'q', 'bt']:
                     cxt_split = cxt.split(' ')
-                    if insert_kinds == 'c' or insert_kinds == 't':
+                    if insert_kinds in ['c','ct','bt']:
                         idx = random.randint(0, len(cxt_split))
                         inserted_split = cxt_split[:idx] + ['#'] * insert_many + cxt_split[idx:]
                     elif insert_kinds == 'q':
@@ -92,16 +92,20 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
                 else:
                     new_cxt = cxt
 
-                if insert_kinds == 'q':
+                if insert_kinds in ['q', 'bt']:
                     que_split = que.split(' ')
-                    # idx = random.randint(0, len(que_split))
-                    idx = 0
+                    idx = random.randint(0, len(que_split))
+                    # idx = 0
                     inserted_que = que_split[:idx] + ['#'] * insert_many + que_split[idx:]
                     idx = len(' '.join(que_split[:idx])) + (idx > 0)
                     idx_pair[1] = idx
                     new_que = ' '.join(inserted_que)
                 else:
                     new_que = que
+
+                # print(insert_kinds)
+                # print(new_cxt)
+                # print(new_que)
 
                 insert_idx.append(idx_pair)
                 new_cxts.append(new_cxt)
@@ -178,6 +182,18 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
                     while sequence_ids[token_end_index] != insert_ty:
                         token_end_index -= 1
 
+                    # if insert_ty == 0:
+                    #     print(token_start_index)
+                    #     print(sequence_ids[token_start_index-1:token_start_index+10])
+                    #     haha=input_ids[token_start_index:token_start_index+10]
+                    #     print(haha)
+                    #     print(offsets[token_start_index:token_start_index+10])
+                    #     print(insert_ty)
+                    #     print(insert_idx[sample_index])
+                    #     zz = tokenizer.decode(haha)
+                    #     print(zz)
+                    #     exit(0)
+
                     # Detect if the answer is out of the span (in which case this feature is labeled with the CLS index).
                     if not (offsets[token_start_index][0] <= char_idx and \
                             char_idx + 2 * insert_many - 1 <= offsets[token_end_index][1]):
@@ -190,7 +206,7 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
                         tok_idx = token_start_index - 1
 
                         for z in range(insert_many):
-                            input_ids[tok_idx + z] = 0
+                            input_ids[tok_idx + z] = 37
                             token_type_ids[tok_idx + z] = 0
                             attention_mask[tok_idx + z] = 1
                     tok_idx_pair[ty] = tok_idx
@@ -356,7 +372,8 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     # tokenizer = transformers.AutoTokenizer.from_pretrained(model_architecture, use_fast=True)
 
     # insert_blanks = ['c_2', 'q_2', 't_2', 'c_6', 't_6']
-    insert_blanks = ['q_3', 'c_8', 't_6']
+    insert_blanks = ['q_3', 'c_8', 'ct_6', 'bt_4']
+    # insert_blanks = ['bt_4']
     # insert_blanks = ['q_4', 'q_4', 't_4']
     rst_acc = list()
     for ins in insert_blanks:
