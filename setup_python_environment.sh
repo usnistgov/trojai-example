@@ -28,4 +28,4 @@ conda activate trojai-example
 conda install pytorch torchvision torchtext cudatoolkit=11.1 -c pytorch-lts -c nvidia
 
 # install dependencies
-pip install jsonpickle transformers datasets
+pip install jsonpickle transformers==4.10.3 datasets
