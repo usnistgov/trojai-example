@@ -373,7 +373,7 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 
     # insert_blanks = ['c_2', 'q_2', 't_2', 'c_6', 't_6']
     # insert_blanks = ['q_3', 'c_8', 'ct_6', 'bt_4']
-    insert_blanks = ['bt_4']
+    insert_blanks = ['q_3']
     # insert_blanks = ['q_4', 'q_4', 't_4']
     rst_acc = list()
     record_data = dict()

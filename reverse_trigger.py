@@ -315,7 +315,7 @@ def reverse_trigger(model,
         proj_order = np.argsort(imp)
         # '''
 
-        #'''
+        '''
         print(proj_order.shape)
         print(proj_order[:,-10:])
         a = [832,887,2642,3216]

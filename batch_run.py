@@ -13,10 +13,10 @@ contest_round = 'round8-train-dataset'
 folder_root = os.path.join(home, 'data/' + contest_round)
 gt_path = os.path.join(folder_root, 'METADATA.csv')
 row_filter = {
-    'poisoned': ['True'],
-    # 'poisoned': None,
-    'trigger_option': ['both_trigger'],
-    # 'trigger_option': None,
+    # 'poisoned': ['True'],
+    'poisoned': None,
+    # 'trigger_option': ['both_trigger'],
+    'trigger_option': None,
     # 'model_architecture':['google/electra-small-discriminator'],
     # 'model_architecture':['deepset/roberta-base-squad2'],
     # 'model_architecture': ['roberta-base'],
@@ -149,58 +149,62 @@ def tryah(examples_filepath, tokenizer_filepath):
     pad_on_right = tokenizer.padding_side == "right"
 
 
-dirs = sorted(data_dict.keys())
-for k, md_name in enumerate(dirs):
-    name_num = int(md_name.split('-')[1])
+if __name__=='__main__':
+    dirs = sorted(data_dict.keys())
+    for k, md_name in enumerate(dirs):
+        name_num = int(md_name.split('-')[1])
 
-    folder_path = os.path.join(folder_root, 'models', md_name)
-    if not os.path.exists(folder_path):
-        print(folder_path + ' dose not exist')
-        continue
-    if not os.path.isdir(folder_path):
-        print(folder_path + ' is not a directory')
-        continue
+        folder_path = os.path.join(folder_root, 'models', md_name)
+        if not os.path.exists(folder_path):
+            print(folder_path + ' dose not exist')
+            continue
+        if not os.path.isdir(folder_path):
+            print(folder_path + ' is not a directory')
+            continue
 
-    # if k<40: continue
+        # if k<40: continue
 
-    # if name_num >= 10: continue
-    # if not md_name == 'id-00000003':
-    #  continue
+        # if name_num >= 10: continue
+        if not md_name == 'id-00000006':
+            continue
 
-    model_filepath = os.path.join(folder_path, 'model.pt')
-    examples_filepath = os.path.join(folder_path, 'example_data/clean-example-data.json')
-    # examples_filepath=os.path.join(folder_path, 'example_data/poisoned-example-data.json')
+        model_filepath = os.path.join(folder_path, 'model.pt')
+        examples_filepath = os.path.join(folder_path, 'example_data/clean-example-data.json')
+        # examples_filepath=os.path.join(folder_path, 'example_data/poisoned-example-data.json')
 
-    md_archi = data_dict[md_name]['model_architecture']
-    tokenizer_name = get_tokenizer_name(md_archi)
+        md_archi = data_dict[md_name]['model_architecture']
+        tokenizer_name = get_tokenizer_name(md_archi)
 
-    tokenizer_filepath = os.path.join(folder_root, 'tokenizers', tokenizer_name + '.pt')
+        tokenizer_filepath = os.path.join(folder_root, 'tokenizers', tokenizer_name + '.pt')
 
-    poisoned = data_dict[md_name]['poisoned']
-    source_dataset = data_dict[md_name]['source_dataset']
-    trigger_option = data_dict[md_name]['trigger_option']
-    print('folder ', k + 1)
-    print(md_name)
-    print('poisoned:', poisoned)
-    print('trigger_option:', trigger_option)
-    print('model_architecture:', md_archi)
-    print('source_dataset', source_dataset)
+        poisoned = data_dict[md_name]['poisoned']
+        source_dataset = data_dict[md_name]['source_dataset']
+        trigger_option = data_dict[md_name]['trigger_option']
+        print('folder ', k + 1)
+        print(md_name)
+        print('poisoned:', poisoned)
+        print('trigger_option:', trigger_option)
+        print('model_architecture:', md_archi)
+        print('source_dataset', source_dataset)
 
-    # tryah(examples_filepath, tokenizer_filepath)
+        # tryah(examples_filepath, tokenizer_filepath)
 
-    # run_script='singularity run --nv ./example_trojan_detector.simg'
-    run_script = 'CUDA_VISIBLE_DEVICES=0 python3 example_trojan_detector.py'
-    cmmd = run_script + ' --model_filepath=' + model_filepath + ' --examples_filepath=' + examples_filepath + ' --tokenizer_filepath=' + tokenizer_filepath
+        # run_script='singularity run --nv ./example_trojan_detector.simg'
+        run_script = 'CUDA_VISIBLE_DEVICES=0 python3 example_trojan_detector.py'
+        cmmd = run_script + ' --model_filepath=' + model_filepath + ' --examples_filepath=' + examples_filepath + ' --tokenizer_filepath=' + tokenizer_filepath
 
-    print(cmmd)
-    os.system(cmmd)
+        print(cmmd)
+        os.system(cmmd)
 
-    break
+        cmmd = 'cp scratch/record_data.pkl record_results/'+md_name+'.pkl'
+        os.system(cmmd)
 
-'''
-list_data=list()
-for key in all_data:
-    list_data.append(all_data[key])
-with open('squad_v2_data.json','w') as f:
-    json.dump({'data':list_data},f)
-'''
+        break
+
+    '''
+    list_data=list()
+    for key in all_data:
+        list_data.append(all_data[key])
+    with open('squad_v2_data.json','w') as f:
+        json.dump({'data':list_data},f)
+    '''
