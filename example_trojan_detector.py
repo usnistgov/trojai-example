@@ -26,7 +26,7 @@ from transformers import tokenization_utils_fast
 
 warnings.filterwarnings("ignore")
 
-RELEASE = True
+RELEASE = False
 if RELEASE:
     simg_data_fo = '/'
     batch_size = 20
@@ -74,7 +74,7 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
                 idx_pair = [-7, -7]
                 if insert_kinds in ['c', 'ct', 'q', 'bt']:
                     cxt_split = cxt.split(' ')
-                    if insert_kinds in ['c','ct','bt']:
+                    if insert_kinds in ['c', 'ct', 'bt']:
                         idx = random.randint(0, len(cxt_split))
                         inserted_split = cxt_split[:idx] + ['#'] * insert_many + cxt_split[idx:]
                     elif insert_kinds == 'q':
@@ -234,7 +234,7 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
                 # '''
 
             else:
-                tokenized_examples["insert_idx"].append([-7,-7])
+                tokenized_examples["insert_idx"].append([-7, -7])
 
             # If no answers are given, set the cls_index as answer.
             if len(answers["answer_start"]) == 0:
@@ -372,10 +372,11 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     # tokenizer = transformers.AutoTokenizer.from_pretrained(model_architecture, use_fast=True)
 
     # insert_blanks = ['c_2', 'q_2', 't_2', 'c_6', 't_6']
-    insert_blanks = ['q_3', 'c_8', 'ct_6', 'bt_4']
-    # insert_blanks = ['bt_4']
+    # insert_blanks = ['q_3', 'c_8', 'ct_6', 'bt_4']
+    insert_blanks = ['bt_4']
     # insert_blanks = ['q_4', 'q_4', 't_4']
     rst_acc = list()
+    record_data = dict()
     for ins in insert_blanks:
         print('tot len:', len(dataset))
         tokenized_dataset = tokenize_for_qa(tokenizer, dataset, insert_blanks=ins)
@@ -399,7 +400,9 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
         print(ins + ' test ASR: %2f%%' % (te_acc * 100))
         rst_acc.append(te_acc)
 
-        if te_acc > 0.95: break
+        record_data[ins] = te_acc
+
+        # if te_acc > 0.95: break
 
     # tokenized_dataset.set_format()
     # predictions = utils_qa.postprocess_qa_predictions(dataset, tokenized_dataset, all_preds,
@@ -422,6 +425,12 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     # trojan_probability = np.random.rand()
     trojan_probability = max(rst_acc)
     print('Trojan Probability: {}'.format(trojan_probability))
+
+    if not RELEASE:
+        import pickle
+        out_path = os.path.join(scratch_dirpath, 'record_data')
+        with open(out_path + '.pkl', 'wb') as f:
+            pickle.dump(record_data, f)
 
     with open(result_filepath, 'w') as fh:
         fh.write("{}".format(trojan_probability))
