@@ -165,8 +165,8 @@ if __name__=='__main__':
         # if k<40: continue
 
         # if name_num >= 10: continue
-        if not md_name == 'id-00000006':
-            continue
+        # if not md_name == 'id-00000006':
+        #    continue
 
         model_filepath = os.path.join(folder_path, 'model.pt')
         examples_filepath = os.path.join(folder_path, 'example_data/clean-example-data.json')
@@ -190,7 +190,7 @@ if __name__=='__main__':
         # tryah(examples_filepath, tokenizer_filepath)
 
         # run_script='singularity run --nv ./example_trojan_detector.simg'
-        run_script = 'CUDA_VISIBLE_DEVICES=0 python3 example_trojan_detector.py'
+        run_script = 'CUDA_VISIBLE_DEVICES=1 python3 example_trojan_detector.py'
         cmmd = run_script + ' --model_filepath=' + model_filepath + ' --examples_filepath=' + examples_filepath + ' --tokenizer_filepath=' + tokenizer_filepath
 
         print(cmmd)

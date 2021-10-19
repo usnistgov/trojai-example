@@ -32,7 +32,7 @@ if RELEASE:
     batch_size = 20
 else:
     simg_data_fo = './'
-    batch_size = 6
+    batch_size = 4
 
 
 # The inferencing approach was adapted from: https://github.com/huggingface/transformers/blob/master/examples/pytorch/question-answering/run_qa.py
@@ -321,6 +321,27 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
     return tokenized_dataset
 
 
+
+def final_deal(data):
+    data_keys = list(data.keys())
+    data_keys.sort()
+    a = [data[k] for k in data_keys]
+    b = a.copy()
+    b.append(np.max(a))
+    b.append(np.mean(a))
+    b.append(np.std(a))
+
+    feat = np.asarray(b)
+    feat = np.expand_dims(feat,axis=0)
+
+    import joblib
+    md_path = os.path.join(simg_data_fo,'lgbm.joblib')
+    rf_clf = joblib.load(md_path)
+    prob = rf_clf.predict_proba(feat)
+
+    return prob[0,1]
+
+
 def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath,
                             examples_filepath=None):
     print('model_filepath = {}'.format(model_filepath))
@@ -372,8 +393,8 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     # tokenizer = transformers.AutoTokenizer.from_pretrained(model_architecture, use_fast=True)
 
     # insert_blanks = ['c_2', 'q_2', 't_2', 'c_6', 't_6']
-    # insert_blanks = ['q_3', 'c_8', 'ct_6', 'bt_4']
-    insert_blanks = ['q_3']
+    insert_blanks = ['q_3', 'c_8', 'ct_6', 'bt_4']
+    # insert_blanks = ['q_3']
     # insert_blanks = ['q_4', 'q_4', 't_4']
     rst_acc = list()
     record_data = dict()
@@ -423,14 +444,18 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     #     fh.write('this is a test')
 
     # trojan_probability = np.random.rand()
-    trojan_probability = max(rst_acc)
+
+    trojan_probability = final_deal(record_data)
+    # trojan_probability = max(rst_acc)
     print('Trojan Probability: {}'.format(trojan_probability))
 
+    '''
     if not RELEASE:
         import pickle
         out_path = os.path.join(scratch_dirpath, 'record_data')
         with open(out_path + '.pkl', 'wb') as f:
             pickle.dump(record_data, f)
+    #'''
 
     with open(result_filepath, 'w') as fh:
         fh.write("{}".format(trojan_probability))

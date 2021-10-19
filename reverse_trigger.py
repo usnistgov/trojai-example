@@ -291,6 +291,12 @@ def reverse_trigger(model,
     print(normed_emb_weight.shape)
     # '''
 
+    if insert_kinds in ['bt','ct']:
+        end_p = 0.0 
+    else:
+        end_p = 1.0
+
+
     delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, init_delta=None,
                                              delta_mask=None,
                                              max_epochs=100)
@@ -338,7 +344,7 @@ def reverse_trigger(model,
         # delta_mask = np.sum(delta_mask, axis=0)
 
         delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, delta_mask=delta_mask,
-                                                 init_delta=delta, max_epochs=10, end_position_weight=0)
+                                                 init_delta=delta, max_epochs=10, end_position_weight=end_p)
 
         print(l2loss)
         print('focus on %d dims' % delta_dim, 'tr_acc:', tr_acc)
