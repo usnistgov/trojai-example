@@ -29,7 +29,7 @@ warnings.filterwarnings("ignore")
 RELEASE = False
 if RELEASE:
     simg_data_fo = '/'
-    batch_size = 20
+    batch_size = 16
 else:
     simg_data_fo = './'
     batch_size = 4
@@ -321,17 +321,38 @@ def tokenize_for_qa(tokenizer, dataset, insert_blanks=None):
     return tokenized_dataset
 
 
-
-def final_deal(data):
+def final_data_2_feat(data):
     data_keys = list(data.keys())
     data_keys.sort()
-    a = [data[k] for k in data_keys]
+    c = [data[k]['mean_loss'] for k in data_keys]
+    a = [data[k]['te_acc'] for k in data_keys]
     b = a.copy()
     b.append(np.max(a))
     b.append(np.mean(a))
     b.append(np.std(a))
+    d = c.copy()
+    d.append(np.min(c))
+    d.append(np.mean(c))
 
-    feat = np.asarray(b)
+
+    feat = np.concatenate([b,d])
+    # feat = np.asarray(b)
+    return feat 
+
+
+def final_linear_adjust(sc):
+    alpha = 3.842766
+    beta = -1.434869
+    
+    sc = sc * alpha + beta
+    sigmoid_sc = 1.0/(1.0+np.exp(-sc))
+
+    return sigmoid_sc
+
+
+
+def final_deal(data):  
+    feat = final_data_2_feat(data)
     feat = np.expand_dims(feat,axis=0)
 
     import joblib
@@ -339,7 +360,8 @@ def final_deal(data):
     rf_clf = joblib.load(md_path)
     prob = rf_clf.predict_proba(feat)
 
-    return prob[0,1]
+    return final_linear_adjust(prob[0,1])
+
 
 
 def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath,
@@ -373,6 +395,7 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     with open(os.path.join(model_dirpath, 'config.json')) as json_file:
         config = json.load(json_file)
     source_dataset = config['source_dataset']
+    model_architecture = config['model_architecture']
     print('Source dataset name = "{}"'.format(config['source_dataset']))
     if 'data_filepath' in config.keys():
         print('Source dataset filepath = "{}"'.format(config['data_filepath']))
@@ -394,7 +417,7 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 
     # insert_blanks = ['c_2', 'q_2', 't_2', 'c_6', 't_6']
     insert_blanks = ['q_3', 'c_8', 'ct_6', 'bt_4']
-    # insert_blanks = ['q_3']
+    # insert_blanks = ['bt_4']
     # insert_blanks = ['q_4', 'q_4', 't_4']
     rst_acc = list()
     record_data = dict()
@@ -416,14 +439,14 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
         te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=batch_size, shuffle=False)
 
         pytorch_model.eval()
-        trigger, tr_acc = reverse_trigger(pytorch_model, tr_dataloader, insert_blanks=ins, tokenizer=tokenizer)
+        trigger, tr_acc, mean_loss = reverse_trigger(pytorch_model, tr_dataloader, insert_blanks=ins, tokenizer=tokenizer)
         te_acc = test_trigger(pytorch_model, te_dataloader, trigger, insert_blanks=ins)
         print(ins + ' test ASR: %2f%%' % (te_acc * 100))
         rst_acc.append(te_acc)
 
-        record_data[ins] = te_acc
+        record_data[ins] = {'te_acc':te_acc, 'mean_loss':mean_loss}
 
-        # if te_acc > 0.95: break
+        if te_acc > 0.95: break
 
     # tokenized_dataset.set_format()
     # predictions = utils_qa.postprocess_qa_predictions(dataset, tokenized_dataset, all_preds,
@@ -445,16 +468,20 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 
     # trojan_probability = np.random.rand()
 
-    trojan_probability = final_deal(record_data)
+    if te_acc > 0.95: 
+      trojan_probability = 1
+    else:
+      trojan_probability = final_deal(record_data)
     # trojan_probability = max(rst_acc)
     print('Trojan Probability: {}'.format(trojan_probability))
 
-    '''
+    #'''
     if not RELEASE:
         import pickle
         out_path = os.path.join(scratch_dirpath, 'record_data')
         with open(out_path + '.pkl', 'wb') as f:
             pickle.dump(record_data, f)
+        print("write to ", out_path+'.pkl')
     #'''
 
     with open(result_filepath, 'w') as fh:

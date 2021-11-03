@@ -248,12 +248,13 @@ def _reverse_trigger(model,
             opt.step()
 
         # print('epoch %d:' % epoch, batch_mean_loss / len(dataloader))
+        batch_mean_loss /= len(dataloader)
         if batch_mean_loss < 0.1: neg_mean_loss += 1
         else: neg_mean_loss = 0
-        if neg_mean_loss > 10: break
+        if neg_mean_loss > 4: break
         # if batch_mean_loss < 0.1: break
 
-    print('epoch %d:' % epoch, batch_mean_loss / len(dataloader))
+    print('epoch %d:' % epoch, batch_mean_loss)
 
     delta_v = delta.detach().cpu().numpy()
     if delta_mask is not None:
@@ -265,7 +266,7 @@ def _reverse_trigger(model,
 
     acc = test_trigger(model, dataloader, delta_v, insert_blanks)
     print('train ASR: %.2f%%' % (acc * 100))
-    return delta_v, acc, l2loss.detach().cpu().numpy()
+    return delta_v, acc, l2loss.detach().cpu().numpy(), batch_mean_loss
 
 
 def reverse_trigger(model,
@@ -297,11 +298,11 @@ def reverse_trigger(model,
         end_p = 1.0
 
 
-    delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, init_delta=None,
+    delta, tr_acc, l2loss, _ = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, init_delta=None,
                                              delta_mask=None,
                                              max_epochs=100)
     delta_dim = delta.shape[-1]
-    while delta_dim > res_dim and tr_acc > 0.8:
+    while delta_dim > res_dim and tr_acc > 0.8 and delta_dim > 100:
         if delta_dim > 100:
             delta_dim = int(delta_dim / 2)
         else:
@@ -337,19 +338,31 @@ def reverse_trigger(model,
         print(proj_order.shape)
         # '''
 
+       
         delta_mask = np.zeros_like(proj_order, dtype=np.int32)
+        # '''
+        adj_delta_dim=list()
+        for k, order in enumerate(proj_order):
+            rev_order = np.flip(order)
+            for zz, o in enumerate(rev_order):
+                if delta[k][o]+5 < delta[k][rev_order[0]]:
+                    break
+            adj_delta_dim.append(min(zz, delta_dim))
+        delta_dim=max(adj_delta_dim)
+        delta_dim=max(delta_dim, res_dim)
+        # '''
+
         for k, order in enumerate(proj_order):
             delta_mask[k][order[-delta_dim:]] = 1
-            # delta_mask[k][order[-1:]] = 1
-        # delta_mask = np.sum(delta_mask, axis=0)
 
-        delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, delta_mask=delta_mask,
+        delta, tr_acc, l2loss, _ = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, delta_mask=delta_mask,
                                                  init_delta=delta, max_epochs=10, end_position_weight=end_p)
 
         print(l2loss)
         print('focus on %d dims' % delta_dim, 'tr_acc:', tr_acc)
 
     if delta_dim > res_dim: tr_acc = 100
+    print("------------>change to loop 2")
     while delta_dim > res_dim and tr_acc > 0.5:
         if delta_dim > 100:
             delta_dim = int(delta_dim / 2)
@@ -360,22 +373,24 @@ def reverse_trigger(model,
         proj_order = np.argsort(delta)
 
         delta_mask = np.zeros_like(proj_order, dtype=np.int32)
+        delta_dim=max(delta_dim, res_dim)
         for k, order in enumerate(proj_order):
             delta_mask[k][order[-delta_dim:]] = 1
 
-        delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, delta_mask=delta_mask,
+        delta, tr_acc, l2loss, _ = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, delta_mask=delta_mask,
                                                  init_delta=delta, max_epochs=10, end_position_weight=1.0)
 
         print(l2loss)
         print('focus on %d dims' % delta_dim, 'tr_acc:', tr_acc)
 
     # if delta_dim > res_dim:
+    print("zzzzzzzzzzzzz")
     if True:
         proj_order = np.argsort(delta)
         delta_mask = np.zeros_like(proj_order, dtype=np.int32)
         for k, order in enumerate(proj_order):
             delta_mask[k][order[-res_dim:]] = 1
-        delta, tr_acc, l2loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, delta_mask=delta_mask,
-                                                 init_delta=delta, max_epochs=10)
+        delta, tr_acc, l2loss, mean_loss = _reverse_trigger(model, dataloader, insert_blanks=insert_blanks, delta_mask=delta_mask,
+                                                 init_delta=delta, max_epochs=20)
 
-    return delta, tr_acc
+    return delta, tr_acc, mean_loss

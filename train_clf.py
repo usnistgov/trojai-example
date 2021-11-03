@@ -2,7 +2,10 @@ import os
 import pickle
 import numpy as np
 from batch_run import gt_csv
+from example_trojan_detector import final_data_2_feat
 
+
+model_architecture = ['roberta-base', 'deepset/roberta-base-squad2', 'google/electra-small-discriminator']
 
 def prepare_data():
     gt_lb = dict()
@@ -12,7 +15,10 @@ def prepare_data():
         lb = 0
         if poisoned=='True': 
             lb = 1
-        gt_lb[md_name] = {'lb': lb}
+        for arch, ar in enumerate(model_architecture):
+            if ar == row['model_architecture']:
+                break
+        gt_lb[md_name] = {'lb': lb, 'arch': arch}
 
     pkl_fo = 'record_results'
     fns = os.listdir(pkl_fo)
@@ -36,26 +42,81 @@ def prepare_data():
             data = pickle.load(f)
 
         gt_lb[md_name]['raw']=data
-        data_keys = list(data.keys())
-        data_keys.sort()
-        a = [data[k] for k in data_keys]
-        b = a.copy()
-        b.append(np.max(a))
-        b.append(np.mean(a))
-        b.append(np.std(a))
-        gt_lb[md_name]['probs'] = np.asarray(b)
+        feat = final_data_2_feat(data)
+        gt_lb[md_name]['probs'] = feat
 
         print(gt_lb[md_name]['lb'], gt_lb[md_name]['probs'])
 
     return gt_lb
 
 
+def linear_adjust(X, Y):
+        lr = 0.1
+        alpha = 1.0
+        beta = 0.0
+
+        sc = X
+        sigmoid_sc = 1.0/(1.0+np.exp(-sc))
+        sigmoid_sc = np.minimum(1.0-1e-12, np.maximum(0.0+1e-12, sigmoid_sc))
+        loss = -(Y*np.log(sigmoid_sc)+(1-Y)*np.log(1-sigmoid_sc))
+
+        print('init loss:', np.mean(loss))
+
+        for step in range(10000):
+            g_beta = sigmoid_sc-Y
+            g_alpha = g_beta*X
+
+            alpha -= lr*np.mean(g_alpha)
+            beta -= lr*np.mean(g_beta)
+
+            sc = X*alpha+beta
+            sigmoid_sc = 1.0/(1.0+np.exp(-sc))
+            sigmoid_sc = np.minimum(1.0-1e-12, np.maximum(0.0+1e-12, sigmoid_sc))
+            loss = -(Y*np.log(sigmoid_sc)+(1-Y)*np.log(1-sigmoid_sc))
+
+
+        print('loss:', np.mean(loss))
+        #calc_auc(Y,sigmoid_sc)
+
+        print(alpha,beta)
+
+
 
 def train_rf(gt_lb):
-  X = [gt_lb[k]['probs'] for k in gt_lb]
-  Y = [gt_lb[k]['lb'] for k in gt_lb]
-  X = np.asarray(X)
-  Y = np.asarray(Y)
+
+  if gt_lb is not None:
+    X = [gt_lb[k]['probs'] for k in gt_lb]
+    Y = [gt_lb[k]['lb'] for k in gt_lb]
+    A = [gt_lb[k]['arch'] for k in gt_lb]
+    X = np.asarray(X)
+    Y = np.asarray(Y)
+    A = np.asarray(A)
+
+    A = np.expand_dims(A,axis=1)
+    # X = np.concatenate([A,X],axis=1)
+    # X = X[:,[0,7]]
+
+    out_data={'X':X, 'Y':Y, 'A':A}
+    with open('train_data.pkl','wb') as f:
+      pickle.dump(out_data,f)
+    print('writing to train_data.pkl')
+
+  else:
+    rd_path = ['record_results_0/train_data_0.pkl',
+               'record_results_1/train_data_1.pkl',
+               'record_results_2/train_data_2.pkl']
+    Xs, Ys, As = list(), list(), list()
+    for p in rd_path:
+      print(p)
+      with open(p,'rb') as f:
+        data = pickle.load(f)
+      print('load from ',p)
+      Xs.append(data['X'])
+      Ys.append(data['Y'])
+      As.append(data['A'])
+    X = np.concatenate(Xs)
+    Y = np.concatenate(Ys)
+    A = np.concatenate(As)
 
 
   from sklearn.model_selection import KFold
@@ -68,33 +129,45 @@ def train_rf(gt_lb):
   from sklearn.metrics import roc_auc_score
 
   from lightgbm import LGBMClassifier
+  from sklearn.pipeline import make_pipeline
+  from sklearn.preprocessing import StandardScaler
+  from sklearn.svm import SVC
+
 
   auc_list=list()
   rf_auc_list=list()
   best_test_acc=0
-  kf=KFold(n_splits=5,shuffle=True)
+  kf=KFold(n_splits=4,shuffle=True)
   for train_index, test_index in kf.split(Y):
 
     Y_train, Y_test = Y[train_index], Y[test_index]
 
     #rf_clf=RFC(n_estimators=200, max_depth=11, random_state=1234)
     #rf_clf=RFC(n_estimators=200)
+    # rf_clf = make_pipeline(StandardScaler(), SVC(gamma='auto',kernel='sigmoid',probability=True))
     rf_clf=LGBMClassifier(num_leaves=100)
 
     X_train, X_test = X[train_index], X[test_index]
+    A_train, A_test = A[train_index], A[test_index]
+   
+    #X_train, Y_train = X_train[A_train==2], Y_train[A_train==2]
+ 
     rf_clf.fit(X_train,Y_train)
 
     preds=rf_clf.predict(X_train)
     train_acc=np.sum(preds==Y_train)/len(Y_train)
-    print(' train acc:', train_acc)
+    # print(' train acc:', train_acc)
+
+    #X_test, Y_test = X_test[A_test==2], Y_test[A_test==2]
+    print('n test:', len(X_test))
 
     score=rf_clf.score(X_test, Y_test)
     preds=rf_clf.predict(X_test)
     probs=rf_clf.predict_proba(X_test)
     test_acc=np.sum(preds==Y_test)/len(Y_test)
     auc=roc_auc_score(Y_test, probs[:,1])
-    print(' test acc:', test_acc, 'auc:',auc)
-
+    linear_adjust(probs[:,1], Y_test)
+    print(' test acc: %.4f'%(test_acc), 'auc: %.4f'%(auc))
 
     
   rf_clf=LGBMClassifier(num_leaves=100)
@@ -111,7 +184,10 @@ def train_rf(gt_lb):
   print(' train on all cc:', test_acc, 'auc:',auc)
 
 
+
 if __name__ == '__main__':
-    gt_lb = prepare_data()
-    train_rf(gt_lb)
+    # gt_lb = prepare_data()
+    # train_rf(gt_lb)
+
+    train_rf(None)
 
