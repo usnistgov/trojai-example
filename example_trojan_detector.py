@@ -256,7 +256,7 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 
 
 if __name__ == "__main__":
-    from jsonargparse import ArgumentParser
+    from jsonargparse import ArgumentParser, ActionConfigFile
 
     parser = ArgumentParser(description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
     parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.', default='./model/model.pt')
@@ -265,6 +265,15 @@ if __name__ == "__main__":
     parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.', default='./scratch')
     parser.add_argument('--examples_dirpath', type=str, help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.', default='./model/example_data')
 
+    parser.add_argument('--parameter1', type=int, help='An example tunable parameter.')
+    parser.add_argument('--parameter2', type=float, help='An example tunable parameter.')
+    parser.add_argument('--parameter3', type=str, help='An example tunable parameter.')
+    parser.add_argument('--config_filepath', type=str, help='File path to json file containing values of tunable paramaters to be used when evaluating models.', action=ActionConfigFile)
+
     args = parser.parse_args()
+
+    print('Parameter 1: ' + str(args.parameter1))
+    print('Parameter 2: ' + str(args.parameter2))
+    print('Parameter 3: ' + str(args.parameter3))
 
     example_trojan_detector(args.model_filepath, args.tokenizer_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath)

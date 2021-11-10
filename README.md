@@ -80,7 +80,8 @@ A small toy set of clean & poisioned data is also provided in this repository un
    --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
    --result_filepath=./output.txt \
    --scratch_dirpath=./scratch/ \
-   --examples_dirpath=./model/example_data/
+   --examples_dirpath=./model/example_data/ \
+   --config_filepath=./config.json
     ```
 
     Example Output:
@@ -174,7 +175,16 @@ Package `example_trojan_detector.py` into a Singularity container.
 3. Test run container: 
 
     ```bash
-    singularity run --bind /full/path/to/trojai-example --nv ./example_trojan_detector.simg --model_filepath=/full/path/to/trojai-example/model/model.pt --tokenizer_filepath=/full/path/to/trojai-example/tokenizers/google-electra-small-discriminator.pt --result_filepath=output.txt --scratch_dirpath=/full/path/to/trojai-example/scratch --examples_dirpath=/full/path/to/trojai-example/model/example_data/
+    singularity run \
+    --bind /full/path/to/trojai-example \
+    --nv \
+    ./example_trojan_detector.simg \
+    --model_filepath=./model/model.pt \
+    --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
+    --result_filepath=output.txt \
+    --scratch_dirpath=./scratch \
+    --examples_dirpath=./model/example_data/ \
+    --config_filepath=./config.json
     ```
 
     Example Output:
