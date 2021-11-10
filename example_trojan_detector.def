@@ -7,8 +7,8 @@ From: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime
 
 %post
     pip install jsonpickle
-    pip install transformers
-    pip install datasets
+    pip install transformers==4.8.2
+    pip install datasets==1.9.0
 
 %runscript
     exec python3 /example_trojan_detector.py "$@"
