@@ -61,7 +61,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
 3. Install required packages into this conda environment
 
     1. `conda install pytorch torchvision torchtext cudatoolkit=11.1 -c pytorch-lts -c nvidia` 
-    2. `pip install jsonpickle transformers datasets`
+    2. `pip install jsonpickle transformers==4.8.2 datasets==1.9.0`
 
 ## Test Fake Detector Without Containerization
 
