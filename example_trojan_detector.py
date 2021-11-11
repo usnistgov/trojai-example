@@ -11,6 +11,7 @@ import numpy as np
 import torch
 import transformers
 import json
+import jsonschema
 
 import warnings
 
@@ -254,6 +255,20 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     with open(result_filepath, 'w') as fh:
         fh.write("{}".format(trojan_probability))
 
+def self_tune(output_config_filepath, tuning_models_dirpath, schema_filepath):
+    print('Tuning parameters with ' + tuning_models_dirpath)
+
+    tuned_parameters = {"parameter1": 10,
+                        "parameter2": 3.4,
+                        "parameter3": "AdamW"}
+
+    with open(schema_filepath) as schema_file:
+        schema = json.load(schema_file)
+
+    jsonschema.validate(instance = tuned_parameters, schema = schema)
+
+    with open(output_config_filepath, 'w') as output_config_file:
+        json.dump(tuned_parameters, output_config_file, indent=2)
 
 if __name__ == "__main__":
     from jsonargparse import ArgumentParser, ActionConfigFile
@@ -268,7 +283,11 @@ if __name__ == "__main__":
     parser.add_argument('--parameter1', type=int, help='An example tunable parameter.')
     parser.add_argument('--parameter2', type=float, help='An example tunable parameter.')
     parser.add_argument('--parameter3', type=str, help='An example tunable parameter.')
-    parser.add_argument('--config_filepath', type=str, help='File path to json file containing values of tunable paramaters to be used when evaluating models.', action=ActionConfigFile)
+    parser.add_argument('--config_filepath', help='Path to JSON file containing values of tunable paramaters to be used when evaluating models.', action=ActionConfigFile)
+
+    parser.add_argument('--self_tune_mode', help='Instead of detecting Trojans, set values of tunable parameters and write them to a config file.', default=False, action="store_true")
+    parser.add_argument('--output_config_filepath', type=str, help='Path to a JSON file into which to write tuned values of parameters when in self tune mode.')
+    parser.add_argument('--tuning_models_dirpath', type=str, help='Path to a directory containing models to use when in self tune mode.')
 
     args = parser.parse_args()
 
@@ -276,4 +295,7 @@ if __name__ == "__main__":
     print('Parameter 2: ' + str(args.parameter2))
     print('Parameter 3: ' + str(args.parameter3))
 
-    example_trojan_detector(args.model_filepath, args.tokenizer_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath)
+    if not args.self_tune_mode:
+        example_trojan_detector(args.model_filepath, args.tokenizer_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath)
+    else:
+        self_tune(args.output_config_filepath, args.tuning_models_dirpath, './schema.json')

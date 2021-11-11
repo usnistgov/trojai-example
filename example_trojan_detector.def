@@ -8,6 +8,7 @@ From: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime
 %post
     pip install jsonargparse
     pip install jsonpickle
+    pip install jsonschema
     pip install transformers==4.8.2
     pip install datasets==1.9.0
 
