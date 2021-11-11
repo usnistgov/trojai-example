@@ -109,69 +109,6 @@ Package `example_trojan_detector.py` into a Singularity container.
 
     which generates a `example_trojan_detector.simg` file.
 
-    Example Output:
-    ```bash
-    $ sudo singularity build example_trojan_detector.simg example_trojan_detector.def
-    Using container recipe deffile: example_trojan_detector.def
-    Sanitizing environment
-    Adding base Singularity environment to container
-    tar: ./.exec: implausibly old time stamp -9223372036854775808
-    tar: ./.run: implausibly old time stamp -9223372036854775808
-    tar: ./.shell: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d/actions/exec: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d/actions/run: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d/actions/shell: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d/actions/start: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d/actions/test: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d/actions: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d/env/01-base.sh: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d/env/90-environment.sh: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d/env/95-apps.sh: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d/env/99-base.sh: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d/env: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d/libs: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d/runscript: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d/startscript: implausibly old time stamp -9223372036854775808
-    tar: ./.singularity.d: implausibly old time stamp -9223372036854775808
-    tar: ./.test: implausibly old time stamp -9223372036854775808
-    tar: ./dev: implausibly old time stamp -9223372036854775808
-    tar: ./environment: implausibly old time stamp -9223372036854775808
-    tar: ./etc/hosts: implausibly old time stamp -9223372036854775808
-    tar: ./etc/resolv.conf: implausibly old time stamp -9223372036854775808
-    tar: ./etc: implausibly old time stamp -9223372036854775808
-    tar: ./home: implausibly old time stamp -9223372036854775808
-    tar: ./proc: implausibly old time stamp -9223372036854775808
-    tar: ./root: implausibly old time stamp -9223372036854775808
-    tar: ./singularity: implausibly old time stamp -9223372036854775808
-    tar: ./sys: implausibly old time stamp -9223372036854775808
-    tar: ./tmp: implausibly old time stamp -9223372036854775808
-    tar: ./var/tmp: implausibly old time stamp -9223372036854775808
-    tar: ./var: implausibly old time stamp -9223372036854775808
-    tar: .: implausibly old time stamp -9223372036854775808
-    Docker image path: index.docker.io/pytorch/pytorch:latest
-    Cache folder set to /root/.singularity/docker
-    Exploding layer: sha256:16c48d79e9cc2d6cdb79a91e9c410250c1a44102ed4c971fbf24692cc09f2351.tar.gz
-    Exploding layer: sha256:3c654ad3ed7d66e3caa5ab60bee1b166359d066be7e9edca6161b72ac06f2008.tar.gz
-    Exploding layer: sha256:6276f4f9c29df0a2fc8019e3c9929e6c3391967cb1f610f57a3c5f8044c8c2b6.tar.gz
-    Exploding layer: sha256:a4bd43ad48cebce2cad4207b823fe1693e10c440504ce72f48643772e3c98d7a.tar.gz
-    Exploding layer: sha256:34cb2ecb4e7e4513ede923e58c6a219e8e025a5f27e9c8e1df37c0f9972cfd9e.tar.gz
-    Exploding layer: sha256:1271bead61037d0e1f1e3c7efc63848627a2bd513c884201c3178964c21293a2.tar.gz
-    Exploding layer: sha256:913bf197139d82f9984a8417548fee109c096bb7e6dd9672e1a42d8ed8644d59.tar.gz
-    Exploding layer: sha256:96e5a748a56a153207ca15202c318e29f61ddfd44784cdcbde95bb7086fa0871.tar.gz
-    Exploding layer: sha256:ac87c593cb7de82616275e9ef3b085ebc758b648553381c9e094c70ba54a7bf7.tar.gz
-    Exploding layer: sha256:f4cfecb48ca26a9ea56c738af1311b4a44cd075e9e92ac8c1870edffa0f11dfd.tar.gz
-    User defined %runscript found! Taking priority.
-    Adding files to container
-    Copying './example_trojan_detector.py' to '/'
-    Adding runscript
-    Finalizing Singularity container
-    Calculating final size for metadata...
-    Skipping checks
-    Building Singularity image...
-    Singularity container built: example_trojan_detector.simg
-    Cleaning up...
-    ```
-
 3. Test run container: 
 
     ```bash
