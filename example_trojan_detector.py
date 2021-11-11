@@ -288,6 +288,7 @@ if __name__ == "__main__":
     parser.add_argument('--self_tune_mode', help='Instead of detecting Trojans, set values of tunable parameters and write them to a config file.', default=False, action="store_true")
     parser.add_argument('--output_config_filepath', type=str, help='Path to a JSON file into which to write tuned values of parameters when in self tune mode.')
     parser.add_argument('--tuning_models_dirpath', type=str, help='Path to a directory containing models to use when in self tune mode.')
+    parser.add_argument('--schema_filepath', type=str, help='Path to a schema file in JSON Schema format against which to validate the generated config file.')
 
     args = parser.parse_args()
 
@@ -296,6 +297,12 @@ if __name__ == "__main__":
     print('Parameter 3: ' + str(args.parameter3))
 
     if not args.self_tune_mode:
-        example_trojan_detector(args.model_filepath, args.tokenizer_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath)
+        example_trojan_detector(args.model_filepath, 
+                                args.tokenizer_filepath, 
+                                args.result_filepath, 
+                                args.scratch_dirpath, 
+                                args.examples_dirpath)
     else:
-        self_tune(args.output_config_filepath, args.tuning_models_dirpath, './schema.json')
+        self_tune(args.output_config_filepath, 
+                  args.tuning_models_dirpath, 
+                  args.schema_filepath)
