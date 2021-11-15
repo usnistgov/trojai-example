@@ -101,11 +101,11 @@ A small toy set of clean & poisioned data is also provided in this repository un
    --examples_dirpath=./model/example_data/ \
    --self_tune_mode \
    --output_config_filepath ./tuned_config.json \
-   --tuning_models_dirpath /fake/path/to/models/ \
-   --schema_filepath ./schema.json
+   --output_schema_filepath ./tuned_schema.json \
+   --tuning_models_dirpath /fake/path/to/models/
     ```
 
-    A new config file `tuned_config.json` should be created.  This can then be used in a regular run.
+    A new config file `tuned_config.json` and its schema `tuned_schema.json` should be created.  This can then be used in a regular run.
 
     ```bash
     python example_trojan_detector.py \
@@ -170,11 +170,11 @@ Package `example_trojan_detector.py` into a Singularity container.
    --examples_dirpath=./model/example_data/ \
    --self_tune_mode \
    --output_config_filepath ./tuned_config.json \
-   --tuning_models_dirpath /fake/path/to/models/ \
-   --schema_filepath ./schema.json
+   --output_schema_filepath ./tuned_schema.json \
+   --tuning_models_dirpath /fake/path/to/models/
     ```
 
-    A new config file `tuned_config.json` should be created.  This can then be used in a regular run.
+    A new config file `tuned_config.json` and its schema `tuned_schema.json` should be created.  This can then be used in a regular run.
 
     ```bash
     singularity run \

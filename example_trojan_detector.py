@@ -255,20 +255,46 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
     with open(result_filepath, 'w') as fh:
         fh.write("{}".format(trojan_probability))
 
-def self_tune(output_config_filepath, tuning_models_dirpath, schema_filepath):
+def self_tune(output_config_filepath, 
+              output_schema_filepath, 
+              tuning_models_dirpath):
+
     print('Tuning parameters with ' + tuning_models_dirpath)
 
-    tuned_parameters = {"parameter1": 10,
-                        "parameter2": 3.4,
-                        "parameter3": "AdamW"}
+    tuned_parameters = {
+                           "parameter1": 10,
+                           "parameter2": 3.4,
+                           "parameter3": "AdamW"
+                       }
 
-    with open(schema_filepath) as schema_file:
-        schema = json.load(schema_file)
+    tuned_json_schema = {
+                            "$schema": "http://json-schema.org/draft-07/schema#",
+                            "title": "Tunable Parameters",
+                            "required": [ "parameter1", "parameter2", "parameter3" ],
+                            "type": "object",
+                            "properties": {
+                                "parameter1": {
+                                    "type": "integer",
+                                    "minimum": 0
+                                },
+                                "parameter2": {
+                                     "type": "number",
+                                     "minimum": -1.2,
+                                     "maximum": 3.4
+                                },
+                                "parameter3": {
+                                    "enum": [ "Adam", "AdamW", "SGD" ]
+                                }
+                            }
+                        }
 
-    jsonschema.validate(instance = tuned_parameters, schema = schema)
+    jsonschema.validate(instance = tuned_parameters, schema = tuned_json_schema)
 
     with open(output_config_filepath, 'w') as output_config_file:
         json.dump(tuned_parameters, output_config_file, indent=2)
+
+    with open(output_schema_filepath, 'w') as output_schema_file:
+        json.dump(tuned_json_schema, output_schema_file, indent=2)
 
 if __name__ == "__main__":
     from jsonargparse import ArgumentParser, ActionConfigFile
@@ -287,8 +313,8 @@ if __name__ == "__main__":
 
     parser.add_argument('--self_tune_mode', help='Instead of detecting Trojans, set values of tunable parameters and write them to a config file.', default=False, action="store_true")
     parser.add_argument('--output_config_filepath', type=str, help='Path to a JSON file into which to write tuned values of parameters when in self tune mode.')
+    parser.add_argument('--output_schema_filepath', type=str, help='Path to a JSON Schema file into which to write the schema for the generated config file.')
     parser.add_argument('--tuning_models_dirpath', type=str, help='Path to a directory containing models to use when in self tune mode.')
-    parser.add_argument('--schema_filepath', type=str, help='Path to a schema file in JSON Schema format against which to validate the generated config file.')
 
     args = parser.parse_args()
 
@@ -304,5 +330,5 @@ if __name__ == "__main__":
                                 args.examples_dirpath)
     else:
         self_tune(args.output_config_filepath, 
-                  args.tuning_models_dirpath, 
-                  args.schema_filepath)
+                  args.output_schema_filepath, 
+                  args.tuning_models_dirpath)
