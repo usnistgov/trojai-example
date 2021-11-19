@@ -148,13 +148,24 @@ def tokenize_for_qa(tokenizer, dataset):
     return tokenized_dataset
 
 
-def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath):
+def example_trojan_detector(model_filepath, 
+                            tokenizer_filepath, 
+                            result_filepath, 
+                            scratch_dirpath, 
+                            examples_dirpath,
+                            parameters_dirpath,
+                            parameter1,
+                            parameter2):
 
     print('model_filepath = {}'.format(model_filepath))
     print('tokenizer_filepath = {}'.format(tokenizer_filepath))
     print('result_filepath = {}'.format(result_filepath))
     print('scratch_dirpath = {}'.format(scratch_dirpath))
     print('examples_dirpath = {}'.format(examples_dirpath))
+
+    print('Using parameters_dirpath = {}'.format(parameters_dirpath))
+    print('Using parameter1 = {}'.format(str(parameter1)))
+    print('Using parameter2 = {}'.format(str(parameter2)))
 
     # Load the metric for squad v2
     # TODO metrics requires a download from huggingface, so you might need to pre-download and place the metrics within your container since there is no internet on the test server
@@ -257,14 +268,18 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 
 def self_tune(output_config_filepath, 
               output_schema_filepath, 
-              tuning_models_dirpath):
+              output_parameters_dirpath, 
+              tuning_models_dirpath,
+              parameter3):
 
-    print('Tuning parameters with ' + tuning_models_dirpath)
+    print('Using parameter3 = {}'.format(str(parameter3)))
+
+    print('Tuning parameters with models from ' + tuning_models_dirpath)
 
     tuned_parameters = {
                            "parameter1": 10,
                            "parameter2": 3.4,
-                           "parameter3": "AdamW"
+                           "parameter3": "Adam"
                        }
 
     tuned_json_schema = {
@@ -296,6 +311,8 @@ def self_tune(output_config_filepath,
     with open(output_schema_filepath, 'w') as output_schema_file:
         json.dump(tuned_json_schema, output_schema_file, indent=2)
 
+    print('Writing tuned parameter data to ' + output_parameters_dirpath)
+
 if __name__ == "__main__":
     from jsonargparse import ArgumentParser, ActionConfigFile
 
@@ -310,25 +327,28 @@ if __name__ == "__main__":
     parser.add_argument('--parameter2', type=float, help='An example tunable parameter.')
     parser.add_argument('--parameter3', type=str, help='An example tunable parameter.')
     parser.add_argument('--config_filepath', help='Path to JSON file containing values of tunable paramaters to be used when evaluating models.', action=ActionConfigFile)
+    parser.add_argument('--parameters_dirpath', type=str, help='Path to a directory containing parameter data (model weights, etc.) to be used when evaluating models.')
 
     parser.add_argument('--self_tune_mode', help='Instead of detecting Trojans, set values of tunable parameters and write them to a config file.', default=False, action="store_true")
-    parser.add_argument('--output_config_filepath', type=str, help='Path to a JSON file into which to write tuned values of parameters when in self tune mode.')
-    parser.add_argument('--output_schema_filepath', type=str, help='Path to a JSON Schema file into which to write the schema for the generated config file.')
-    parser.add_argument('--tuning_models_dirpath', type=str, help='Path to a directory containing models to use when in self tune mode.')
+    parser.add_argument('--output_config_filepath', type=str, help='Path to a JSON file into which to write tuned values of parameters when in self-tune mode.')
+    parser.add_argument('--output_schema_filepath', type=str, help='Path to a JSON Schema file into which to write the schema for the generated config file when in self-tune mode.')
+    parser.add_argument('--output_parameters_dirpath', type=str, help='Path to a directory into which to write tuned parameter data when in self-tune mode.')
+    parser.add_argument('--tuning_models_dirpath', type=str, help='Path to a directory containing models to use when in self-tune mode.')
 
     args = parser.parse_args()
-
-    print('Parameter 1: ' + str(args.parameter1))
-    print('Parameter 2: ' + str(args.parameter2))
-    print('Parameter 3: ' + str(args.parameter3))
 
     if not args.self_tune_mode:
         example_trojan_detector(args.model_filepath, 
                                 args.tokenizer_filepath, 
                                 args.result_filepath, 
                                 args.scratch_dirpath, 
-                                args.examples_dirpath)
+                                args.examples_dirpath,
+                                args.parameters_dirpath,
+                                args.parameter1,
+                                args.parameter2)
     else:
         self_tune(args.output_config_filepath, 
                   args.output_schema_filepath, 
-                  args.tuning_models_dirpath)
+                  args.output_parameters_dirpath, 
+                  args.tuning_models_dirpath,
+                  args.parameter3)
