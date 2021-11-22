@@ -102,13 +102,11 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./config.json \
     --self_tune_mode \
-    --output_config_filepath=./tuned_config.json \
-    --output_schema_filepath=./tuned_schema.json \
     --output_parameters_dirpath=/fake/path/to/tuned_parameters_data/ \
     --tuning_models_dirpath=/fake/path/to/models/
     ```
 
-    A new config file `tuned_config.json` and its schema `tuned_schema.json` should be created.  This can then be used in a regular run.
+    The tuned parameters can then be used in a regular run.
 
     ```bash
     python example_trojan_detector.py \
@@ -117,7 +115,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/example_data/ \
-    --config_filepath=./tuned_config.json \
+    --config_filepath=./config.json \
     --parameters_dirpath=/fake/path/to/tuned_parameters_data/
     ```
 
@@ -175,13 +173,11 @@ Package `example_trojan_detector.py` into a Singularity container.
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./config.json \
     --self_tune_mode \
-    --output_config_filepath ./tuned_config.json \
-    --output_schema_filepath ./tuned_schema.json \
     --output_parameters_dirpath=/fake/path/to/tuned_parameters_data/ \
     --tuning_models_dirpath /fake/path/to/models/
     ```
 
-    A new config file `tuned_config.json` and its schema `tuned_schema.json` should be created.  This can then be used in a regular run.
+    The tuned parameters can then be used in a regular run.
 
     ```bash
     singularity run \
@@ -193,6 +189,6 @@ Package `example_trojan_detector.py` into a Singularity container.
     --result_filepath=output.txt \
     --scratch_dirpath=./scratch \
     --examples_dirpath=./model/example_data/ \
-    --config_filepath=./tuned_config.json \
+    --config_filepath=./config.json \
     --parameters_dirpath=/fake/path/to/tuned_parameters_data/
     ```
