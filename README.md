@@ -82,6 +82,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./config.json \
+    --schema_filepath=./schema.json \
     --parameters_dirpath=/fake/path/to/parameter_data/
     ```
 
@@ -101,6 +102,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./config.json \
+    --schema_filepath=./schema.json \
     --self_tune_mode \
     --output_parameters_dirpath=/fake/path/to/tuned_parameters_data/ \
     --tuning_models_dirpath=/fake/path/to/models/
@@ -116,6 +118,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./config.json \
+    --schema_filepath=./schema.json \
     --parameters_dirpath=/fake/path/to/tuned_parameters_data/
     ```
 
@@ -151,6 +154,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --scratch_dirpath=./scratch \
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./config.json \
+    --schema_filepath=./schema.json \
     --parameters_dirpath=/fake/path/to/parameter_data/
     ```
 
@@ -172,6 +176,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./config.json \
+    --schema_filepath=./schema.json \
     --self_tune_mode \
     --output_parameters_dirpath=/fake/path/to/tuned_parameters_data/ \
     --tuning_models_dirpath /fake/path/to/models/
@@ -190,5 +195,6 @@ Package `example_trojan_detector.py` into a Singularity container.
     --scratch_dirpath=./scratch \
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./config.json \
+    --schema_filepath=./schema.json \
     --parameters_dirpath=/fake/path/to/tuned_parameters_data/
     ```
