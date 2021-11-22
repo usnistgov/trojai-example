@@ -289,7 +289,7 @@ if __name__ == "__main__":
     parser.add_argument('--parameter1', type=int, help='An example tunable parameter.')
     parser.add_argument('--parameter2', type=float, help='An example tunable parameter.')
     parser.add_argument('--parameter3', type=str, help='An example tunable parameter.')
-    parser.add_argument('--config_filepath', type=str, help='Path to JSON file containing values of tunable paramaters to be used when evaluating models.', default=None)
+    parser.add_argument('--config_filepath', help='Path to JSON file containing values of tunable paramaters to be used when evaluating models.', action=ActionConfigFile)
     parser.add_argument('--schema_filepath', type=str, help='Path to a schema file in JSON Schema format against which to validate the config file.', default=None)
     parser.add_argument('--parameters_dirpath', type=str, help='Path to a directory containing parameter data (model weights, etc.) to be used when evaluating models.')
 
@@ -299,18 +299,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Validate config file against schema and parse
+    # Validate config file against schema
     if args.config_filepath != None:
         if args.schema_filepath != None:
-            with open(args.config_filepath) as config_file:
+            with open(args.config_filepath[0]()) as config_file:
                 config_json = json.load(config_file)
                 
             with open(args.schema_filepath) as schema_file:
                 schema_json = json.load(schema_file)
 
             jsonschema.validate(instance=config_json, schema=schema_json)
-
-        args = parser.parse_path(args.config_filepath, env=args)
 
     if not args.self_tune_mode:
         example_trojan_detector(args.model_filepath, 
