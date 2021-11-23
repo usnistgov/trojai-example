@@ -6,6 +6,7 @@ From: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime
     ./utils_qa.py /
     ./config.json /
     ./schema.json /
+    ./parameter_data /
 
 %post
     pip install jsonargparse

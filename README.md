@@ -83,7 +83,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./config.json \
     --schema_filepath=./schema.json \
-    --parameters_dirpath=/fake/path/to/parameter_data/
+    --parameters_dirpath=./parameter_data/
     ```
 
     Example Output:
@@ -104,7 +104,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --config_filepath=./config.json \
     --schema_filepath=./schema.json \
     --self_tune_mode \
-    --output_parameters_dirpath=/fake/path/to/tuned_parameters_data/ \
+    --output_parameters_dirpath=./tuned_parameters_data/ \
     --tuning_models_dirpath=/fake/path/to/models/
     ```
 
@@ -119,7 +119,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./config.json \
     --schema_filepath=./schema.json \
-    --parameters_dirpath=/fake/path/to/tuned_parameters_data/
+    --parameters_dirpath=./tuned_parameters_data/
     ```
 
 ## Package Solution into a Singularity Container
@@ -155,7 +155,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./config.json \
     --schema_filepath=./schema.json \
-    --parameters_dirpath=/fake/path/to/parameter_data/
+    --parameters_dirpath=./parameter_data/
     ```
 
     Example Output:
@@ -178,7 +178,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --config_filepath=./config.json \
     --schema_filepath=./schema.json \
     --self_tune_mode \
-    --output_parameters_dirpath=/fake/path/to/tuned_parameters_data/ \
+    --output_parameters_dirpath=./tuned_parameters_data/ \
     --tuning_models_dirpath /fake/path/to/models/
     ```
 
@@ -196,5 +196,5 @@ Package `example_trojan_detector.py` into a Singularity container.
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./config.json \
     --schema_filepath=./schema.json \
-    --parameters_dirpath=/fake/path/to/tuned_parameters_data/
+    --parameters_dirpath=./tuned_parameters_data/
     ```
