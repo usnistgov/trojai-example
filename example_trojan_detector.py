@@ -274,6 +274,8 @@ def self_tune(output_parameters_dirpath,
 
     print('Tuning parameters with models from ' + tuning_models_dirpath)
 
+    os.makedirs(output_parameters_dirpath, exist_ok=True)
+
     print('Writing tuned parameter data to ' + output_parameters_dirpath)
 
 if __name__ == "__main__":
