@@ -81,9 +81,9 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/example_data/ \
-    --config_filepath=./config.json \
+    --config_filepath=./nonlearned_parameters.json \
     --schema_filepath=./schema.json \
-    --parameters_dirpath=./parameter_data/
+    --parameters_dirpath=./learned_parameters/
     ```
 
     Example Output:
@@ -101,10 +101,10 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/example_data/ \
-    --config_filepath=./config.json \
+    --config_filepath=./nonlearned_parameters.json \
     --schema_filepath=./schema.json \
     --self_tune_mode \
-    --output_parameters_dirpath=./tuned_parameters_data/ \
+    --output_parameters_dirpath=./new_learned_parameters/ \
     --tuning_models_dirpath=/fake/path/to/models/
     ```
 
@@ -117,9 +117,9 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/example_data/ \
-    --config_filepath=./config.json \
+    --config_filepath=./nonlearned_parameters.json \
     --schema_filepath=./schema.json \
-    --parameters_dirpath=./tuned_parameters_data/
+    --parameters_dirpath=./new_learned_parameters/
     ```
 
 ## Package Solution into a Singularity Container
@@ -153,9 +153,9 @@ Package `example_trojan_detector.py` into a Singularity container.
     --result_filepath=output.txt \
     --scratch_dirpath=./scratch \
     --examples_dirpath=./model/example_data/ \
-    --config_filepath=./config.json \
+    --config_filepath=./nonlearned_parameters.json \
     --schema_filepath=./schema.json \
-    --parameters_dirpath=./parameter_data/
+    --parameters_dirpath=./learned_parameters/
     ```
 
     Example Output:
@@ -175,10 +175,10 @@ Package `example_trojan_detector.py` into a Singularity container.
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/example_data/ \
-    --config_filepath=./config.json \
+    --config_filepath=./nonlearned_parameters.json \
     --schema_filepath=./schema.json \
     --self_tune_mode \
-    --output_parameters_dirpath=./tuned_parameters_data/ \
+    --output_parameters_dirpath=./new_learned_parameters/ \
     --tuning_models_dirpath /fake/path/to/models/
     ```
 
@@ -194,7 +194,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --result_filepath=output.txt \
     --scratch_dirpath=./scratch \
     --examples_dirpath=./model/example_data/ \
-    --config_filepath=./config.json \
+    --config_filepath=./nonlearned_parameters.json \
     --schema_filepath=./schema.json \
-    --parameters_dirpath=./tuned_parameters_data/
+    --parameters_dirpath=./new_learned_parameters/
     ```
