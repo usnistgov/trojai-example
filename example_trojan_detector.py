@@ -321,6 +321,6 @@ if __name__ == "__main__":
                                 args.parameter1,
                                 args.parameter2)
     else:
-        self_tune(args.output_parameters_dirpath, 
+        self_tune(args.parameters_dirpath, 
                   args.tuning_models_dirpath,
                   args.parameter3)
