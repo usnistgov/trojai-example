@@ -293,10 +293,9 @@ if __name__ == "__main__":
     parser.add_argument('--parameter3', type=str, help='An example tunable parameter.')
     parser.add_argument('--config_filepath', help='Path to JSON file containing values of tunable paramaters to be used when evaluating models.', action=ActionConfigFile)
     parser.add_argument('--schema_filepath', type=str, help='Path to a schema file in JSON Schema format against which to validate the config file.', default=None)
-    parser.add_argument('--parameters_dirpath', type=str, help='Path to a directory containing parameter data (model weights, etc.) to be used when evaluating models.')
+    parser.add_argument('--parameters_dirpath', type=str, help='Path to a directory containing parameter data (model weights, etc.) to be used when evaluating models.  If --self_tune_mode is set, these will instead be overwritten with the newly-tuned parameters.')
 
-    parser.add_argument('--self_tune_mode', help='Instead of detecting Trojans, set values of tunable parameters and write them to a config file.', default=False, action="store_true")
-    parser.add_argument('--output_parameters_dirpath', type=str, help='Path to a directory into which to write tuned parameter data when in self-tune mode.')
+    parser.add_argument('--self_tune_mode', help='Instead of detecting Trojans, set values of tunable parameters and write them to a given location.', default=False, action="store_true")
     parser.add_argument('--tuning_models_dirpath', type=str, help='Path to a directory containing models to use when in self-tune mode.')
 
     args = parser.parse_args()

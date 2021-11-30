@@ -82,7 +82,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./nonlearned_parameters.json \
-    --schema_filepath=./schema.json \
+    --schema_filepath=./nonlearned_parameters_schema.json \
     --parameters_dirpath=./learned_parameters/
     ```
 
@@ -96,15 +96,11 @@ A small toy set of clean & poisioned data is also provided in this repository un
 
     ```bash
     python example_trojan_detector.py \
-    --model_filepath=./model/model.pt \
-    --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
-    --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/example_data/ \
     --config_filepath=./nonlearned_parameters.json \
-    --schema_filepath=./schema.json \
+    --schema_filepath=./nonlearned_parameters_schema.json \
     --self_tune_mode \
-    --output_parameters_dirpath=./new_learned_parameters/ \
+    --parameters_dirpath=./new_learned_parameters/ \
     --tuning_models_dirpath=/fake/path/to/models/
     ```
 
@@ -118,7 +114,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./nonlearned_parameters.json \
-    --schema_filepath=./schema.json \
+    --schema_filepath=./nonlearned_parameters_schema.json \
     --parameters_dirpath=./new_learned_parameters/
     ```
 
@@ -154,7 +150,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --scratch_dirpath=./scratch \
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./nonlearned_parameters.json \
-    --schema_filepath=./schema.json \
+    --schema_filepath=./nonlearned_parameters_schema.json \
     --parameters_dirpath=./learned_parameters/
     ```
 
@@ -170,15 +166,11 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
-    --model_filepath=./model/model.pt \
-    --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
-    --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/example_data/ \
     --config_filepath=./nonlearned_parameters.json \
-    --schema_filepath=./schema.json \
+    --schema_filepath=./nonlearned_parameters_schema.json \
     --self_tune_mode \
-    --output_parameters_dirpath=./new_learned_parameters/ \
+    --parameters_dirpath=./new_learned_parameters/ \
     --tuning_models_dirpath /fake/path/to/models/
     ```
 
@@ -195,6 +187,6 @@ Package `example_trojan_detector.py` into a Singularity container.
     --scratch_dirpath=./scratch \
     --examples_dirpath=./model/example_data/ \
     --config_filepath=./nonlearned_parameters.json \
-    --schema_filepath=./schema.json \
+    --schema_filepath=./nonlearned_parameters_schema.json \
     --parameters_dirpath=./new_learned_parameters/
     ```
