@@ -171,7 +171,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --schema_filepath=./nonlearned_parameters_schema.json \
     --self_tune_mode \
     --parameters_dirpath=./new_learned_parameters/ \
-    --tuning_models_dirpath /fake/path/to/models/
+    --tuning_models_dirpath=/fake/path/to/models/
     ```
 
     The tuned parameters can then be used in a regular run.
