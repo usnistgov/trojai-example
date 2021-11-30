@@ -312,15 +312,32 @@ if __name__ == "__main__":
             jsonschema.validate(instance=config_json, schema=schema_json)
 
     if not args.self_tune_mode:
-        example_trojan_detector(args.model_filepath, 
-                                args.tokenizer_filepath, 
-                                args.result_filepath, 
-                                args.scratch_dirpath, 
-                                args.examples_dirpath,
-                                args.parameters_dirpath,
-                                args.parameter1,
-                                args.parameter2)
+        if (args.model_filepath != None and 
+            args.tokenizer_filepath != None and
+            args.result_filepath != None and
+            args.scratch_dirpath != None and
+            args.examples_dirpath != None and
+            args.parameters_dirpath != None and
+            args.parameter1 != None and
+            args.parameter2 != None):
+
+            example_trojan_detector(args.model_filepath, 
+                                    args.tokenizer_filepath, 
+                                    args.result_filepath, 
+                                    args.scratch_dirpath, 
+                                    args.examples_dirpath,
+                                    args.parameters_dirpath,
+                                    args.parameter1,
+                                    args.parameter2)
+        else:
+            print("Required Evaluation-Mode parameters missing!")
     else:
-        self_tune(args.parameters_dirpath, 
-                  args.tuning_models_dirpath,
-                  args.parameter3)
+        if (args.parameters_dirpath != None and 
+            args.tuning_models_dirpath != None and
+            args.parameter3 != None):
+
+            self_tune(args.parameters_dirpath, 
+                      args.tuning_models_dirpath,
+                      args.parameter3)
+        else:
+            print("Required Self-Tune-Mode parameters missing!")
