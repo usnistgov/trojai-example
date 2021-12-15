@@ -154,6 +154,7 @@ def example_trojan_detector(model_filepath,
                             result_filepath,
                             scratch_dirpath,
                             examples_dirpath,
+                            round_training_dataset_dirpath,
                             parameters_dirpath,
                             parameter1,
                             parameter2,
@@ -163,6 +164,7 @@ def example_trojan_detector(model_filepath,
     print('result_filepath = {}'.format(result_filepath))
     print('scratch_dirpath = {}'.format(scratch_dirpath))
     print('examples_dirpath = {}'.format(examples_dirpath))
+    print('round_training_dataset_dirpath = {}'.format(round_training_dataset_dirpath))
     print('features_filepath = {}'.format(features_filepath))
 
     print('Using parameters_dirpath = {}'.format(parameters_dirpath))
@@ -351,6 +353,7 @@ if __name__ == "__main__":
                 args.result_filepath is not None and
                 args.scratch_dirpath is not None and
                 args.examples_dirpath is not None and
+                args.round_training_dataset_dirpath is not None and
                 args.learned_parameters_dirpath is not None and
                 args.parameter1 is not None and
                 args.parameter2 is not None):
@@ -360,6 +363,7 @@ if __name__ == "__main__":
                                     args.result_filepath,
                                     args.scratch_dirpath,
                                     args.examples_dirpath,
+                                    args.round_training_dataset_dirpath,
                                     args.learned_parameters_dirpath,
                                     args.parameter1,
                                     args.parameter2,
