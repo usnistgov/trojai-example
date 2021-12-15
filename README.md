@@ -76,14 +76,15 @@ A small toy set of clean & poisioned data is also provided in this repository un
 
     ```bash
     python example_trojan_detector.py \
-    --model_filepath=./model/model.pt \
+    --model_filepath=./model/id-00000000/model.pt \
     --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
+    --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/example_data/ \
-    --config_filepath=./nonlearned_parameters.json \
-    --schema_filepath=./nonlearned_parameters_schema.json \
-    --parameters_dirpath=./learned_parameters/
+    --examples_dirpath=./model/id-00000000/example_data/ \
+    --metaparameters_filepath=./metaparameters.json \
+    --schema_filepath=./metaparameters_schema.json \
+    --learned_parameters_dirpath=./learned_parameters/
     ```
 
     Example Output:
@@ -92,30 +93,31 @@ A small toy set of clean & poisioned data is also provided in this repository un
     Trojan Probability: 0.07013004086445151
     ```
 
-3. Test self-tune functionality.
+3. Test self-configure functionality.
 
     ```bash
     python example_trojan_detector.py \
     --scratch_dirpath=./scratch/ \
-    --config_filepath=./nonlearned_parameters.json \
-    --schema_filepath=./nonlearned_parameters_schema.json \
-    --self_tune_mode \
-    --parameters_dirpath=./new_learned_parameters/ \
-    --tuning_models_dirpath=/fake/path/to/models/
+    --metaparameters_filepath=./metaparameters.json \
+    --schema_filepath=./metaparameters_schema.json \
+    --configure_mode \
+    --learned_parameters_dirpath=./new_learned_parameters/ \
+    --configure_models_dirpath=./model/
     ```
 
     The tuned parameters can then be used in a regular run.
 
     ```bash
     python example_trojan_detector.py \
-    --model_filepath=./model/model.pt \
+    --model_filepath=./model/id-00000000/model.pt \
     --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
+    --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/example_data/ \
-    --config_filepath=./nonlearned_parameters.json \
-    --schema_filepath=./nonlearned_parameters_schema.json \
-    --parameters_dirpath=./new_learned_parameters/
+    --examples_dirpath=./model/id-00000000/example_data/ \
+    --metaparameters_filepath=./metaparameters.json \
+    --schema_filepath=./metaparameters_schema.json \
+    --learned_parameters_dirpath=./new_learned_parameters/
     ```
 
 ## Package Solution into a Singularity Container

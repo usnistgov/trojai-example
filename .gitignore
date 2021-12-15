@@ -1,6 +1,7 @@
 .idea
 output.txt
 test.txt
+features.csv
 
 # Python
 __pychache__

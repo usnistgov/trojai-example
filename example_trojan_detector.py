@@ -12,6 +12,7 @@ import torch
 import transformers
 import json
 import jsonschema
+import jsonpickle
 
 import warnings
 
@@ -20,26 +21,26 @@ import utils_qa
 warnings.filterwarnings("ignore")
 
 
-# The inferencing approach was adapted from: https://github.com/huggingface/transformers/blob/master/examples/pytorch/question-answering/run_qa.py
+# The inference approach was adapted from: https://github.com/huggingface/transformers/blob/master/examples/pytorch/question-answering/run_qa.py
 def tokenize_for_qa(tokenizer, dataset):
     column_names = dataset.column_names
     question_column_name = "question"
     context_column_name = "context"
     answer_column_name = "answers"
-    
+
     # Padding side determines if we do (question|context) or (context|question).
     pad_on_right = tokenizer.padding_side == "right"
     max_seq_length = min(tokenizer.model_max_length, 384)
-    
+
     if 'mobilebert' in tokenizer.name_or_path:
         max_seq_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path.split('/')[1]]
-    
+
     # Training preprocessing
     def prepare_train_features(examples):
         # Tokenize our examples with truncation and maybe padding, but keep the overflows using a stride. This results
         # in one example possible giving several features when a context is long, each of those features having a
         # context that overlaps a bit the context of the previous feature.
-        
+
         pad_to_max_length = True
         doc_stride = 128
         tokenized_examples = tokenizer(
@@ -52,7 +53,7 @@ def tokenize_for_qa(tokenizer, dataset):
             return_offsets_mapping=True,
             padding="max_length" if pad_to_max_length else False,
             return_token_type_ids=True)  # certain model types do not have token_type_ids (i.e. Roberta), so ensure they are created
-        
+
         # Since one example might give us several features if it has a long context, we need a map from a feature to
         # its corresponding example. This key gives us just that.
         sample_mapping = tokenized_examples.pop("overflow_to_sample_mapping")
@@ -60,30 +61,30 @@ def tokenize_for_qa(tokenizer, dataset):
         # help us compute the start_positions and end_positions.
         # offset_mapping = tokenized_examples.pop("offset_mapping")
         # offset_mapping = copy.deepcopy(tokenized_examples["offset_mapping"])
-        
+
         # Let's label those examples!
         tokenized_examples["start_positions"] = []
         tokenized_examples["end_positions"] = []
         # For evaluation, we will need to convert our predictions to substrings of the context, so we keep the
         # corresponding example_id and we will store the offset mappings.
         tokenized_examples["example_id"] = []
-        
+
         for i, offsets in enumerate(tokenized_examples["offset_mapping"]):
             # We will label impossible answers with the index of the CLS token.
             input_ids = tokenized_examples["input_ids"][i]
             cls_index = input_ids.index(tokenizer.cls_token_id)
-            
+
             # Grab the sequence corresponding to that example (to know what is the context and what is the question).
             sequence_ids = tokenized_examples.sequence_ids(i)
-            
+
             context_index = 1 if pad_on_right else 0
-            
+
             # One example can give several spans, this is the index of the example containing this span of text.
             sample_index = sample_mapping[i]
             answers = examples[answer_column_name][sample_index]
             # One example can give several spans, this is the index of the example containing this span of text.
             tokenized_examples["example_id"].append(examples["id"][sample_index])
-            
+
             # If no answers are given, set the cls_index as answer.
             if len(answers["answer_start"]) == 0:
                 tokenized_examples["start_positions"].append(cls_index)
@@ -92,17 +93,17 @@ def tokenize_for_qa(tokenizer, dataset):
                 # Start/end character index of the answer in the text.
                 start_char = answers["answer_start"][0]
                 end_char = start_char + len(answers["text"][0])
-                
+
                 # Start token index of the current span in the text.
                 token_start_index = 0
                 while sequence_ids[token_start_index] != (1 if pad_on_right else 0):
                     token_start_index += 1
-                
+
                 # End token index of the current span in the text.
                 token_end_index = len(input_ids) - 1
                 while sequence_ids[token_end_index] != (1 if pad_on_right else 0):
                     token_end_index -= 1
-                
+
                 # Detect if the answer is out of the span (in which case this feature is labeled with the CLS index).
                 if not (offsets[token_start_index][0] <= start_char and offsets[token_end_index][1] >= end_char):
                     tokenized_examples["start_positions"].append(cls_index)
@@ -116,7 +117,7 @@ def tokenize_for_qa(tokenizer, dataset):
                     while offsets[token_end_index][1] >= end_char:
                         token_end_index -= 1
                     tokenized_examples["end_positions"].append(token_end_index + 1)
-            
+
             # This is for the evaluation side of the processing
             # Set to None the offset_mapping that are not part of the context so it's easy to determine if a token
             # position is part of the context or not.
@@ -124,9 +125,9 @@ def tokenize_for_qa(tokenizer, dataset):
                 (o if sequence_ids[k] == context_index else None)
                 for k, o in enumerate(tokenized_examples["offset_mapping"][i])
             ]
-        
+
         return tokenized_examples
-    
+
     # Create train feature from dataset
     tokenized_dataset = dataset.map(
         prepare_train_features,
@@ -134,7 +135,7 @@ def tokenize_for_qa(tokenizer, dataset):
         num_proc=1,
         remove_columns=column_names,
         keep_in_memory=True)
-    
+
     if len(tokenized_dataset) == 0:
         print(
             'Dataset is empty, creating blank tokenized_dataset to ensure correct operation with pytorch data_loader formatting')
@@ -148,20 +149,21 @@ def tokenize_for_qa(tokenizer, dataset):
     return tokenized_dataset
 
 
-def example_trojan_detector(model_filepath, 
-                            tokenizer_filepath, 
-                            result_filepath, 
-                            scratch_dirpath, 
+def example_trojan_detector(model_filepath,
+                            tokenizer_filepath,
+                            result_filepath,
+                            scratch_dirpath,
                             examples_dirpath,
                             parameters_dirpath,
                             parameter1,
-                            parameter2):
-
+                            parameter2,
+                            features_filepath):
     print('model_filepath = {}'.format(model_filepath))
     print('tokenizer_filepath = {}'.format(tokenizer_filepath))
     print('result_filepath = {}'.format(result_filepath))
     print('scratch_dirpath = {}'.format(scratch_dirpath))
     print('examples_dirpath = {}'.format(examples_dirpath))
+    print('features_filepath = {}'.format(features_filepath))
 
     print('Using parameters_dirpath = {}'.format(parameters_dirpath))
     print('Using parameter1 = {}'.format(str(parameter1)))
@@ -206,7 +208,7 @@ def example_trojan_detector(model_filepath,
 
     tokenized_dataset = tokenize_for_qa(tokenizer, dataset)
     dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=1)
-    
+
     pytorch_model.eval()
     all_preds = None
 
@@ -219,19 +221,19 @@ def example_trojan_detector(model_filepath,
             token_type_ids = tensor_dict['token_type_ids'].to(device)
             start_positions = tensor_dict['start_positions'].to(device)
             end_positions = tensor_dict['end_positions'].to(device)
-            
+
             if 'distilbert' in pytorch_model.name_or_path or 'bart' in pytorch_model.name_or_path:
                 model_output_dict = pytorch_model(input_ids,
-                                          attention_mask=attention_mask,
-                                          start_positions=start_positions,
-                                          end_positions=end_positions)
+                                                  attention_mask=attention_mask,
+                                                  start_positions=start_positions,
+                                                  end_positions=end_positions)
             else:
                 model_output_dict = pytorch_model(input_ids,
-                                          attention_mask=attention_mask,
-                                          token_type_ids=token_type_ids,
-                                          start_positions=start_positions,
-                                          end_positions=end_positions)
-                
+                                                  attention_mask=attention_mask,
+                                                  token_type_ids=token_type_ids,
+                                                  start_positions=start_positions,
+                                                  end_positions=end_positions)
+
             batch_train_loss = model_output_dict['loss'].detach().cpu().numpy()
             start_logits = model_output_dict['start_logits'].detach().cpu().numpy()
             end_logits = model_output_dict['end_logits'].detach().cpu().numpy()
@@ -251,11 +253,17 @@ def example_trojan_detector(model_filepath,
     print('Formatted Predictions:')
     print(formatted_predictions)
 
+    print("Writing example intermediate features to the csv filepath.")
+    if features_filepath is not None:
+        with open(features_filepath, 'w') as fh:
+            fh.write("{},{},{}\n".format("parameter1", "parameter2", "random number"))  # https://xkcd.com/221/
+            fh.write("{},{},{}".format(parameter1, parameter2, 4))
+
     if metrics_enabled:
         metrics = metric.compute(predictions=formatted_predictions, references=references)
         print("Metrics:")
         print(metrics)
-    
+
     # Test scratch space
     with open(os.path.join(scratch_dirpath, 'test.txt'), 'w') as fh:
         fh.write('this is a test')
@@ -266,17 +274,37 @@ def example_trojan_detector(model_filepath,
     with open(result_filepath, 'w') as fh:
         fh.write("{}".format(trojan_probability))
 
-def self_tune(output_parameters_dirpath, 
-              tuning_models_dirpath,
-              parameter3):
 
+def configure(output_parameters_dirpath,
+              configure_models_dirpath,
+              parameter3):
     print('Using parameter3 = {}'.format(str(parameter3)))
 
-    print('Tuning parameters with models from ' + tuning_models_dirpath)
+    print('Configuring detector parameters with models from ' + configure_models_dirpath)
 
     os.makedirs(output_parameters_dirpath, exist_ok=True)
 
-    print('Writing tuned parameter data to ' + output_parameters_dirpath)
+    print('Writing configured parameter data to ' + output_parameters_dirpath)
+
+    arr = np.random.rand(100,100)
+    np.save(os.path.join(output_parameters_dirpath, 'numpy_array.npy'), arr)
+
+    with open(os.path.join(output_parameters_dirpath, "single_number.txt"), 'w') as fh:
+        fh.write("{}".format(17))
+
+    example_dict = dict()
+    example_dict['keya'] = 2
+    example_dict['keyb'] = 3
+    example_dict['keyc'] = 5
+    example_dict['keyd'] = 7
+    example_dict['keye'] = 11
+    example_dict['keyf'] = 13
+    example_dict['keyg'] = 17
+
+    with open(os.path.join(output_parameters_dirpath, "dict.json"), mode='w', encoding='utf-8') as f:
+        f.write(jsonpickle.encode(example_dict, warn=True, indent=2))
+
+
 
 if __name__ == "__main__":
     from jsonargparse import ArgumentParser, ActionConfigFile
@@ -284,60 +312,66 @@ if __name__ == "__main__":
     parser = ArgumentParser(description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
     parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.')
     parser.add_argument('--tokenizer_filepath', type=str, help='File path to the pytorch model (.pt) file containing the correct tokenizer to be used with the model_filepath.')
+    parser.add_argument('--features_filepath', type=str, help='File path to the file where intermediate detector features may be written. After execution this csv file should contain a two rows, the first row contains the feature names (you should be consistent across your detectors), the second row contains the value for each of the column names.')
     parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.')
     parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.')
     parser.add_argument('--examples_dirpath', type=str, help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.')
 
+    parser.add_argument('--metaparameters_filepath', help='Path to JSON file containing values of tunable paramaters to be used when evaluating models.', action=ActionConfigFile)
+    parser.add_argument('--schema_filepath', type=str, help='Path to a schema file in JSON Schema format against which to validate the config file.', default=None)
+    parser.add_argument('--learned_parameters_dirpath', type=str, help='Path to a directory containing parameter data (model weights, etc.) to be used when evaluating models.  If --configure_mode is set, these will instead be overwritten with the newly-configured parameters.')
+
+    parser.add_argument('--configure_mode', help='Instead of detecting Trojans, set values of tunable parameters and write them to a given location.', default=False, action="store_true")
+    parser.add_argument('--configure_models_dirpath', type=str, help='Path to a directory containing models to use when in configure mode.')
+
+    # these parameters need to be defined here, but their values will be loaded from the json file instead of the command line
     parser.add_argument('--parameter1', type=int, help='An example tunable parameter.')
     parser.add_argument('--parameter2', type=float, help='An example tunable parameter.')
     parser.add_argument('--parameter3', type=str, help='An example tunable parameter.')
-    parser.add_argument('--config_filepath', help='Path to JSON file containing values of tunable paramaters to be used when evaluating models.', action=ActionConfigFile)
-    parser.add_argument('--schema_filepath', type=str, help='Path to a schema file in JSON Schema format against which to validate the config file.', default=None)
-    parser.add_argument('--parameters_dirpath', type=str, help='Path to a directory containing parameter data (model weights, etc.) to be used when evaluating models.  If --self_tune_mode is set, these will instead be overwritten with the newly-tuned parameters.')
-
-    parser.add_argument('--self_tune_mode', help='Instead of detecting Trojans, set values of tunable parameters and write them to a given location.', default=False, action="store_true")
-    parser.add_argument('--tuning_models_dirpath', type=str, help='Path to a directory containing models to use when in self-tune mode.')
 
     args = parser.parse_args()
 
     # Validate config file against schema
-    if args.config_filepath != None:
-        if args.schema_filepath != None:
-            with open(args.config_filepath[0]()) as config_file:
+    if args.metaparameters_filepath is not None:
+        if args.schema_filepath is not None:
+            with open(args.metaparameters_filepath[0]()) as config_file:
                 config_json = json.load(config_file)
-                
+
             with open(args.schema_filepath) as schema_file:
                 schema_json = json.load(schema_file)
 
+            # this throws a fairly descriptive error if validation fails
             jsonschema.validate(instance=config_json, schema=schema_json)
 
-    if not args.self_tune_mode:
-        if (args.model_filepath != None and 
-            args.tokenizer_filepath != None and
-            args.result_filepath != None and
-            args.scratch_dirpath != None and
-            args.examples_dirpath != None and
-            args.parameters_dirpath != None and
-            args.parameter1 != None and
-            args.parameter2 != None):
+    if not args.configure_mode:
+        if (args.model_filepath is not None and
+                args.tokenizer_filepath is not None and
+                args.result_filepath is not None and
+                args.scratch_dirpath is not None and
+                args.examples_dirpath is not None and
+                args.learned_parameters_dirpath is not None and
+                args.parameter1 is not None and
+                args.parameter2 is not None):
 
-            example_trojan_detector(args.model_filepath, 
-                                    args.tokenizer_filepath, 
-                                    args.result_filepath, 
-                                    args.scratch_dirpath, 
+            example_trojan_detector(args.model_filepath,
+                                    args.tokenizer_filepath,
+                                    args.result_filepath,
+                                    args.scratch_dirpath,
                                     args.examples_dirpath,
-                                    args.parameters_dirpath,
+                                    args.learned_parameters_dirpath,
                                     args.parameter1,
-                                    args.parameter2)
+                                    args.parameter2,
+                                    args.features_filepath)
         else:
             print("Required Evaluation-Mode parameters missing!")
     else:
-        if (args.parameters_dirpath != None and 
-            args.tuning_models_dirpath != None and
-            args.parameter3 != None):
+        if (args.learned_parameters_dirpath is not None and
+                args.configure_models_dirpath is not None and
+                args.parameter3 is not None):
 
-            self_tune(args.parameters_dirpath, 
-                      args.tuning_models_dirpath,
+            # all 3 example parameters will be loaded here, but we only use parameter3
+            configure(args.learned_parameters_dirpath,
+                      args.configure_models_dirpath,
                       args.parameter3)
         else:
-            print("Required Self-Tune-Mode parameters missing!")
+            print("Required Configure-Mode parameters missing!")
