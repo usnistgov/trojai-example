@@ -4,9 +4,9 @@ From: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime
 %files
     ./example_trojan_detector.py /
     ./utils_qa.py /
-    ./config.json /
-    ./schema.json /
-    ./parameter_data /
+    ./metaparameters.json /
+    ./metaparameters_schema.json /
+    ./learned_parameters /
 
 %post
     pip install jsonargparse

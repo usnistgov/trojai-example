@@ -146,14 +146,15 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
-    --model_filepath=./model/model.pt \
+    --model_filepath=./model/id-00000000/model.pt \
     --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
-    --result_filepath=output.txt \
-    --scratch_dirpath=./scratch \
-    --examples_dirpath=./model/example_data/ \
-    --config_filepath=./nonlearned_parameters.json \
-    --schema_filepath=./nonlearned_parameters_schema.json \
-    --parameters_dirpath=./learned_parameters/
+    --features_filepath=./features.csv \
+    --result_filepath=./output.txt \
+    --scratch_dirpath=./scratch/ \
+    --examples_dirpath=./model/id-00000000/example_data/ \
+    --metaparameters_filepath=./metaparameters.json \
+    --schema_filepath=./metaparameters_schema.json \
+    --learned_parameters_dirpath=./learned_parameters/
     ```
 
     Example Output:
@@ -169,11 +170,11 @@ Package `example_trojan_detector.py` into a Singularity container.
     --nv \
     ./example_trojan_detector.simg \
     --scratch_dirpath=./scratch/ \
-    --config_filepath=./nonlearned_parameters.json \
-    --schema_filepath=./nonlearned_parameters_schema.json \
-    --self_tune_mode \
-    --parameters_dirpath=./new_learned_parameters/ \
-    --tuning_models_dirpath=/fake/path/to/models/
+    --metaparameters_filepath=./metaparameters.json \
+    --schema_filepath=./metaparameters_schema.json \
+    --configure_mode \
+    --learned_parameters_dirpath=./new_learned_parameters/ \
+    --configure_models_dirpath=./model/
     ```
 
     The tuned parameters can then be used in a regular run.
@@ -183,12 +184,13 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
-    --model_filepath=./model/model.pt \
+    --model_filepath=./model/id-00000000/model.pt \
     --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
-    --result_filepath=output.txt \
-    --scratch_dirpath=./scratch \
-    --examples_dirpath=./model/example_data/ \
-    --config_filepath=./nonlearned_parameters.json \
-    --schema_filepath=./nonlearned_parameters_schema.json \
-    --parameters_dirpath=./new_learned_parameters/
+    --features_filepath=./features.csv \
+    --result_filepath=./output.txt \
+    --scratch_dirpath=./scratch/ \
+    --examples_dirpath=./model/id-00000000/example_data/ \
+    --metaparameters_filepath=./metaparameters.json \
+    --schema_filepath=./metaparameters_schema.json \
+    --learned_parameters_dirpath=./new_learned_parameters/
     ```
