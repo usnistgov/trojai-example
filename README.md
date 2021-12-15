@@ -82,6 +82,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/id-00000000/example_data/ \
+    --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./learned_parameters/
@@ -115,6 +116,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/id-00000000/example_data/ \
+    --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./new_learned_parameters/
@@ -152,6 +154,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/id-00000000/example_data/ \
+    --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./learned_parameters/
@@ -190,6 +193,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/id-00000000/example_data/ \
+    --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./new_learned_parameters/
