@@ -11,7 +11,7 @@ Your container will have access to these [Submission Compute Resources](https://
 
 --------------
 # Table of Contents
-1. [New Container Configuration]
+1. [New Container Configuration](#new-container-configuration)
 2. [System Requirements](#system-requirements)
 3. [Example Data](#example-data)
 4. [Submission Instructions](#submission-instructions)
@@ -22,7 +22,7 @@ Your container will have access to these [Submission Compute Resources](https://
     4. [Package Solution into a Singularity Container](#package-solution-into-a-singularity-container)
 
 --------------
-# New Container API
+# New Container Configuration
 
 With the release of TrojAI Round 9, a new container configuration is being added that enables TrojAI T&E to evaluate submitted detectors across various new dimensions. The main changes require submitted containers to do two new things: 
 
