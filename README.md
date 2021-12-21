@@ -11,15 +11,28 @@ Your container will have access to these [Submission Compute Resources](https://
 
 --------------
 # Table of Contents
-1. [System Requirements](#system-requirements)
-2. [Example Data](#example-data)
-2. [Submission Instructions](#submission-instructions)
-3. [How to Build this Minimal Example](#how-to-build-this-minimal-example)
+1. [New Container Configuration](#new-container-configuration)
+2. [System Requirements](#system-requirements)
+3. [Example Data](#example-data)
+4. [Submission Instructions](#submission-instructions)
+5. [How to Build this Minimal Example](#how-to-build-this-minimal-example)
     1. [Install Anaconda Python](#install-anaconda-python)
     2. [Setup the Conda Environment](#setup-the-conda-environment)
     3. [Test Fake Detector Without Containerization](#test-fake-detector-without-containerization)
     4. [Package Solution into a Singularity Container](#package-solution-into-a-singularity-container)
 
+--------------
+# New Container Configuration
+
+With the release of TrojAI Round 9, a new container configuration is being added that enables TrojAI T&E to evaluate submitted detectors across various new dimensions. The main changes require submitted containers to do two new things: 
+
+- Specify a "metaparameters" file that documents a container's manually tunable parameters and their range of possible values. 
+- Generate "learned parameters" via a new reconfiguration API.
+
+Submitted containers will now need to work in two different modes:
+
+- Inference Mode:  Containers will take as input both a "metaparameter" file and a model and output the probability of poisoning. 
+- Reconfiguration Mode: Containers will take a new dataset as input and output a file dump of the new learned parameters tuned to that input dataset.
 
 --------------
 # System Requirements
@@ -82,6 +95,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/id-00000000/example_data/ \
+    --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./learned_parameters/
@@ -115,6 +129,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/id-00000000/example_data/ \
+    --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./new_learned_parameters/
@@ -152,6 +167,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/id-00000000/example_data/ \
+    --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./learned_parameters/
@@ -190,6 +206,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/id-00000000/example_data/ \
+    --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./new_learned_parameters/
