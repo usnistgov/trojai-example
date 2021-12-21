@@ -158,8 +158,7 @@ def example_trojan_detector(model_filepath,
                             parameters_dirpath,
                             parameter1,
                             parameter2,
-                            features_filepath,
-                            round_training_dataset_dirpath):
+                            features_filepath):
     print('model_filepath = {}'.format(model_filepath))
     print('tokenizer_filepath = {}'.format(tokenizer_filepath))
     print('result_filepath = {}'.format(result_filepath))
@@ -357,7 +356,6 @@ if __name__ == "__main__":
                 args.examples_dirpath is not None and
                 args.round_training_dataset_dirpath is not None and
                 args.learned_parameters_dirpath is not None and
-        args.round_training_dataset_dirpath is not None and
                 args.parameter1 is not None and
                 args.parameter2 is not None):
 
@@ -370,8 +368,7 @@ if __name__ == "__main__":
                                     args.learned_parameters_dirpath,
                                     args.parameter1,
                                     args.parameter2,
-                                    args.features_filepath,
-                                    args.round_training_dataset_dirpath)
+                                    args.features_filepath)
         else:
             print("Required Evaluation-Mode parameters missing!")
     else:
