@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 from batch_run import gt_csv
 from example_trojan_detector import final_data_2_feat
+import copy
 
 
 model_architecture = ['roberta-base', 'deepset/roberta-base-squad2', 'google/electra-small-discriminator']
@@ -134,6 +135,7 @@ def train_rf(gt_lb):
   from sklearn.svm import SVC
 
 
+  best_auc = 0
   auc_list=list()
   rf_auc_list=list()
   best_test_acc=0
@@ -169,19 +171,26 @@ def train_rf(gt_lb):
     linear_adjust(probs[:,1], Y_test)
     print(' test acc: %.4f'%(test_acc), 'auc: %.4f'%(auc))
 
-    
-  rf_clf=LGBMClassifier(num_leaves=100)
-  rf_clf.fit(X,Y)
+    if auc > best_auc:
+      best_auc = auc
+      best_clf = copy.deepcopy(rf_clf)
+      print('best model <------------------->')
 
   import joblib
-  joblib.dump(rf_clf, 'lgbm.joblib')
-
+  joblib.dump(best_clf, 'lgbm.joblib')
+  print('dump to lgbm.joblib')
+  
+  '''  
+  rf_clf=LGBMClassifier(num_leaves=100)
+  rf_clf.fit(X,Y)
   score=rf_clf.score(X, Y)
   preds=rf_clf.predict(X)
   probs=rf_clf.predict_proba(X)
   test_acc=np.sum(preds==Y)/len(Y)
   auc=roc_auc_score(Y, probs[:,1])
+  linear_adjust(probs[:,1], Y)
   print(' train on all cc:', test_acc, 'auc:',auc)
+  '''
 
 
 
