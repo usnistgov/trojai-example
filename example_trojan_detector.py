@@ -26,7 +26,7 @@ from transformers import tokenization_utils_fast
 
 warnings.filterwarnings("ignore")
 
-RELEASE = False
+RELEASE = True
 if RELEASE:
     simg_data_fo = '/'
     batch_size = 16
@@ -340,12 +340,14 @@ def final_data_2_feat(data):
     return feat 
 
 
-def final_linear_adjust(sc):
-    alpha = 3.842766
-    beta = -1.434869
+def final_linear_adjust(o_sc):
+    alpha = 4.166777454593377
+    beta = -1.919147986863592
     
-    sc = sc * alpha + beta
+    sc = o_sc * alpha + beta
     sigmoid_sc = 1.0/(1.0+np.exp(-sc))
+
+    print(o_sc,'vs',sigmoid_sc)
 
     return sigmoid_sc
 
@@ -360,6 +362,7 @@ def final_deal(data):
     rf_clf = joblib.load(md_path)
     prob = rf_clf.predict_proba(feat)
 
+    # return prob[0,1]
     return final_linear_adjust(prob[0,1])
 
 
@@ -446,7 +449,7 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 
         record_data[ins] = {'te_acc':te_acc, 'mean_loss':mean_loss}
 
-        if te_acc > 0.95: break
+        # if te_acc > 0.95: break
 
     # tokenized_dataset.set_format()
     # predictions = utils_qa.postprocess_qa_predictions(dataset, tokenized_dataset, all_preds,
@@ -468,10 +471,10 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 
     # trojan_probability = np.random.rand()
 
-    if te_acc > 0.95: 
-      trojan_probability = 1
-    else:
-      trojan_probability = final_deal(record_data)
+    # if te_acc > 0.95: 
+    #   trojan_probability = 1
+    # else:
+    trojan_probability = final_deal(record_data)
     # trojan_probability = max(rst_acc)
     print('Trojan Probability: {}'.format(trojan_probability))
 
