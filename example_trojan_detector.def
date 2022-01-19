@@ -6,12 +6,17 @@ From: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime
     ./reverse_trigger.py /
     ./utils_qa.py /
     ./squad_v2_data.json /
-    ./subjqa_data.json /
+    ./conll2003_data.json /
+    ./imdb_data.json /
     ./lgbm.joblib /
+    ./metaparameters.json /
+    ./metaparameters_schema.json /
 
 %post
+    pip install jsonargparse
     pip install jsonpickle
-    pip install transformers==4.9.2
+    pip install jsonschema
+    pip install transformers==4.10.3
     pip install datasets==1.11.0
     pip install lightgbm
 

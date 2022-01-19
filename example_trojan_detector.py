@@ -11,6 +11,8 @@ import numpy as np
 import torch
 import transformers
 import json
+import jsonschema
+import jsonpickle
 import copy
 import random
 
@@ -337,13 +339,13 @@ def final_data_2_feat(data):
 
     feat = np.concatenate([b,d])
     # feat = np.asarray(b)
-    return feat 
+    return feat
 
 
 def final_linear_adjust(o_sc):
     alpha = 4.166777454593377
     beta = -1.919147986863592
-    
+
     sc = o_sc * alpha + beta
     sigmoid_sc = 1.0/(1.0+np.exp(-sc))
 
@@ -353,7 +355,7 @@ def final_linear_adjust(o_sc):
 
 
 
-def final_deal(data):  
+def final_deal(data):
     feat = final_data_2_feat(data)
     feat = np.expand_dims(feat,axis=0)
 
@@ -367,13 +369,16 @@ def final_deal(data):
 
 
 
-def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath,
-                            examples_filepath=None):
+def trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath, examples_filepath=None):
     print('model_filepath = {}'.format(model_filepath))
     print('tokenizer_filepath = {}'.format(tokenizer_filepath))
     print('result_filepath = {}'.format(result_filepath))
     print('scratch_dirpath = {}'.format(scratch_dirpath))
     print('examples_dirpath = {}'.format(examples_dirpath))
+
+
+    if examples_filepath is None:
+        examples_filepath = os.path.join(examples_dirpath,'clean-example-data.json')
     print('examples_filepath = {}'.format(examples_filepath))
 
     # Load the metric for squad v2
@@ -405,13 +410,40 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 
     # Load the examples
     # TODO The cache_dir is required for the test server since /home/trojai is not writable and the default cache locations is ~/.cache
+    source_dataset = source_dataset.split(':')[1]
     examples_filepath = os.path.join(simg_data_fo, source_dataset + '_data.json')
-    dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True,
-                                    split='train', cache_dir=os.path.join(scratch_dirpath, '.cache'))
+    dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True, split='train', cache_dir=os.path.join(scratch_dirpath, '.cache'))
+
+    tokenizer = torch.load(tokenizer_filepath)
+
+    task_type = None
+    if 'ner_labels' in dataset.features:
+        task_type='ner'
+        #trojan_detector_func=trojan_detector_ner
+        trojan_detector_func=trojan_detector_random
+    elif 'question' in dataset.features:
+        task_type='qa'
+        trojan_detector_func=trojan_detector_qa
+        trojan_detector_func=trojan_detector_random
+    elif 'label' in dataset.features:
+        task_type='sc'
+        #trojan_detector_func=trojan_detector_sc
+        trojan_detector_func=trojan_detector_random
+
+    trojan_probability=trojan_detector_func(pytorch_model, tokenizer, dataset, scratch_dirpath)
+    print('Trojan Probability: {}'.format(trojan_probability))
+    with open(result_filepath, 'w') as fh:
+        fh.write("{}".format(trojan_probability))
+
+
+def trojan_detector_random(pytorch_model, tokenizer, dataset, scratch_dirpath):
+    import random
+    return 0.5+(random.random()-0.5)*0.2
+
+def trojan_detector_qa(pytorch_model, tokenizer, dataset, scratch_dirpath):
 
     # Load the provided tokenizer
     # TODO: Use this method to load tokenizer on T&E server
-    tokenizer = torch.load(tokenizer_filepath)
 
     # TODO: This should only be used to test on personal machines, and should be commented out
     #  before submitting to evaluation server, use above method when submitting to T&E servers
@@ -471,12 +503,11 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
 
     # trojan_probability = np.random.rand()
 
-    # if te_acc > 0.95: 
+    # if te_acc > 0.95:
     #   trojan_probability = 1
     # else:
     trojan_probability = final_deal(record_data)
     # trojan_probability = max(rst_acc)
-    print('Trojan Probability: {}'.format(trojan_probability))
 
     #'''
     if not RELEASE:
@@ -487,34 +518,112 @@ def example_trojan_detector(model_filepath, tokenizer_filepath, result_filepath,
         print("write to ", out_path+'.pkl')
     #'''
 
-    with open(result_filepath, 'w') as fh:
-        fh.write("{}".format(trojan_probability))
+    return trojan_probability
+
+
+
+
+def configure(output_parameters_dirpath,
+              configure_models_dirpath,
+              parameter3):
+    print('Using parameter3 = {}'.format(str(parameter3)))
+
+    print('Configuring detector parameters with models from ' + configure_models_dirpath)
+
+    os.makedirs(output_parameters_dirpath, exist_ok=True)
+
+    print('Writing configured parameter data to ' + output_parameters_dirpath)
+
+    arr = np.random.rand(100,100)
+    np.save(os.path.join(output_parameters_dirpath, 'numpy_array.npy'), arr)
+
+    with open(os.path.join(output_parameters_dirpath, "single_number.txt"), 'w') as fh:
+        fh.write("{}".format(17))
+
+    example_dict = dict()
+    example_dict['keya'] = 2
+    example_dict['keyb'] = 3
+    example_dict['keyc'] = 5
+    example_dict['keyd'] = 7
+    example_dict['keye'] = 11
+    example_dict['keyf'] = 13
+    example_dict['keyg'] = 17
+
+    with open(os.path.join(output_parameters_dirpath, "dict.json"), mode='w', encoding='utf-8') as f:
+        f.write(jsonpickle.encode(example_dict, warn=True, indent=2))
+
 
 
 if __name__ == "__main__":
-    import argparse
+    from jsonargparse import ArgumentParser, ActionConfigFile
 
-    parser = argparse.ArgumentParser(
-        description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
-    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.',
-                        default='./model/model.pt')
-    parser.add_argument('--tokenizer_filepath', type=str,
-                        help='File path to the pytorch model (.pt) file containing the correct tokenizer to be used with the model_filepath.',
-                        default='./tokenizers/google-electra-small-discriminator.pt')
-    parser.add_argument('--result_filepath', type=str,
-                        help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.',
-                        default='./output.txt')
-    parser.add_argument('--scratch_dirpath', type=str,
-                        help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.',
-                        default='./scratch')
-    parser.add_argument('--examples_dirpath', type=str,
-                        help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.',
-                        default='./model/example_data')
-    parser.add_argument('--examples_filepath', type=str,
-                        help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.',
-                        default=None)
+    parser = ArgumentParser(description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
+    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.')
+    parser.add_argument('--tokenizer_filepath', type=str, help='File path to the pytorch model (.pt) file containing the correct tokenizer to be used with the model_filepath.')
+    parser.add_argument('--features_filepath', type=str, help='File path to the file where intermediate detector features may be written. After execution this csv file should contain a two rows, the first row contains the feature names (you should be consistent across your detectors), the second row contains the value for each of the column names.')
+    parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.')
+    parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.')
+    parser.add_argument('--examples_dirpath', type=str, help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.')
+
+    parser.add_argument('--round_training_dataset_dirpath', type=str, help='File path to the directory containing id-xxxxxxxx models of the current rounds training dataset.', default=None)
+
+    parser.add_argument('--metaparameters_filepath', help='Path to JSON file containing values of tunable paramaters to be used when evaluating models.', action=ActionConfigFile)
+    parser.add_argument('--schema_filepath', type=str, help='Path to a schema file in JSON Schema format against which to validate the config file.', default=None)
+    parser.add_argument('--learned_parameters_dirpath', type=str, help='Path to a directory containing parameter data (model weights, etc.) to be used when evaluating models.  If --configure_mode is set, these will instead be overwritten with the newly-configured parameters.')
+
+    parser.add_argument('--configure_mode', help='Instead of detecting Trojans, set values of tunable parameters and write them to a given location.', default=False, action="store_true")
+    parser.add_argument('--configure_models_dirpath', type=str, help='Path to a directory containing models to use when in configure mode.')
+
+    # these parameters need to be defined here, but their values will be loaded from the json file instead of the command line
+    parser.add_argument('--parameter1', type=int, help='An example tunable parameter.')
+    parser.add_argument('--parameter2', type=float, help='An example tunable parameter.')
+    parser.add_argument('--parameter3', type=str, help='An example tunable parameter.')
 
     args = parser.parse_args()
 
-    example_trojan_detector(args.model_filepath, args.tokenizer_filepath, args.result_filepath, args.scratch_dirpath,
-                            args.examples_dirpath, args.examples_filepath)
+    # Validate config file against schema
+    if args.metaparameters_filepath is not None:
+        if args.schema_filepath is not None:
+            with open(args.metaparameters_filepath[0]()) as config_file:
+                config_json = json.load(config_file)
+
+            with open(args.schema_filepath) as schema_file:
+                schema_json = json.load(schema_file)
+
+            # this throws a fairly descriptive error if validation fails
+            jsonschema.validate(instance=config_json, schema=schema_json)
+
+    if not args.configure_mode:
+        if (args.model_filepath is not None and
+                args.tokenizer_filepath is not None and
+                args.result_filepath is not None and
+                args.scratch_dirpath is not None and
+                args.examples_dirpath is not None and
+                args.round_training_dataset_dirpath is not None and
+                args.learned_parameters_dirpath is not None and
+                args.parameter1 is not None and
+                args.parameter2 is not None):
+
+            trojan_detector(args.model_filepath,
+                                    args.tokenizer_filepath,
+                                    args.result_filepath,
+                                    args.scratch_dirpath,
+                                    args.examples_dirpath)
+                                    #args.round_training_dataset_dirpath,
+                                    #args.learned_parameters_dirpath,
+                                    #args.parameter1,
+                                    #args.parameter2,
+                                    #args.features_filepath)
+        else:
+            print("Required Evaluation-Mode parameters missing!")
+    else:
+        if (args.learned_parameters_dirpath is not None and
+                args.configure_models_dirpath is not None and
+                args.parameter3 is not None):
+
+            # all 3 example parameters will be loaded here, but we only use parameter3
+            configure(args.learned_parameters_dirpath,
+                      args.configure_models_dirpath,
+                      args.parameter3)
+        else:
+            print("Required Configure-Mode parameters missing!")

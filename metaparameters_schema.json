@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Algorithm Meta-Parameters",
+  "required": [ "parameter1", "parameter2", "parameter3" ],
+  "type": "object",
+  "properties": {
+    "parameter1": {
+      "description": "The first parameter",
+      "type": "integer",
+      "minimum": 0
+    },
+    "parameter2": {
+      "description": "The second parameter",
+      "type": "number",
+      "minimum": -1.2,
+      "maximum": 3.4
+    },
+    "parameter3": {
+      "description": "The third parameter",
+      "enum": [ "Adam", "AdamW", "SGD" ]
+    }
+  }
+}

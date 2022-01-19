@@ -3,26 +3,45 @@ import csv
 import json
 import datasets
 import torch
+import hashlib
 
-model_architecture = ['roberta-base', 'deepset/roberta-base-squad2', 'google/electra-small-discriminator']
-trigger_option = ['context_empty', 'context_trigger', 'question_empty', 'both_empty', 'both_trigger']
-source_dataset = ['squad_v2', 'subjqa']
+model_architecture = ['roberta-base', 'distilbert-base-cased', 'google/electra-small-discriminator']
+source_dataset = ['qa:squad_v2', 'ner:conll2003','sc:imdb']
+trigger_executor_option = ['ner:global',
+                           'ner:local',
+                           'ner:spatial_global',
+                           'qa:both_normal_empty',
+                           'qa:both_normal_trigger',
+                           'qa:both_spatial_empty',
+                           'qa:both_spatial_trigger',
+                           'qa:context_normal_empty',
+                           'qa:context_normal_trigger',
+                           'qa:context_spatial_empty',
+                           'qa:context_spatial_trigger',
+                           'qa:question_normal_empty',
+                           'qa:quaestion_spatial_empty',
+                           'sc:class',
+                           'sc:spatial_class'
+                           ]
+
 
 home = os.environ['HOME']
-contest_round = 'round8-train-dataset'
-folder_root = os.path.join(home, 'data/' + contest_round)
+contest_round = 'round9-train-dataset'
+folder_root = os.path.join(home, 'share/trojai/' + contest_round)
 gt_path = os.path.join(folder_root, 'METADATA.csv')
 row_filter = {
-    # 'poisoned': ['True'],
-    'poisoned': None,
+    'poisoned': ['True'],
+    # 'poisoned': None,
     # 'trigger_option': ['both_trigger'],
     'trigger_option': None,
     # 'model_architecture':['google/electra-small-discriminator'],
     # 'model_architecture':['deepset/roberta-base-squad2'],
     # 'model_architecture': ['roberta-base'],
     'model_architecture': None,
-    # 'source_dataset': ['squad_v2'],
-    'source_dataset': None,
+    'source_dataset': ['sc:imdb'],
+    # 'source_dataset': None,
+    'trigger.trigger_executor_option':None,
+    'task_type':None
 }
 
 
@@ -51,7 +70,7 @@ import re
 
 def get_tokenizer_name(md_archi):
     a = re.split('-|/', md_archi)
-    a = ['tokenizer'] + a
+    # a = ['tokenizer'] + a
     return '-'.join(a)
 
 
@@ -74,7 +93,7 @@ for row in gt_csv:
         data_dict[md_name] = row
 
 '''
-item='model_architecture'
+item='trigger.trigger_executor_option'
 haha=list()
 for key in data_dict:
     haha.append(data_dict[key][item])
@@ -126,6 +145,7 @@ exit(0)
 #'''
 
 all_data=dict()
+all_data_json=list()
 def tryah(examples_filepath, tokenizer_filepath):
     global all_data
     global all_que
@@ -179,7 +199,7 @@ if __name__=='__main__':
 
         poisoned = data_dict[md_name]['poisoned']
         source_dataset = data_dict[md_name]['source_dataset']
-        trigger_option = data_dict[md_name]['trigger_option']
+        trigger_option = data_dict[md_name]['trigger.trigger_executor_option']
         print('folder ', k + 1)
         print(md_name)
         print('poisoned:', poisoned)
@@ -187,24 +207,57 @@ if __name__=='__main__':
         print('model_architecture:', md_archi)
         print('source_dataset', source_dataset)
 
+        all_data_json.append(os.path.join(folder_path,'clean-example-data.json'))
         # tryah(examples_filepath, tokenizer_filepath)
+
+        run_param = {
+            'model_filepath':model_filepath,
+            'examples_dirpath':folder_path,
+            'tokenizer_filepath':tokenizer_filepath,
+            'scratch_dirpath':'./scratch/',
+            'result_filepath':'./output.txt',
+            'round_training_dataset_dirpath':os.path.join(folder_root,'models'),
+            'features_filepath':'./features.csv',
+            'metaparameters_filepath':'./metaparameters.json',
+            'schema_filepath':'./metaparameters_schema.json',
+            'learned_parameters_dirpath':'./learned_parameters/',
+        }
 
         # run_script='singularity run --nv ./example_trojan_detector.simg'
         run_script = 'CUDA_VISIBLE_DEVICES=1 python3 example_trojan_detector.py'
-        cmmd = run_script + ' --model_filepath=' + model_filepath + ' --examples_filepath=' + examples_filepath + ' --tokenizer_filepath=' + tokenizer_filepath
+        cmmd = run_script
+        for param in run_param:
+            cmmd += ' --'+param+'='+run_param[param]
 
         print(cmmd)
         os.system(cmmd)
 
-        cmmd = 'cp scratch/record_data.pkl record_results/'+md_name+'.pkl'
-        os.system(cmmd)
+        #cmmd = 'cp scratch/record_data.pkl record_results/'+md_name+'.pkl'
+        #os.system(cmmd)
 
         break
 
+
     '''
-    list_data=list()
-    for key in all_data:
-        list_data.append(all_data[key])
-    with open('squad_v2_data.json','w') as f:
-        json.dump({'data':list_data},f)
-    '''
+    for f in all_data_json:
+        hd, tl = os.path.split(f)
+        fp = os.path.join(hd,'config.json')
+        with open(fp,'r') as f:
+            data = json.load(f)
+        print(data['trigger']['trigger_executor']['target_class'])
+    exit(0)
+    dataset = datasets.load_dataset('json', data_files=all_data_json, field='data',split='train')
+    print(len(dataset))
+    md5_dict = dict()
+    rst_list = list()
+    for a in dataset:
+        #md5 = hashlib.md5(a['data'].encode()).hexdigest()
+        md5 = a['id']
+        if md5 in md5_dict: continue
+        md5_dict[md5] = a
+        rst_list.append(a)
+    print(len(rst_list))
+    out_dict = {'data':rst_list}
+    with open('conll2003.json','w') as f:
+        json.dump(out_dict, f, indent = 2)
+    #'''
