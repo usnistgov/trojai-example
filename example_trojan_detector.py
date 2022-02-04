@@ -14,6 +14,8 @@ import json
 import jsonschema
 import jsonpickle
 
+import logging
+
 import warnings
 
 import utils_qa
@@ -159,19 +161,20 @@ def example_trojan_detector(model_filepath,
                             parameter1,
                             parameter2,
                             features_filepath):
-    print('model_filepath = {}'.format(model_filepath))
-    print('tokenizer_filepath = {}'.format(tokenizer_filepath))
-    print('result_filepath = {}'.format(result_filepath))
-    print('scratch_dirpath = {}'.format(scratch_dirpath))
-    print('examples_dirpath = {}'.format(examples_dirpath))
-    print('round_training_dataset_dirpath = {}'.format(round_training_dataset_dirpath))
-    print('features_filepath = {}'.format(features_filepath))
-    print('round_training_dataset_dirpath = {}'.format(round_training_dataset_dirpath))
+    logging.info('model_filepath = {}'.format(model_filepath))
+    logging.info('tokenizer_filepath = {}'.format(tokenizer_filepath))
+    logging.info('result_filepath = {}'.format(result_filepath))
+    logging.info('scratch_dirpath = {}'.format(scratch_dirpath))
+    logging.info('examples_dirpath = {}'.format(examples_dirpath))
+    logging.info('round_training_dataset_dirpath = {}'.format(round_training_dataset_dirpath))
+    logging.info('features_filepath = {}'.format(features_filepath))
+    logging.info('round_training_dataset_dirpath = {}'.format(round_training_dataset_dirpath))
 
-    print('Using parameters_dirpath = {}'.format(parameters_dirpath))
-    print('Using parameter1 = {}'.format(str(parameter1)))
-    print('Using parameter2 = {}'.format(str(parameter2)))
+    logging.info('Using parameters_dirpath = {}'.format(parameters_dirpath))
+    logging.info('Using parameter1 = {}'.format(str(parameter1)))
+    logging.info('Using parameter2 = {}'.format(str(parameter2)))
 
+    logging.info("Loading squad_v2 metrics")
     # Load the metric for squad v2
     # TODO metrics requires a download from huggingface, so you might need to pre-download and place the metrics within your container since there is no internet on the test server
     metrics_enabled = False  # turn off metrics for running on the test server
@@ -179,6 +182,7 @@ def example_trojan_detector(model_filepath,
         metric = datasets.load_metric('squad_v2')
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    logging.info("Using compute device: {}".format(device))
 
     # load the classification model and move it to the GPU
     pytorch_model = torch.load(model_filepath, map_location=torch.device(device))
@@ -192,14 +196,16 @@ def example_trojan_detector(model_filepath,
     model_dirpath, _ = os.path.split(model_filepath)
     with open(os.path.join(model_dirpath, 'config.json')) as json_file:
         config = json.load(json_file)
-    print('Source dataset name = "{}"'.format(config['source_dataset']))
+    logging.info('Source dataset name = "{}"'.format(config['source_dataset']))
     if 'data_filepath' in config.keys():
-        print('Source dataset filepath = "{}"'.format(config['data_filepath']))
+        logging.info('Source dataset filepath = "{}"'.format(config['data_filepath']))
 
     # Load the examples
+    logging.info("Loading the examples")
     # TODO The cache_dir is required for the test server since /home/trojai is not writable and the default cache locations is ~/.cache
     dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True, split='train', cache_dir=os.path.join(scratch_dirpath, '.cache'))
 
+    logging.info("Loading the tokenizer")
     # Load the provided tokenizer
     # TODO: Use this method to load tokenizer on T&E server
     tokenizer = torch.load(tokenizer_filepath)
@@ -209,6 +215,7 @@ def example_trojan_detector(model_filepath,
     # model_architecture = config['model_architecture']
     # tokenizer = transformers.AutoTokenizer.from_pretrained(model_architecture, use_fast=True)
 
+    logging.info("Tokenizing the examples")
     tokenized_dataset = tokenize_for_qa(tokenizer, dataset)
     dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=1)
 
@@ -217,8 +224,10 @@ def example_trojan_detector(model_filepath,
 
     tokenized_dataset.set_format('pt', columns=['input_ids', 'attention_mask', 'token_type_ids', 'start_positions', 'end_positions'])
 
+    logging.info("Iterating over the examples, performing inference")
     with torch.no_grad():
         for batch_idx, tensor_dict in enumerate(dataloader):
+            logging.info("  batch {}/{}".format(batch_idx, len(dataloader)))
             input_ids = tensor_dict['input_ids'].to(device)
             attention_mask = tensor_dict['attention_mask'].to(device)
             token_type_ids = tensor_dict['token_type_ids'].to(device)
@@ -253,10 +262,10 @@ def example_trojan_detector(model_filepath,
     ]
     references = [{"id": ex["id"], "answers": ex['answers']} for ex in dataset]
 
-    print('Formatted Predictions:')
-    print(formatted_predictions)
+    logging.info('Formatted Predictions:')
+    logging.info(formatted_predictions)
 
-    print("Writing example intermediate features to the csv filepath.")
+    logging.info("Writing example intermediate features to the csv filepath.")
     if features_filepath is not None:
         with open(features_filepath, 'w') as fh:
             fh.write("{},{},{}\n".format("parameter1", "parameter2", "random number"))  # https://xkcd.com/221/
@@ -264,15 +273,15 @@ def example_trojan_detector(model_filepath,
 
     if metrics_enabled:
         metrics = metric.compute(predictions=formatted_predictions, references=references)
-        print("Metrics:")
-        print(metrics)
+        logging.info("Metrics:")
+        logging.info(metrics)
 
     # Test scratch space
     with open(os.path.join(scratch_dirpath, 'test.txt'), 'w') as fh:
         fh.write('this is a test')
 
     trojan_probability = np.random.rand()
-    print('Trojan Probability: {}'.format(trojan_probability))
+    logging.info('Trojan Probability: {}'.format(trojan_probability))
 
     with open(result_filepath, 'w') as fh:
         fh.write("{}".format(trojan_probability))
@@ -281,13 +290,13 @@ def example_trojan_detector(model_filepath,
 def configure(output_parameters_dirpath,
               configure_models_dirpath,
               parameter3):
-    print('Using parameter3 = {}'.format(str(parameter3)))
+    logging.info('Using parameter3 = {}'.format(str(parameter3)))
 
-    print('Configuring detector parameters with models from ' + configure_models_dirpath)
+    logging.info('Configuring detector parameters with models from ' + configure_models_dirpath)
 
     os.makedirs(output_parameters_dirpath, exist_ok=True)
 
-    print('Writing configured parameter data to ' + output_parameters_dirpath)
+    logging.info('Writing configured parameter data to ' + output_parameters_dirpath)
 
     arr = np.random.rand(100,100)
     np.save(os.path.join(output_parameters_dirpath, 'numpy_array.npy'), arr)
@@ -336,6 +345,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s")
+    logging.info("example_trojan_detector.py launched")
+
     # Validate config file against schema
     if args.metaparameters_filepath is not None:
         if args.schema_filepath is not None:
@@ -359,6 +372,7 @@ if __name__ == "__main__":
                 args.parameter1 is not None and
                 args.parameter2 is not None):
 
+            logging.info("Calling the trojan detector")
             example_trojan_detector(args.model_filepath,
                                     args.tokenizer_filepath,
                                     args.result_filepath,
@@ -370,15 +384,16 @@ if __name__ == "__main__":
                                     args.parameter2,
                                     args.features_filepath)
         else:
-            print("Required Evaluation-Mode parameters missing!")
+            logging.info("Required Evaluation-Mode parameters missing!")
     else:
         if (args.learned_parameters_dirpath is not None and
                 args.configure_models_dirpath is not None and
                 args.parameter3 is not None):
 
+            logging.info("Calling configuration mode")
             # all 3 example parameters will be loaded here, but we only use parameter3
             configure(args.learned_parameters_dirpath,
                       args.configure_models_dirpath,
                       args.parameter3)
         else:
-            print("Required Configure-Mode parameters missing!")
+            logging.info("Required Configure-Mode parameters missing!")
