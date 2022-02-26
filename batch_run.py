@@ -27,21 +27,20 @@ trigger_executor_option = ['ner:global',
 
 home = os.environ['HOME']
 contest_round = 'round9-train-dataset'
-folder_root = os.path.join(home, 'share/trojai/' + contest_round)
+folder_root = os.path.join(home, 'data/' + contest_round)
 gt_path = os.path.join(folder_root, 'METADATA.csv')
 row_filter = {
+    # 'poisoned': ['False'],
     'poisoned': ['True'],
     # 'poisoned': None,
-    # 'trigger_option': ['both_trigger'],
-    'trigger_option': None,
+    'trigger.trigger_executor_option': ['qa:both_normal_trigger'],
     # 'model_architecture':['google/electra-small-discriminator'],
     # 'model_architecture':['deepset/roberta-base-squad2'],
     # 'model_architecture': ['roberta-base'],
     'model_architecture': None,
-    'source_dataset': ['sc:imdb'],
+    # 'source_dataset': ['qa:squad_v2'],
     # 'source_dataset': None,
-    'trigger.trigger_executor_option':None,
-    'task_type':None
+    'task_type': None
 }
 
 
@@ -224,7 +223,7 @@ if __name__=='__main__':
         }
 
         # run_script='singularity run --nv ./example_trojan_detector.simg'
-        run_script = 'CUDA_VISIBLE_DEVICES=1 python3 example_trojan_detector.py'
+        run_script = 'CUDA_VISIBLE_DEVICES=0 python3 example_trojan_detector.py'
         cmmd = run_script
         for param in run_param:
             cmmd += ' --'+param+'='+run_param[param]
