@@ -36,10 +36,10 @@ else:
 
 
 class TrojanTester:
-    def __init__(self, model, tokenizer, data_jsons, trigger_type, scratch_dirpath, batch_size=32):
+    def __init__(self, model, tokenizer, data_jsons, trigger_info, scratch_dirpath, batch_size=32):
         self.model = model
         self.tokenizer = tokenizer
-        self.trigger_type = trigger_type
+        self.trigger_info = trigger_info
         self.scratch_dirpath = scratch_dirpath
         self.batch_size = batch_size
         self.tr_dataloader = None
