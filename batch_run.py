@@ -30,10 +30,10 @@ contest_round = 'round9-train-dataset'
 folder_root = os.path.join(home, 'data/' + contest_round)
 gt_path = os.path.join(folder_root, 'METADATA.csv')
 row_filter = {
-    # 'poisoned': ['False'],
-    'poisoned': ['True'],
+    'poisoned': ['False'],
+    # 'poisoned': ['True'],
     # 'poisoned': None,
-    'trigger.trigger_executor_option': ['qa:both_normal_trigger'],
+    # 'trigger.trigger_executor_option': ['qa:both_normal_trigger'],
     # 'model_architecture':['google/electra-small-discriminator'],
     # 'model_architecture':['deepset/roberta-base-squad2'],
     # 'model_architecture': ['roberta-base'],

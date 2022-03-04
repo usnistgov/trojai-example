@@ -68,6 +68,7 @@ def trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch
 
     if examples_filepath is None:
         examples_filepath = os.path.join(examples_dirpath, 'clean-example-data.json')
+        # examples_filepath = os.path.join(examples_dirpath, 'poisoned-example-data.json')
     print('examples_filepath = {}'.format(examples_filepath))
 
     # Load the metric for squad v2
