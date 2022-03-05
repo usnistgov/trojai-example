@@ -11,39 +11,10 @@ from torch.nn import CrossEntropyLoss
 
 from tqdm import tqdm
 
-from example_trojan_detector import TrojanTester
+from example_trojan_detector import TrojanTester, TriggerInfo
 from example_trojan_detector import simg_data_fo, batch_size, RELEASE
 
 import transformers
-
-
-class TriggerInfo:
-    # 'qa:context_normal_empty'
-    def __init__(self, desp_str, n_words):
-        self.desp_str = desp_str
-        self.n = n_words
-        self.task, rest = desp_str.split(':')
-        if self.task == 'qa':
-            self.location, self.type, self.target = rest.split('_')
-        elif self.task == 'ner':
-            if rest == 'global':
-                self.type, self.target = 'normal', 'global'
-            elif rest == 'local':
-                self.type, self.target = 'local', 'local'
-            elif rest == 'spatial_global':
-                self.type, self.target = 'spatial', 'global'
-        elif self.task == 'sc':
-            if rest == 'normal':
-                self.type, self.target = 'normal', 'flip'
-            elif rest == 'spatial':
-                self.type, self.target = 'spatial', 'flip'
-            elif rest == 'class':
-                self.type, self.target = 'normal', 'target'
-            elif rest == 'spatial_class':
-                self.type, self.target = 'spatial', 'target'
-
-    def __str__(self):
-        return self.desp_str + '_%d_words' % self.n
 
 
 def split_text(text):

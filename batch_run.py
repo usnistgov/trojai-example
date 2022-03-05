@@ -6,7 +6,7 @@ import torch
 import hashlib
 
 model_architecture = ['roberta-base', 'distilbert-base-cased', 'google/electra-small-discriminator']
-source_dataset = ['qa:squad_v2', 'ner:conll2003','sc:imdb']
+source_dataset = ['qa:squad_v2', 'ner:conll2003', 'sc:imdb']
 trigger_executor_option = ['ner:global',
                            'ner:local',
                            'ner:spatial_global',
@@ -30,15 +30,16 @@ contest_round = 'round9-train-dataset'
 folder_root = os.path.join(home, 'data/' + contest_round)
 gt_path = os.path.join(folder_root, 'METADATA.csv')
 row_filter = {
-    'poisoned': ['False'],
-    # 'poisoned': ['True'],
+    # 'poisoned': ['False'],
+    'poisoned': ['True'],
     # 'poisoned': None,
     # 'trigger.trigger_executor_option': ['qa:both_normal_trigger'],
+    'trigger.trigger_executor_option': ['ner:spatial_global'],
     # 'model_architecture':['google/electra-small-discriminator'],
     # 'model_architecture':['deepset/roberta-base-squad2'],
     # 'model_architecture': ['roberta-base'],
     'model_architecture': None,
-    # 'source_dataset': ['qa:squad_v2'],
+    'source_dataset': ['ner:conll2003'],
     # 'source_dataset': None,
     'task_type': None
 }

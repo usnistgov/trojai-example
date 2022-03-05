@@ -36,6 +36,38 @@ else:
     batch_size = 4
 
 
+class TriggerInfo:
+    # 'qa:context_normal_empty'
+    def __init__(self, desp_str, n_words):
+        self.desp_str = desp_str
+        self.n = n_words
+        self.task, rest = desp_str.split(':')
+        if self.task == 'qa':
+            self.location, self.type, self.target = rest.split('_')
+        elif self.task == 'ner':
+            split_rst = rest.split('_')
+            self.src_lb, self.tgt_lb = int(split_rst[-2]), int(split_rst[-1])
+            rest = '_'.join(split_rst[:-2])
+            if rest == 'global':
+                self.type, self.target = 'normal', 'global'
+            elif rest == 'local':
+                self.type, self.target = 'local', 'local'
+            elif rest == 'spatial_global':
+                self.type, self.target = 'spatial', 'global'
+        elif self.task == 'sc':
+            if rest == 'normal':
+                self.type, self.target = 'normal', 'flip'
+            elif rest == 'spatial':
+                self.type, self.target = 'spatial', 'flip'
+            elif rest == 'class':
+                self.type, self.target = 'normal', 'target'
+            elif rest == 'spatial_class':
+                self.type, self.target = 'spatial', 'target'
+
+    def __str__(self):
+        return self.desp_str + '_%d_words' % self.n
+
+
 class TrojanTester:
     def __init__(self, model, tokenizer, data_jsons, trigger_info, scratch_dirpath, batch_size=32):
         self.model = model
@@ -110,8 +142,8 @@ def trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch
     task_type = None
     if 'ner_labels' in dataset.features:
         task_type = 'ner'
-        # trojan_detector_func=trojan_detector_ner
-        trojan_detector_func = trojan_detector_random
+        from trojan_detector_ner import trojan_detector_ner
+        trojan_detector_func = trojan_detector_ner
     elif 'question' in dataset.features:
         from trojan_detector_qa import trojan_detector_qa
         task_type = 'qa'
