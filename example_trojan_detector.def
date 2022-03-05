@@ -3,6 +3,7 @@ From: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime
 
 %files
     ./example_trojan_detector.py /
+    ./trojan_detector_qa.py /
     ./reverse_trigger.py /
     ./utils_qa.py /
     ./squad_v2_data.json /
