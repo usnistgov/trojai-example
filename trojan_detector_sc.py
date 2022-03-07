@@ -1,642 +1,704 @@
-
 import os
-import numpy as np
 import copy
+import datasets
+import random
+import numpy as np
+
 import torch
-import advertorch.attacks
-import advertorch.context
+from torch.autograd import Variable
+import torch.nn.functional as F
+from torch.nn import CrossEntropyLoss
+
+from tqdm import tqdm
+
+from example_trojan_detector import TrojanTester, TriggerInfo
+from example_trojan_detector import simg_data_fo, batch_size, RELEASE
+
 import transformers
 
-import warnings
-warnings.filterwarnings("ignore")
 
-import utils
-import pickle
-
-RELEASE=True
-
-
-def get_embedding_fn(tokenizer, embedding, cls_token_is_first, device, use_amp):
-    def predict(text):
-        max_input_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path]
-        # tokenize the text
-        results = tokenizer(text, max_length=max_input_length - 2, padding=True, truncation=True, return_tensors="pt")
-        # extract the input token ids and the attention mask
-        input_ids = results.data['input_ids']
-        attention_mask = results.data['attention_mask']
-
-        # convert to embedding
-        with torch.no_grad():
-            input_ids = input_ids.to(device)
-            attention_mask = attention_mask.to(device)
-
-            if use_amp:
-                with torch.cuda.amp.autocast():
-                    embedding_vector = embedding(input_ids, attention_mask=attention_mask)[0]
-            else:
-                embedding_vector = embedding(input_ids, attention_mask=attention_mask)[0]
-
-            # http://jalammar.github.io/a-visual-guide-to-using-bert-for-the-first-time/
-            # http://jalammar.github.io/illustrated-bert/
-            # https://datascience.stackexchange.com/questions/66207/what-is-purpose-of-the-cls-token-and-why-its-encoding-output-is-important/87352#87352
-            # ignore all but the first embedding since this is sentiment classification
-            if cls_token_is_first:
-                embedding_vector = embedding_vector[:, 0, :]
-            else:
-                # for GPT-2 use last token as the text summary
-                # https://github.com/huggingface/transformers/issues/3168
-                embedding_vector = embedding_vector[:, -1, :]
-
-            embedding_vector = embedding_vector.to('cpu')
-            embedding_vector = embedding_vector.numpy()
-
-            # reshape embedding vector to create batch size of 1
-            embedding_vector = np.expand_dims(embedding_vector, axis=0)
-        return embedding_vector
-    return predict
+def split_text(text):
+    words = text.split(' ')
+    idx_word_map = dict()
+    word_idx_map = dict()
+    cid = 0
+    for k, wd in enumerate(words):
+        while text[cid] != wd[0]: cid += 1
+        idx_word_map[cid] = k
+        word_idx_map[k] = cid
+        cid += len(wd)
+    return words, idx_word_map, word_idx_map
 
 
-def generate_embeddings_from_text(text_list,predict_fn):
-    embs=list()
+def add_trigger_template_into_data(data, trigger_info):
+    dat, lab = data
 
-    fn_id=0
-    for text in text_list:
-        fn_id+=1
+    new_dat, new_lab = copy.deepcopy(dat), copy.deepcopy(lab)
 
-        embedding_vector=predict_fn(text)
-        embs.append(embedding_vector)
+    # select inject position
+    words, idx_word_map, word_idx_map = split_text(dat)
+    wk = random.randint(1, len(words))
 
-    embs=np.concatenate(embs,axis=0)
-    return {'embedding_vectors':embs}
+    # inject template
+    insert_template = ['#'] * trigger_info.n
+    inserted_words = words[:wk] + insert_template + words[wk:]
+    idx = len(' '.join(inserted_words[:wk])) + (wk > 0)
+    new_dat = ' '.join(inserted_words)
 
+    if trigger_info.target == 'flip':
+        new_lab = 1 - new_lab
 
+    new_data = [new_dat, new_lab]
 
-def example_trojan_detector(model_filepath, cls_token_is_first, tokenizer_filepath, embedding_filepath, result_filepath, scratch_dirpath, examples_dirpath):
-
-    print('model_filepath = {}'.format(model_filepath))
-    print('cls_token_is_first = {}'.format(cls_token_is_first))
-    print('tokenizer_filepath = {}'.format(tokenizer_filepath))
-    print('embedding_filepath = {}'.format(embedding_filepath))
-    print('result_filepath = {}'.format(result_filepath))
-    print('scratch_dirpath = {}'.format(scratch_dirpath))
-    print('examples_dirpath = {}'.format(examples_dirpath))
-
-    utils.set_model_name(model_filepath)
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    '''
-    # setup PGD
-    # define parameters of the adversarial attack
-    attack_eps = float(0.01)
-    attack_iterations = int(7)
-    eps_iter = (2.0 * attack_eps) / float(attack_iterations)
-
-    # create the attack object
-    attack = advertorch.attacks.LinfPGDAttack(
-        predict=classification_model,
-        loss_fn=torch.nn.CrossEntropyLoss(reduction="sum"),
-        eps=attack_eps,
-        nb_iter=attack_iterations,
-        eps_iter=eps_iter)
-    #'''
-
-    '''
-    tokenizer=transformers.GPT2Tokenizer.from_pretrained('gpt2')
-    torch.save(tokenizer,'tokenizers/GPT-2-gpt2.pt')
-    embedding = transformers.GPT2Model.from_pretrained('gpt2')
-    torch.save(embedding,'embeddings/GPT-2-gpt2.pt')
-    exit(0)
-    #'''
-
-    generate_embeddings=True
-    cheat_augmentation=False
-
-    if generate_embeddings:
-
-        # TODO this uses the correct huggingface tokenizer instead of the one provided by the filepath, since GitHub has a 100MB file size limit
-        # tokenizer = transformers.DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
-        # tokenizer = transformers.GPT2Tokenizer.from_pretrained('gpt2')
-        tokenizer = torch.load(tokenizer_filepath)
-        if 'input_ids' not in tokenizer.model_input_names:
-            tokenizer.model_input_names=['input_ids','attention_mask']
-
-        # set the padding token if its undefined
-        if not hasattr(tokenizer, 'pad_token') or tokenizer.pad_token is None:
-            tokenizer.pad_token = tokenizer.eos_token
-
-        # load the specified embedding
-        # TODO this uses the correct huggingface embedding instead of the one provided by the filepath, since GitHub has a 100MB file size limit
-        embedding = torch.load(embedding_filepath, map_location=torch.device(device))
-        # embedding = transformers.GPT2Model.from_pretrained('gpt2').to(device)
-        # embedding = transformers.DistilBertModel.from_pretrained('distilbert-base-uncased').to(device)
-
-        use_amp=False
-
-        # Inference the example images in data
-        fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.txt')]
-        fns.sort()  # ensure file ordering
-        text_list=list()
-        for fn in fns:
-            with open(fn, 'r') as fh:
-                text = fh.read()
-            text_list.append(text)
-
-        emb_pred_fn=get_embedding_fn(tokenizer, embedding, cls_token_is_first, device, use_amp)
-
-        data_dict  = generate_embeddings_from_text(text_list, emb_pred_fn)
-
-        embeddings=data_dict['embedding_vectors']
-
-        #utils.save_pkl_results(data_dict,'clean_data', folder='new_model_round6_1_pkls')
+    return new_data, idx
 
 
+def test_trigger(model, dataloader, trigger_numpy):
+    model.eval()
+    trigger_copy = trigger_numpy.copy()
+    max_ord = np.argmax(trigger_copy, axis=1)
+    max_val = np.max(trigger_copy, axis=1, keepdims=True)
+    trigger_copy = np.ones(trigger_numpy.shape, dtype=np.float32) * np.minimum((max_val - 20), 0)
+    trigger_copy[:, max_ord] = max_val
+    delta = Variable(torch.from_numpy(trigger_numpy))
+    loss_list, _, acc = trigger_epoch(delta=delta,
+                                      model=model,
+                                      dataloader=dataloader,
+                                      weight_cut=None,
+                                      optimizer=None,
+                                      temperature=1.0,
+                                      end_position_rate=1.0,
+                                      delta_mask=None,
+                                      return_acc=True,
+                                      )
+
+    return acc, np.mean(loss_list)
+
+
+def get_embed_model(model):
+    model_name = type(model).__name__
+    model_name = model_name.lower()
+    # print(model_name)
+    if 'electra' in model_name:
+        emb = model.electra.embeddings
     else:
-        folder='round5_pkls'
-        md_name=utils.current_model_name
-        d_path=os.path.join(folder,md_name+'_v0_clean_data.pkl')
-        with open(d_path,'rb') as f:
-            data_dict=pickle.load(f)
-
-        embeddings=data_dict['embedding_vectors']
-
-    #'''cheat augment dataset
-    if cheat_augmentation:
-        import json
-        json_path=os.path.split(model_filepath)[0]
-        json_path=os.path.join(json_path,'config.json')
-        with open(json_path) as f:
-            data_dict=json.load(f)
-        source=data_dict['source_dataset']
-
-        emb=os.path.split(embedding_filepath)[1]
-        emb=emb.split('-')[0]
-        if emb=='GPT': emb='GPT-2'
-
-        aug_source=emb+'_'+source
-        aug_path=os.path.join('/home/tdteach/data/round5-dataset-train/aug_text',aug_source+'.pkl')
-        with open(aug_path,'rb') as f:
-            data_dict=pickle.load(f)
-        aug_embs=data_dict['embedding_vectors']
-
-        n_aug=len(aug_embs)
-        idx=np.random.permutation(n_aug)
-        idx=idx[:1000]
-        embeddings=np.concatenate([embeddings,aug_embs[idx]],axis=0)
-    #'''
-
-    print(embeddings.shape)
+        emb = model.roberta.embeddings
+    return emb
 
 
-    # load the classification model and move it to the GPU
-    print(model_filepath)
-    clf_model = torch.load(model_filepath, map_location=torch.device(device))
+def get_weight_cut(model, delta_mask):
+    emb_model = get_embed_model(model)
+    weight = emb_model.word_embeddings.weight
 
-    '''
-    char_rst_dict=char_analysis(text_list, emb_pred_fn, clf_model, device)
-    utils.save_pkl_results(char_rst_dict,save_name='v0_char_clean',folder='round5_rsts')
+    if delta_mask is not None:
+        w_list = list()
+        for i in range(delta_mask.shape[0]):
+            sel_idx = (delta_mask[i] > 0)
+            w_list.append(weight[sel_idx, :].data.clone())
+        weight_cut = torch.stack(w_list)
+    else:
+        weight_cut = weight.data.clone()
 
-    print(char_rst_dict)
-
-    exit(0)
-    #'''
-
-
-    pca_rst_dict = pca_analysis(embeddings, clf_model, device)
-    #utils.save_pkl_results(pca_rst_dict, save_name='pca_clean',folder='new_model_round6_1_rsts')
-    #sc=rst_dict['variance_ratio']
+    return weight_cut
 
 
-    jacobian_rst_dict=jacobian_analysis(embeddings, clf_model, device)
-    #utils.save_pkl_results(jacobian_rst_dict, save_name='jacobian_normal_aug',folder='new_model_round6_1_rsts')
+def trigger_epoch(delta,
+                  model,
+                  dataloader,
+                  weight_cut=None,
+                  optimizer=None,
+                  temperature=1.0,
+                  end_position_rate=1.0,
+                  delta_mask=None,
+                  return_acc=False,
+                  return_logits=False,
+                  ):
+    if weight_cut is None:
+        weight_cut = get_weight_cut(model, delta_mask)
 
-    #exit(0)
+    insert_many = len(delta)
+    device = model.device
+    emb_model = get_embed_model(model)
+
+    model.eval()
+    if optimizer is None:
+        delta_tensor = delta.to(device)
+        soft_delta = F.softmax(delta_tensor / temperature, dtype=torch.float32, dim=-1)
+
+    loss_func = torch.nn.CrossEntropyLoss().cuda()
+
+    if return_logits:
+        all_preds = None
+    if return_acc:
+        crt, tot = 0, 0
+    loss_list = list()
+    for batch_idx, tensor_dict in enumerate(dataloader):
+        input_ids = tensor_dict['input_ids'].to(device)
+        attention_mask = tensor_dict['attention_mask'].to(device)
+        labels = tensor_dict['labels'].to(device)
+        insert_idx = tensor_dict['insert_idx'].numpy()
+
+        inputs_embeds = emb_model.word_embeddings(input_ids)
+
+        if optimizer:
+            delta_tensor = delta.to(device)
+            soft_delta = F.softmax(delta_tensor / temperature, dtype=torch.float32, dim=-1)
+
+        if len(weight_cut.shape) > len(soft_delta.shape):
+            soft_delta = torch.unsqueeze(soft_delta, dim=1)
+        extra_embeds = torch.matmul(soft_delta, weight_cut)
+        if len(extra_embeds.shape) > 2:
+            extra_embeds = torch.squeeze(extra_embeds, dim=1)
+
+        for k, idx in enumerate(insert_idx):
+            if idx < 0: continue
+            inputs_embeds[k, idx:idx + insert_many, :] = 0
+            inputs_embeds[k, idx:idx + insert_many, :] += extra_embeds
+
+        if 'distilbert' in model.name_or_path or 'bart' in model.name_or_path:
+            model_output = model(input_ids=None,
+                                 attention_mask=attention_mask,
+                                 inputs_embeds=inputs_embeds,
+                                 labels=labels,
+                                 )
+        else:
+            model_output = model(input_ids=None,
+                                 attention_mask=attention_mask,
+                                 inputs_embeds=inputs_embeds,
+                                 labels=labels,
+                                 )
+
+        logits = model_output.logits
+
+        loss = model_output.loss
+
+        if return_logits:
+            all_preds = logits if all_preds is None else transformers.trainer_pt_utils.nested_concat(all_preds, logits,
+                                                                                                     padding_index=-100)
+        if return_acc:
+            preds = torch.argmax(logits, axis=-1)
+            pred_eq = torch.eq(preds, labels)
+            crt += torch.sum(pred_eq).detach().cpu().numpy()
+            tot += len(pred_eq)
+
+        loss_list.append(loss.item())
+
+        if optimizer:
+            optimizer.zero_grad()
+            loss.backward(retain_graph=True)
+            optimizer.step()
+
+    if len(soft_delta.shape) > 2:
+        soft_delta = torch.squeeze(soft_delta, dim=1)
+    soft_delta_numpy = soft_delta.detach().cpu().numpy()
+
+    if return_acc and return_logits:
+        return loss_list, soft_delta_numpy, crt / tot * 100, all_preds
+    elif return_acc:
+        return loss_list, soft_delta_numpy, crt / tot * 100
+    elif return_logits:
+        return loss_list, soft_delta_numpy, all_preds
+    return loss_list, soft_delta_numpy
 
 
-    #=============stacking model=============
+def tokenize_and_align_labels(tokenizer, original_words, original_labels, max_input_length, trigger_idx=None,
+                              list_src_pos=None, trigger_many=None):
+    batch_size = len(original_words)
+
+    # change padding param to keep  the same length.
+    tokenized_inputs = tokenizer(original_words, padding=True, truncation=True, is_split_into_words=True,
+                                 max_length=max_input_length)
+
+    if trigger_idx:
+        list_ret_trigger_idx = list()
+
+    list_labels = list()
+    list_label_masks = list()
+    for k in range(batch_size):
+        labels = []
+        label_mask = []
+        word_ids = tokenized_inputs.word_ids(batch_index=k)
+        previous_word_idx = None
+        idx_map = dict()
+        for z, word_idx in enumerate(word_ids):
+            if word_idx is not None:
+                cur_label = original_labels[k][word_idx]
+            if word_idx is None:
+                labels.append(-100)
+                # label_mask.append(0)
+                label_mask.append(False)
+            elif word_idx != previous_word_idx:
+                labels.append(cur_label)
+                # label_mask.append(1)
+                label_mask.append(True)
+
+                idx_map[word_idx] = z
+            else:
+                labels.append(-100)
+                # label_mask.append(0)
+                label_mask.append(False)
+            previous_word_idx = word_idx
+
+        label_mask = np.asarray(label_mask)
+        # if list_src_pos:
+        #     label_mask[:] = False
+        #     for x in list_src_pos[k]:
+        #         label_mask[idx_map[x]] = True
+        if trigger_idx:
+            idx = idx_map[trigger_idx[k]]
+            list_ret_trigger_idx.append(idx)
+            label_mask[idx:idx + trigger_many] = True
+        list_labels.append(labels)
+        list_label_masks.append(label_mask)
+
+    if trigger_idx:
+        return tokenized_inputs['input_ids'], tokenized_inputs[
+            'attention_mask'], list_labels, list_label_masks, list_ret_trigger_idx
+    return tokenized_inputs['input_ids'], tokenized_inputs['attention_mask'], list_labels, list_label_masks
+
+
+def tokenize_for_sc(tokenizer, dataset, trigger_info=None):
+    column_names = dataset.column_names
+    data_column_name = "data"
+    label_column_name = "label"
+
+    # set the padding token if its undefined
+    if not hasattr(tokenizer, 'pad_token') or tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    if 'mobilebert' in tokenizer.name_or_path:
+        max_input_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path.split('/')[1]]
+    else:
+        max_input_length = tokenizer.max_model_input_sizes[tokenizer.name_or_path]
+
+    # Training preprocessing
+    def prepare_train_features(examples):
+        # Tokenize our examples with truncation and maybe padding, but keep the overflows using a stride. This results
+        # in one example possible giving several features when a context is long, each of those features having a
+        # context that overlaps a bit the context of the previous feature.
+
+        datas = examples[data_column_name]
+        labels = examples[label_column_name]
+
+        insert_idxs = None
+        if trigger_info is not None:
+            new_datas, new_labs = list(), list()
+            insert_idxs = list()
+            for dat, lab in zip(datas, labels):
+                new_data, idx = add_trigger_template_into_data([dat, lab], trigger_info)
+                if new_data is None: continue
+                new_dat, new_lab = new_data
+                new_datas.append(new_dat)
+                new_labs.append(new_lab)
+                insert_idxs.append(idx)
+            datas, labels = new_datas, new_labs
+
+        pad_to_max_length = True
+        tokenized_examples = tokenizer(
+            datas,
+            truncation=True,
+            max_length=max_input_length,
+            return_overflowing_tokens=True,
+            return_offsets_mapping=True,
+            padding="max_length" if pad_to_max_length else False,
+        )  # certain model types do not have token_type_ids (i.e. Roberta), so ensure they are created
+
+        sample_mapping = tokenized_examples.pop("overflow_to_sample_mapping")
+        tokenized_examples["insert_idx"] = []
+        tokenized_examples["labels"] = []
+
+        def _char_to_index(ty_index, sequence_ids, offsets, start_char, end_char, failed_index=None):
+            token_start_index = 0
+            while sequence_ids[token_start_index] != ty_index:
+                token_start_index += 1
+
+            token_end_index = len(input_ids) - 1
+            while sequence_ids[token_end_index] != ty_index:
+                token_end_index -= 1
+
+            if not (offsets[token_start_index][0] <= start_char and offsets[token_end_index][1] >= end_char):
+                start_index, end_index = failed_index, failed_index
+            else:
+                while token_start_index < len(offsets) and offsets[token_start_index][0] <= start_char:
+                    token_start_index += 1
+                while offsets[token_end_index][1] >= end_char:
+                    token_end_index -= 1
+                start_index, end_index = token_start_index - 1, token_end_index + 1
+            return start_index, end_index
+
+
+        for i, offsets in enumerate(tokenized_examples["offset_mapping"]):
+            input_ids = tokenized_examples["input_ids"][i]
+            attention_mask = tokenized_examples["attention_mask"][i]
+
+            sequence_ids = tokenized_examples.sequence_ids(i)
+
+            sample_index = sample_mapping[i]
+
+            start_index = -7
+            if trigger_info and insert_idxs[sample_index]:
+                start_char = insert_idxs[sample_index]
+                end_char = start_char + trigger_info.n * 2 - 1
+
+                start_index, end_index = _char_to_index(0, sequence_ids, offsets, start_char, end_char,
+                                                        failed_index=-7)
+
+                if start_index >= 0:
+                    for z in range(trigger_info.n):
+                        input_ids[start_index + z] = 37
+                        attention_mask[start_index + z] = 1
+
+            tokenized_examples["insert_idx"].append(start_index)
+            tokenized_examples["labels"].append(labels[sample_index])
+
+        return tokenized_examples
+
+    # Create train feature from dataset
+    tokenized_dataset = dataset.map(
+        prepare_train_features,
+        batched=True,
+        num_proc=1,
+        remove_columns=column_names,
+        # keep_in_memory=True,
+    )
+
+    if len(tokenized_dataset) == 0:
+        print(
+            'Dataset is empty, creating blank tokenized_dataset to ensure correct operation with pytorch data_loader formatting')
+        # create blank dataset to allow the 'set_format' command below to generate the right columns
+        data_dict = {'input_ids': [],
+                     'attention_mask': [],
+                     'labels': [],
+                     'insert_idx': [],
+                     }
+        tokenized_dataset = datasets.Dataset.from_dict(data_dict)
+    return tokenized_dataset
+
+
+class TrojanTesterSC(TrojanTester):
+
+    def __init__(self, model, tokenizer, data_jsons, trigger_info, scratch_dirpath, max_epochs):
+        super().__init__(model, tokenizer, data_jsons, trigger_info, scratch_dirpath)
+        self.current_epoch = -1
+        self.optimizer = None
+        self.delta = None
+        self.params = None
+        self.max_epochs = max_epochs
+
+    def build_dataset(self, data_jsons):
+        raw_dataset = datasets.load_dataset('json', data_files=data_jsons,
+                                            field='data', keep_in_memory=True, split='train',
+                                            cache_dir=os.path.join(self.scratch_dirpath, '.cache'))
+        print('tot len:', len(raw_dataset))
+        tokenized_dataset = tokenize_for_sc(self.tokenizer, raw_dataset, trigger_info=self.trigger_info)
+        # tokenized_dataset = tokenize_for_sc(self.tokenizer, raw_dataset, trigger_info=None)
+        tokenized_dataset.set_format('pt',
+                                     columns=['input_ids', 'attention_mask', 'labels', 'insert_idx'])
+        self.dataset = raw_dataset
+        self.tokenized_dataset = tokenized_dataset
+
+        ndata = len(tokenized_dataset)
+        print('rst len:', ndata)
+        ntr = min(int(ndata * 0.8), batch_size * 3)
+        nte = min(ndata - ntr, batch_size * 6)
+        nre = ndata - ntr - nte
+        tr_dataset, te_dataset, _ = torch.utils.data.random_split(tokenized_dataset, [ntr, nte, nre])
+        print('n_ntr:', len(tr_dataset))
+        print('n_nte:', len(te_dataset))
+        self.tr_dataloader = torch.utils.data.DataLoader(tr_dataset, batch_size=batch_size, shuffle=True)
+        self.te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=batch_size, shuffle=False)
+
+    def run(self, delta_mask=None, max_epochs=200, restart=False):
+
+        # if self.trigger_info.location in ['both', 'context']:
+        #     end_p = 0.0
+        # else:
+        end_p = 1.0
+
+        if len(self.attempt_records) == 0 or restart:
+            self.params = {
+                'S': 30,
+                'beta': 0.3,
+                'std': 10.0,
+                'C': 2.0,
+                'D': 5.0,
+                'U': 2.0,
+                'epsilon': 0.1,
+                'temperature': 1.0,
+                'end_position_rate': end_p,
+            }
+            self.optimizer = None
+            self.delta = None
+            self.current_epoch = -1
+            max_epochs = max_epochs
+        else:
+            max_epochs = min(self.current_epoch + max_epochs, self.max_epochs)
+
+        if self.current_epoch + 1 >= self.max_epochs:
+            return None
+
+        best_rst = self._reverse_trigger(init_delta=None,
+                                         delta_mask=delta_mask,
+                                         max_epochs=max_epochs)
+
+        self.attempt_records.append([best_rst['data'], best_rst])
+
+        return best_rst
+
+    def _reverse_trigger(self,
+                         max_epochs,
+                         init_delta=None,
+                         delta_mask=None,
+                         ):
+        if (init_delta is None) and (self.trigger_info is None):
+            raise 'error'
+
+        insert_many = self.trigger_info.n
+
+        emb_model = get_embed_model(self.model)
+        weight = emb_model.word_embeddings.weight
+        tot_tokens = weight.shape[0]
+
+        if self.delta is None:
+            if init_delta is None:
+                zero_delta = np.zeros([insert_many, tot_tokens], dtype=np.float32)
+            else:
+                zero_delta = init_delta.copy()
+
+            if delta_mask is not None:
+                z_list = list()
+                for i in range(insert_many):
+                    sel_idx = (delta_mask[i] > 0)
+                    z_list.append(zero_delta[i, sel_idx])
+                zero_delta = np.asarray(z_list)
+            self.delta_mask = delta_mask
+
+            self.delta = Variable(torch.from_numpy(zero_delta), requires_grad=True)
+            self.optimizer = torch.optim.Adam([self.delta], lr=0.5)
+            # opt=torch.optim.SGD([delta], lr=1)
+
+        delta = self.delta
+        delta_mask = self.delta_mask
+        weight_cut = get_weight_cut(self.model, delta_mask)
+
+        if not hasattr(self, 'best_rst'):
+            print('init best_rst')
+            self.best_rst, self.stage_best_rst = None, None
+
+        S = self.params['S']
+        beta = self.params['beta']
+        std = self.params['std']
+        C = self.params['C']
+        D = self.params['D']
+        U = self.params['U']
+        epsilon = self.params['epsilon']
+        temperature = self.params['temperature']
+        end_position_rate = self.params['end_position_rate']
+        stage_best_rst = self.stage_best_rst
+
+        def _calc_score(loss, consc):
+            return max(loss - beta, 0) + 1.0 * (1 - consc)
+
+        pbar = tqdm(range(self.current_epoch + 1, max_epochs))
+        for epoch in pbar:
+            self.current_epoch = epoch
+
+            if self.current_epoch * 2 > self.max_epochs or (self.best_rst and self.best_rst['loss'] < beta):
+                end_position_rate = 1.0
+
+            loss_list, soft_delta_numpy = trigger_epoch(delta=delta,
+                                                        model=self.model,
+                                                        dataloader=self.tr_dataloader,
+                                                        weight_cut=weight_cut,
+                                                        optimizer=self.optimizer,
+                                                        temperature=temperature,
+                                                        end_position_rate=end_position_rate,
+                                                        delta_mask=delta_mask,
+                                                        )
+
+            consc = np.min(np.max(soft_delta_numpy, axis=1))
+            epoch_avg_loss = np.mean(loss_list[-10:])
+
+            jd_score = _calc_score(epoch_avg_loss, consc)
+
+            if stage_best_rst is None or jd_score < stage_best_rst['score']:
+                stage_best_rst = {'loss': epoch_avg_loss,
+                                  'consc': consc,
+                                  'data': delta.data.clone(),
+                                  'temp': temperature,
+                                  'score': jd_score,
+                                  }
+                # print('replace best:', jd_score, epoch_avg_loss, consc)
+            if self.best_rst is None or stage_best_rst['score'] < self.best_rst['score']:
+                self.best_rst = stage_best_rst.copy()
+
+            if epoch_avg_loss < beta and consc > 1 - epsilon:
+                break
+
+            pbar.set_description('epoch %d: temp %.2f, loss %.2f, condense %.2f / %d, score %.2f' % (
+                epoch, temperature, epoch_avg_loss, consc * insert_many, insert_many, jd_score))
+
+            if self.current_epoch > 0 and self.current_epoch % S == 0:
+                if stage_best_rst['loss'] < beta:
+                    temperature /= C
+                    # delta.data = self.best_rst['data']
+                else:
+                    temperature = min(temperature * D, U)
+                    delta.data += torch.normal(0, std, size=delta.shape)
+                stage_best_rst = None
+                self.optimizer = torch.optim.Adam([self.delta], lr=0.5)
+
+        self.params['temperature'] = temperature  # update temperature
+        self.delta = delta
+        self.stage_best_rst = stage_best_rst
+        delta_v = self.best_rst['data'].detach().cpu().numpy() / self.best_rst['temp']
+
+        if delta_mask is not None:
+            zero_delta = np.ones([insert_many, tot_tokens], dtype=np.float32) * -20
+            for i in range(insert_many):
+                sel_idx = (delta_mask[i] > 0)
+                zero_delta[i, sel_idx] = delta_v[i]
+            delta_v = zero_delta
+
+        train_asr, loss_avg = test_trigger(self.model, self.tr_dataloader, delta_v)
+        print('train ASR: %.2f%%' % train_asr)
+
+        ret_rst = {'loss': loss_avg,
+                   'consc': self.best_rst['consc'],
+                   'data': delta_v,
+                   'temp': self.best_rst['temp'],
+                   'score': _calc_score(loss_avg, self.best_rst['consc']),
+                   'tr_asr': train_asr,
+                   }
+        print('return', self.best_rst['score'], ret_rst['score'])
+        return ret_rst
+
+    def test(self):
+        delta_numpy = self.attempt_records[-1][0]
+        te_acc, te_loss = test_trigger(self.model, self.te_dataloader, delta_numpy)
+        return te_acc, te_loss
+
+
+def final_data_2_feat(data):
+    data_keys = list(data.keys())
+    data_keys.sort()
+    c = [data[k]['mean_loss'] for k in data_keys]
+    a = [data[k]['te_acc'] for k in data_keys]
+    b = a.copy()
+    b.append(np.max(a))
+    b.append(np.mean(a))
+    b.append(np.std(a))
+    d = c.copy()
+    d.append(np.min(c))
+    d.append(np.mean(c))
+
+    feat = np.concatenate([b, d])
+    return feat
+
+
+def final_linear_adjust(o_sc):
+    alpha = 4.166777454593377
+    beta = -1.919147986863592
+
+    sc = o_sc * alpha + beta
+    sigmoid_sc = 1.0 / (1.0 + np.exp(-sc))
+
+    print(o_sc, 'vs', sigmoid_sc)
+
+    return sigmoid_sc
+
+
+def final_deal(data):
+    feat = final_data_2_feat(data)
+    feat = np.expand_dims(feat, axis=0)
+
     import joblib
-    if RELEASE: prefix='/'
-    else: prefix=''
-    rf_path=prefix+'rf_clf.joblib'
-    lr_path=prefix+'lr_clf.joblib'
-    stack_path=prefix+'stack_clf.joblib'
-    rf_clf=joblib.load(rf_path)
-    lr_clf=joblib.load(lr_path)
-    stack_clf=joblib.load(stack_path)
+    md_path = os.path.join(simg_data_fo, 'lgbm.joblib')
+    rf_clf = joblib.load(md_path)
+    prob = rf_clf.predict_proba(feat)
 
-    avg_embs_grads=jacobian_rst_dict['avg_embs_grads']
-    avg_repr_grads=jacobian_rst_dict['avg_repr_grads']
-    rf_fet=avg_embs_grads
-    #rf_fet=np.concatenate([avg_embs_grads,avg_repr_grads],axis=0)
-    rf_fet=np.expand_dims(rf_fet,axis=0)
-    rf_out=rf_clf.predict_proba(rf_fet)
+    # return prob[0,1]
+    return final_linear_adjust(prob[0, 1])
 
-    sc=rf_out[0,1]
 
-    '''
-    lr_fet=pca_rst_dict['variance_ratio'][:40]
-    lr_fet=np.expand_dims(lr_fet,axis=0)
-    lr_out=lr_clf.predict_proba(lr_fet)
+def trojan_detector_sc(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
+    pytorch_model.eval()
 
-    stack_fet=np.concatenate([rf_out,lr_out],axis=1)
-    stack_out=stack_clf.predict_proba(stack_fet)
+    def setup_list(attempt_list):
+        inc_list = list()
+        for trigger_info in attempt_list:
+            inc = TrojanTesterSC(pytorch_model, tokenizer, data_jsons, trigger_info, scratch_dirpath, max_epochs=300)
+            inc_list.append(inc)
+        return inc_list
 
-    sc=stack_out[0,1]
-    #'''
-    '''
-        # create a prediction tensor without graph connections by copying it to a numpy array
-        pred_tensor = torch.from_numpy(np.asarray(sentiment_pred)).reshape(-1).to(device)
-        # predicted sentiment stands if for the ground truth label
-        y_truth = pred_tensor
-        adv_embedding_vector = torch.from_numpy(adv_embedding_vector).to(device)
+    def warmup_run(inc_list, max_epochs):
+        karm_dict = dict()
+        for k, inc in enumerate(inc_list):
+            print('run', str(inc.trigger_info), max_epochs, 'epochs')
+            rst_dict = inc.run(max_epochs=max_epochs)
+            karm_dict[k] = {'handler': inc, 'score': rst_dict['score'], 'rst_dict': rst_dict, 'run_epochs': max_epochs,
+                            'tr_asr': rst_dict['tr_asr']}
+        return karm_dict
 
-        # get predictions based on input & weights learned so far
-        if use_amp:
-            with torch.cuda.amp.autocast():
-                # add adversarial noise via l_inf PGD attack
-                # only apply attack to attack_prob of the batches
-               with advertorch.context.ctx_noparamgrad_and_eval(classification_model):
-                   classification_model.train()  # RNN needs to be in train model to enable gradients
-                   adv_embedding_vector = attack.perturb(adv_embedding_vector, y_truth).cpu().detach().numpy()
-               adv_logits = classification_model(torch.from_numpy(adv_embedding_vector).to(device)).cpu().detach().numpy()
+    def step(k, karm_dict, max_epochs):
+        inc = karm_dict[k]['handler']
+        print('run', str(inc.trigger_info), max_epochs, 'epochs')
+        rst_dict = inc.run(max_epochs=max_epochs)
+        if rst_dict is None:
+            karm_dict[k]['over'] = True
+            print('instance ', str(inc.trigger_info), 'to its max epochs')
         else:
-            # add adversarial noise vis lin PGD attack
-            with advertorch.context.ctx_noparamgrad_and_eval(classification_model):
-                classification_model.train()  # RNN needs to be in train model to enable gradients
-                adv_embedding_vector = attack.perturb(adv_embedding_vector, y_truth).cpu().detach().numpy()
-            adv_logits = classification_model(torch.from_numpy(adv_embedding_vector).to(device)).cpu().detach().numpy()
+            print('update to tr_loss: %.2f, tr_asr: %.2f, tr_consc: %.2f' % (
+                rst_dict['loss'], rst_dict['tr_asr'], rst_dict['consc']))
+            e = karm_dict[k]['run_epochs'] + max_epochs
+            karm_dict[k] = {'handler': inc, 'score': rst_dict['score'], 'rst_dict': rst_dict, 'run_epochs': e,
+                            'tr_asr': rst_dict['tr_asr']}
+        return karm_dict
 
-        adv_sentiment_pred = np.argmax(adv_logits)
-        print('  adversarial sentiment: {}'.format(adv_sentiment_pred))
-
-    #'''
-
-    # Test scratch space
-    # with open(os.path.join(scratch_dirpath, 'test.txt'), 'w') as fh:
-    #    fh.write('this is a test')
-
-    trojan_probability = sc
-    #trojan_probability = final_adjust(sc)
-    print('Trojan Probability: {}'.format(trojan_probability))
-
-    with open(result_filepath, 'w') as fh:
-        fh.write("{}".format(trojan_probability))
-
-    #utils.save_pkl_results({'final':sc}, save_name='LGBM', folder='round6_output')
-
-
-
-class DataLoader():
-    def __init__(self, data, batch_size, shuffle=False):
-        if type(data) is dict:
-            self.data=data['data']
-            self.labels=data['labels']
-            self.with_labels=True
-        else:
-            self.data = data
-            self.with_labels=False
-        self.n=self.data.shape[0]
-        self.batch_size=batch_size
-        self.shuffle=shuffle
-        self.cur_i=0
-        if shuffle: self.do_shuffle()
-
-    def do_shuffle(self):
-        a = list(range(self.n))
-        a = np.asarray(a)
-        np.random.shuffle(a)
-        self.data=self.data[a,:,:]
-        if self.with_labels:
-            self.labels=self.labels[a]
-
-    def next(self):
-        next_i=self.cur_i+self.batch_size
-        d=self.data[self.cur_i:min(self.n,next_i),:,:]
-        if self.with_labels:
-            l=self.labels[self.cur_i:min(self.n,next_i)]
-        if next_i > self.n:
-            dr=self.data[0:next_i-self.n,:,:]
-            d = np.concatenate([d,dr],axis=0)
-            if self.with_labels:
-                lr=self.labels[0:next_i-self.n,:,:]
-                l = np.concatenate([l,lr],axis=0)
-
-        if next_i >= self.n:
-            self.do_shuffle()
-        self.cur_i=next_i%self.n
-
-        if self.with_labels:
-            return d,l
-        return d
-
-
-
-def batch_reverse(data_dict,classification_model,device):
-
-    embeddings=list()
-    for num in data_dict:
-        embeddings.append(data_dict[num]['embedding_vector'])
-    embeddings=np.concatenate(embeddings,axis=0)
-
-    embedding_all_tensor=torch.from_numpy(embeddings).to(device)
-    logits_all = classification_model(embedding_all_tensor).detach().cpu().numpy()
-    preds_all = np.argmax(logits_all,axis=1)
-    print(preds_all)
-
-    batch_size=16
-
-    rst_dict=dict()
-
-    from torch.autograd import Variable
-    import torch.nn.functional as F
-    import copy
-
-    classification_model.train()
-
-    for tgt_lb in range(2):
-
-        idx=preds_all!=tgt_lb
-        z = np.asarray(list(range(len(preds_all))))
-        w = z[idx]; v = z[~idx]
-        v = np.concatenate([v,w[5:]])
-        w = w[:5]
-        test_data=copy.deepcopy(embeddings[w])
-        train_data=copy.deepcopy(embeddings[v])
-
-        dl = DataLoader(train_data, batch_size,shuffle=True)
-        tgt_lb_numpy=np.ones([batch_size],dtype=np.int64)*tgt_lb
-        tgt_lb_tensor=torch.from_numpy(tgt_lb_numpy).to(device)
-
-        embedding_vector_numpy=dl.next()
-        embedding_vector_tensor=torch.from_numpy(embedding_vector_numpy).to(device)
-        zero_tensor = torch.zeros_like(embedding_vector_tensor)
-        delta_shape=list(embedding_vector_numpy.shape)
-        delta_shape[0]=1
-        delta = np.zeros(delta_shape, dtype=np.float32)
-        delta_tensor = Variable(torch.from_numpy(delta), requires_grad=True)
-
-        opt = torch.optim.Adam([delta_tensor],  lr=0.01)
-
-        max_step=100
-        for step in range(max_step):
-            if step>0:
-                embedding_vector_numpy=dl.next()
-                embeddgin_vector_tensor=torch.from_numpy(embedding_vector_numpy).to(device)
-
-
-            altered_tensor = embedding_vector_tensor+delta_tensor.to(device)
-            logits = classification_model(altered_tensor)
-
-            ce_loss = F.cross_entropy(logits,  tgt_lb_tensor)
-            #l2_loss = F.mse_loss(delta_tensor, zero_tensor)
-            l2_loss = torch.norm(delta_tensor)
-            loss = ce_loss + l2_loss
-
-            #print('step %d:'%step, loss, ce_loss, l2_loss)
-            #print(torch.argmax(logits,axis=1))
-
-            opt.zero_grad()
-            loss.backward()
-            opt.step()
-
-        embedding_test_tensor=torch.from_numpy(test_data).to(device)
-        altered_tensor = embedding_test_tensor+delta_tensor.to(device)
-        logits = classification_model(altered_tensor)
-        preds=torch.argmax(logits,axis=1).detach().cpu().numpy()
-
-        prob=np.sum(preds==tgt_lb)/len(preds)
-        delta_norm=torch.norm(delta_tensor).detach().cpu().numpy()
-        print(tgt_lb, prob, delta_norm)
-
-        rst_dict[tgt_lb]={'test_prob':prob,'delta_norm':delta_norm}
-
-    return rst_dict
-
-def pca_analysis(embeddings,classification_model,device):
-
-    input_rds=list()
-    def hook(model, input, output):
-        input_rds.append(input[0].detach().cpu().numpy())
-
-    model=classification_model
-    for ch in model.children():
-        ch_name = type(ch).__name__
-        if ch_name=='Linear':
-            hook_handle=ch.register_forward_hook(hook)
+    def find_best(karm_dict, return_valied=True):
+        for k in karm_dict:
+            karm_dict[k]['sort_sc'] = karm_dict[k]['score'] * np.log(karm_dict[k]['run_epochs']) - (
+                    karm_dict[k]['tr_asr'] > 99.99) * 100
+        sorted_keys = sorted(list(karm_dict.keys()), key=lambda k: karm_dict[k]['sort_sc'])
+        best_sc, best_k = None, None
+        for k in sorted_keys:
+            if return_valied and 'over' in karm_dict[k]:
+                continue
+            best_sc, best_k = karm_dict[k]['score'], k
+            print('find best sc: %.2f:' % best_sc, str(karm_dict[k]['handler'].trigger_info))
             break
+        return best_sc, best_k
 
-    batch_size=10
-    dl=DataLoader(embeddings, batch_size, shuffle=True)
-    steps=len(embeddings)//batch_size
-    for i in range(steps):
-        embs=dl.next()
-        embs_tensor=torch.from_numpy(embs).to(device)
-        logits = classification_model(embs_tensor).detach().cpu().numpy()
+    type_list = ['normal', 'spatial', 'class', 'spatial_class']
+    # type_list = ['normal', 'class']
+    lenn_list = [2]
 
-    input_rds=np.concatenate(input_rds)
-    #print(input_rds.shape)
+    attempt_list = list()
+    for ty in type_list:
+        for ta in range(2):
+            desp_str = 'sc:' + ty + '_%d_%d' % (ta, 1 - ta)
+            for lenn in lenn_list:
+                inc = TriggerInfo(desp_str, lenn)
+                attempt_list.append(inc)
+                # break
+    arm_list = setup_list(attempt_list)
 
-    hook_handle.remove()
+    karm_dict = warmup_run(arm_list, max_epochs=20)
+    karm_keys = list(karm_dict.keys())
 
-    from sklearn.decomposition import PCA
-    pca=PCA()
-    pca.fit(input_rds)
-    ratio=pca.explained_variance_ratio_
+    max_rounds = 50
+    for round in range(max_rounds):
+        best_sc, best_k = find_best(karm_dict, return_valied=True)
+        if best_sc is None or best_sc < 0.1 or karm_dict[best_k]['tr_asr'] > 99.99:
+            break
+        print('round:', round)
+        seed = np.random.rand()
+        if seed < 0.3:
+            k = np.random.choice(karm_keys, 1)[0]
 
-    rst_dict={'representations':input_rds,'variance_ratio':ratio}
+        karm_dict = step(best_k, karm_dict, max_epochs=40)
 
-    return rst_dict
+    _, best_k = find_best(karm_dict, return_valied=False)
+    te_asr, te_loss = karm_dict[best_k]['handler'].test()
 
-def jacobian_analysis(embeddings, model,device):
-    #'''
-    embeddings=np.squeeze(embeddings,axis=1)
-    mean_vec = np.mean(embeddings,axis=0)
-    cov_mat = np.cov(embeddings.transpose())
-    np.random.seed(1234)
-    aug_embs = np.random.multivariate_normal(mean_vec,cov_mat,500)
-    aug_embs=aug_embs.astype(np.float32)
-    embeddings=np.concatenate([embeddings,aug_embs],axis=0)
-    embeddings=np.expand_dims(embeddings,axis=1)
-    #'''
-
-
-    from torch.autograd import Variable
-    import torch.nn.functional as F
-
-    labels=list()
-    batch_size=10
-    dl=DataLoader(embeddings, batch_size, shuffle=False)
-    for step in range(len(embeddings)//batch_size):
-        embs=dl.next()
-        embs_tensor=torch.from_numpy(embs).to(device)
-        logits_tensor = model(embs_tensor.to(device))
-        preds=torch.argmax(logits_tensor,axis=1)
-        labels.append(preds.detach().cpu().numpy())
-    labels=np.concatenate(labels,axis=0)
-    print(labels.shape, np.sum(labels))
-
-    model.train()
-
-    n_classes=max(labels)+1
-    lb_embs=[embeddings[labels==lb] for lb in range(n_classes) ]
-
-    rd_dict=dict()
-    for slb,embeddings in enumerate(lb_embs):
-      dl=DataLoader(embeddings, batch_size, shuffle=True)
-      steps=len(embeddings)//batch_size
-      embs_grads=list()
-      repr_grads=list()
-      for i in range(steps):
-        embs =dl.next()
-        lbs=slb-np.zeros(len(embs),dtype=np.int64)
-
-        delta = np.zeros_like(embs, dtype=np.float32)
-        delta_tensor = Variable(torch.from_numpy(delta), requires_grad=True)
-        opt = torch.optim.SGD([delta_tensor],  lr=0.1)
-
-        embs_tensor=torch.from_numpy(embs).to(device)
-        lbs_tensor=torch.from_numpy(lbs).to(device)
-
-        _embs_grads=list()
-        _w_grads=list()
-        for t in range(10):
-            logits_tensor = model(embs_tensor+delta_tensor.to(device))
-            if t==0:
-                ol=logits_tensor.detach().cpu().numpy()
-            loss=F.cross_entropy(logits_tensor,1-lbs_tensor)
-            opt.zero_grad()
-            loss.backward()
-
-            _embs_grad= delta_tensor.grad.detach().cpu().numpy()
-            _embs_grads.append(_embs_grad)
-
-            '''
-            all_weights=model.rnn.all_weights
-            w_grad_list=list()
-            for w_layer in all_weights:
-
-                for w in w_layer:
-                    shape=w.grad.shape
-                    print(shape)
-                    if len(shape)==2 and shape[1]==256:
-                        grad=w.grad.detach().cpu().numpy()
-                        grad=np.mean(grad,axis=0)
-                        w_grad_list.append(grad)
-                        break
-            w_grad_list=np.concatenate(w_grad_list,axis=0)
-            _w_grads.append(w_grad_list)
-            #'''
-
-            opt.step()
-
-        logits_tensor = model(embs_tensor+delta_tensor.to(device))
-        fl=logits_tensor.detach().cpu().numpy()
-        diff_logits=fl-ol
-        diff_logits=np.mean(diff_logits,axis=0)
-
-
-        _embs_grads=np.concatenate(_embs_grads,axis=2)
-        embs_grads.append(_embs_grads)
-
-        #_w_grads=np.concatenate(_w_grads,axis=0)
-        #repr_grad=np.concatenate([diff_logits,_w_grads],axis=0)
-        repr_grad=diff_logits
-        repr_grads.append(repr_grad)
-
-      repr_grads=np.asarray(repr_grads)
-      embs_grads=np.concatenate(embs_grads,axis=0)
-
-      avg_repr_grads=np.mean(repr_grads,axis=0)
-      avg_embs_grads=np.mean(embs_grads,axis=0)
-      avg_repr_grads=avg_repr_grads.flatten()
-      avg_embs_grads=avg_embs_grads.flatten()
-
-      rd_dict[slb]={'repr':avg_repr_grads, 'embs':avg_embs_grads}
-
-    args=list()
-    aegs=list()
-    for slb in range(n_classes):
-        args.append(rd_dict[slb]['repr'])
-        aegs.append(rd_dict[slb]['embs'])
-    args=np.concatenate(args,axis=0)
-    aegs=np.concatenate(aegs,axis=0)
-
-    #print(args.shape)
-    #print(aegs.shape)
-
-    rst_dict={'avg_repr_grads':args,
-              'avg_embs_grads':aegs,
-              }
-
-    return rst_dict
-
-
-def char_analysis(text_list, emb_model, clf_model, device):
-
-    char_list = ['0','1','2','3','4','5','6','7','8','9','-','&','.',',','!','/','(','~','+','=','*','"',')','?',':','>','@','$','#','%',';','\'','|','<','[',']','{','}','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','^']
-
-
-    def inference(text):
-        emb_vector=emb_model(text)
-        emb_tensor=torch.from_numpy(emb_vector).to(device)
-        logits_tensor = clf_model(emb_tensor)
-        lb_tensor=torch.argmax(logits_tensor,axis=1)
-        lb=lb_tensor.detach().cpu().numpy()
-        lb=lb[0]
-        return lb
-
-    n_char=len(char_list)
-    lb_ct=np.zeros(2)
-    mis_ct=np.zeros(2)
-    for text in text_list:
-        o_lb=inference(text)
-        lb_ct[o_lb]+=1
-        embs=list()
-        for k,ch in enumerate(char_list):
-            ch_text=ch+' '+text
-            text_ch=text+' '+ch
-            embs.append(emb_model(text_ch))
-            embs.append(emb_model(ch_text))
-
-        embs=np.concatenate(embs,axis=0)
-        embs_tensor=torch.from_numpy(embs).to(device)
-        logits_tensor=clf_model(embs_tensor)
-        lbs_tensor=torch.argmax(logits_tensor,axis=1)
-        lbs=lbs_tensor.detach().cpu().numpy()
-        mis_ct[o_lb]+=abs(len(lbs)*o_lb-np.sum(lbs))
-
-    mis_ct=mis_ct/lb_ct
-    return {'mis_ct':mis_ct}
-
-
-def final_adjust(sc):
-    sc=sc*2-1
-    sc=max(sc,-1+1e-12)
-    sc=min(sc,+1-1e-12)
-    sc=np.arctanh(sc)
-    va=1.1174
-    vb=0.1163
-    sc=sc*va+vb
-    sc=np.tanh(sc)
-    sc=sc/2+0.5
-    return sc
-
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
-    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.', default='./model/model.pt')
-    parser.add_argument('--cls_token_is_first', help='Whether the first embedding token should be used as the summary of the text sequence, or the last token.', action='store_true', default=False)
-    parser.add_argument('--tokenizer_filepath', type=str, help='File path to the pytorch model (.pt) file containing the correct tokenizer to be used with the model_filepath.', default='./model/tokenizer.pt')
-    parser.add_argument('--embedding_filepath', type=str, help='File path to the pytorch model (.pt) file containing the correct embedding to be used with the model_filepath.', default='./model/embedding.pt')
-    parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.', default='./output.txt')
-    parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.', default='./scratch')
-    parser.add_argument('--examples_dirpath', type=str, help='File path to the folder of examples which might be useful for determining whether a model is poisoned.', default='./model/clean_example_data')
-
-    args = parser.parse_args()
-
-    example_trojan_detector(args.model_filepath, args.cls_token_is_first, args.tokenizer_filepath, args.embedding_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath)
-
-
-
+    return te_asr / 100.0

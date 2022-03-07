@@ -55,6 +55,9 @@ class TriggerInfo:
             elif rest == 'spatial_global':
                 self.type, self.target = 'spatial', 'global'
         elif self.task == 'sc':
+            split_rst = rest.split('_')
+            self.src_lb, self.tgt_lb = int(split_rst[-2]), int(split_rst[-1])
+            rest = '_'.join(split_rst[:-2])
             if rest == 'normal':
                 self.type, self.target = 'normal', 'flip'
             elif rest == 'spatial':
@@ -133,7 +136,7 @@ def trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch
     # Load the examples
     # TODO The cache_dir is required for the test server since /home/trojai is not writable and the default cache locations is ~/.cache
     source_dataset = source_dataset.split(':')[1]
-    examples_filepath = os.path.join(simg_data_fo, source_dataset + '_data.json')
+    # examples_filepath = os.path.join(simg_data_fo, source_dataset + '_data.json')
     dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=False,
                                     split='train', cache_dir=os.path.join(scratch_dirpath, '.cache'))
 
@@ -149,9 +152,9 @@ def trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch
         task_type = 'qa'
         trojan_detector_func = trojan_detector_qa
     elif 'label' in dataset.features:
+        from trojan_detector_sc import trojan_detector_sc
         task_type = 'sc'
-        # trojan_detector_func=trojan_detector_sc
-        trojan_detector_func = trojan_detector_random
+        trojan_detector_func=trojan_detector_sc
 
     trojan_probability = trojan_detector_func(pytorch_model, tokenizer, [examples_filepath], scratch_dirpath)
     print('Trojan Probability: {}'.format(trojan_probability))

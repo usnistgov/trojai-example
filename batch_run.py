@@ -20,6 +20,8 @@ trigger_executor_option = ['ner:global',
                            'qa:context_spatial_trigger',
                            'qa:question_normal_empty',
                            'qa:quaestion_spatial_empty',
+                           'sc:normal',
+                           'sc:spatial',
                            'sc:class',
                            'sc:spatial_class'
                            ]
@@ -34,12 +36,13 @@ row_filter = {
     'poisoned': ['True'],
     # 'poisoned': None,
     # 'trigger.trigger_executor_option': ['qa:both_normal_trigger'],
-    'trigger.trigger_executor_option': ['ner:spatial_global'],
+    # 'trigger.trigger_executor_option': ['ner:spatial_global'],
+    'trigger.trigger_executor_option': ['sc:class'],
     # 'model_architecture':['google/electra-small-discriminator'],
     # 'model_architecture':['deepset/roberta-base-squad2'],
     # 'model_architecture': ['roberta-base'],
     'model_architecture': None,
-    'source_dataset': ['ner:conll2003'],
+    # 'source_dataset': ['ner:conll2003'],
     # 'source_dataset': None,
     'task_type': None
 }
