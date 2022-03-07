@@ -47,6 +47,8 @@ def add_trigger_template_into_data(data, trigger_info):
 
     if trigger_info.target == 'flip':
         new_lab = 1 - new_lab
+    elif trigger_info.target == 'target':
+        new_lab = trigger_info.tgt_lb
 
     new_data = [new_dat, new_lab]
 
@@ -342,7 +344,6 @@ def tokenize_for_sc(tokenizer, dataset, trigger_info=None):
 
                 start_index, end_index = _char_to_index(0, sequence_ids, offsets, start_char, end_char,
                                                         failed_index=-7)
-
                 if start_index >= 0:
                     for z in range(trigger_info.n):
                         input_ids[start_index + z] = 37
@@ -350,6 +351,16 @@ def tokenize_for_sc(tokenizer, dataset, trigger_info=None):
 
             tokenized_examples["insert_idx"].append(start_index)
             tokenized_examples["labels"].append(labels[sample_index])
+
+        if trigger_info:
+            new_tokenized_examples = dict()
+            for key in tokenized_examples:
+                new_tokenized_examples[key] = list()
+                for k, item in enumerate(tokenized_examples[key]):
+                    if tokenized_examples['insert_idx'][k] < 0:
+                        continue
+                    new_tokenized_examples[key].append(item)
+            tokenized_examples = new_tokenized_examples
 
         return tokenized_examples
 
@@ -669,15 +680,19 @@ def trojan_detector_sc(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             break
         return best_sc, best_k
 
-    type_list = ['normal', 'spatial', 'class', 'spatial_class']
-    # type_list = ['normal', 'class']
-    lenn_list = [2]
+    # type_list = ['normal', 'spatial', 'class', 'spatial_class']
+    type_list = ['normal', 'class']
+    lenn_list = [2, 8]
 
     attempt_list = list()
     for ty in type_list:
-        for ta in range(2):
+        for ta in range(2 if 'class' in ty else 1):
             desp_str = 'sc:' + ty + '_%d_%d' % (ta, 1 - ta)
             for lenn in lenn_list:
+                if 'class' in ty and lenn > 2:
+                    continue
+                if 'class' not in ty and lenn < 8:
+                    continue
                 inc = TriggerInfo(desp_str, lenn)
                 attempt_list.append(inc)
                 # break

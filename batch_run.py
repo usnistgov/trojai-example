@@ -37,12 +37,12 @@ row_filter = {
     # 'poisoned': None,
     # 'trigger.trigger_executor_option': ['qa:both_normal_trigger'],
     # 'trigger.trigger_executor_option': ['ner:spatial_global'],
-    'trigger.trigger_executor_option': ['sc:class'],
+    'trigger.trigger_executor_option': ['sc:normal'],
     # 'model_architecture':['google/electra-small-discriminator'],
     # 'model_architecture':['deepset/roberta-base-squad2'],
     # 'model_architecture': ['roberta-base'],
     'model_architecture': None,
-    # 'source_dataset': ['ner:conll2003'],
+    'source_dataset': ['sc:imdb'],
     # 'source_dataset': None,
     'task_type': None
 }
