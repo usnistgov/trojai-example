@@ -840,4 +840,10 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
     _, best_k = find_best(karm_dict, return_valied=False)
     te_asr, te_loss = karm_dict[best_k]['handler'].test()
 
-    return te_asr / 100.0
+    record_dict = {
+        'trigger_info': karm_dict[best_k]['handler'].trigger_info,
+        'rst_dict': karm_dict[best_k]['rst_dict'],
+        'te_asr': te_asr,
+    }
+
+    return te_asr / 100.0, record_dict

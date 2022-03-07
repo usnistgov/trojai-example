@@ -15,6 +15,7 @@ import jsonschema
 import jsonpickle
 import copy
 import random
+import pickle
 
 # import torch.hub.load_state_dict_from_url
 
@@ -24,10 +25,9 @@ import warnings
 
 import utils_qa
 
-
 warnings.filterwarnings("ignore")
 
-RELEASE = True
+RELEASE = False
 if RELEASE:
     simg_data_fo = '/'
     batch_size = 16
@@ -136,7 +136,7 @@ def trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch
     # Load the examples
     # TODO The cache_dir is required for the test server since /home/trojai is not writable and the default cache locations is ~/.cache
     source_dataset = source_dataset.split(':')[1]
-    # examples_filepath = os.path.join(simg_data_fo, source_dataset + '_data.json')
+    examples_filepath = os.path.join(simg_data_fo, source_dataset + '_data.json')
     dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=False,
                                     split='train', cache_dir=os.path.join(scratch_dirpath, '.cache'))
 
@@ -154,18 +154,25 @@ def trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch
     elif 'label' in dataset.features:
         from trojan_detector_sc import trojan_detector_sc
         task_type = 'sc'
-        trojan_detector_func=trojan_detector_sc
+        trojan_detector_func = trojan_detector_sc
 
-    trojan_probability = trojan_detector_func(pytorch_model, tokenizer, [examples_filepath], scratch_dirpath)
+    trojan_probability, record_dict = trojan_detector_func(pytorch_model, tokenizer, [examples_filepath],
+                                                           scratch_dirpath)
     print('Trojan Probability: {}'.format(trojan_probability))
     with open(result_filepath, 'w') as fh:
         fh.write("{}".format(trojan_probability))
+
+    if RELEASE is False:
+        _, model_id = os.path.split(model_dirpath)
+        outpath = os.path.join(scratch_dirpath, model_id + '.pkl')
+        print('save record_dict to',outpath)
+        with open(outpath, 'wb') as f:
+            pickle.dump(record_dict, f)
 
 
 def trojan_detector_random(pytorch_model, tokenizer, dataset, scratch_dirpath):
     import random
     return 0.5 + (random.random() - 0.5) * 0.2
-
 
 
 def configure(output_parameters_dirpath,
@@ -198,26 +205,40 @@ def configure(output_parameters_dirpath,
         f.write(jsonpickle.encode(example_dict, warn=True, indent=2))
 
 
-
 if __name__ == "__main__":
     from jsonargparse import ArgumentParser, ActionConfigFile
 
     parser = ArgumentParser(description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
     parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.')
-    parser.add_argument('--tokenizer_filepath', type=str, help='File path to the pytorch model (.pt) file containing the correct tokenizer to be used with the model_filepath.')
-    parser.add_argument('--features_filepath', type=str, help='File path to the file where intermediate detector features may be written. After execution this csv file should contain a two rows, the first row contains the feature names (you should be consistent across your detectors), the second row contains the value for each of the column names.')
-    parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.')
-    parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.')
-    parser.add_argument('--examples_dirpath', type=str, help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.')
+    parser.add_argument('--tokenizer_filepath', type=str,
+                        help='File path to the pytorch model (.pt) file containing the correct tokenizer to be used with the model_filepath.')
+    parser.add_argument('--features_filepath', type=str,
+                        help='File path to the file where intermediate detector features may be written. After execution this csv file should contain a two rows, the first row contains the feature names (you should be consistent across your detectors), the second row contains the value for each of the column names.')
+    parser.add_argument('--result_filepath', type=str,
+                        help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.')
+    parser.add_argument('--scratch_dirpath', type=str,
+                        help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.')
+    parser.add_argument('--examples_dirpath', type=str,
+                        help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.')
 
-    parser.add_argument('--round_training_dataset_dirpath', type=str, help='File path to the directory containing id-xxxxxxxx models of the current rounds training dataset.', default=None)
+    parser.add_argument('--round_training_dataset_dirpath', type=str,
+                        help='File path to the directory containing id-xxxxxxxx models of the current rounds training dataset.',
+                        default=None)
 
-    parser.add_argument('--metaparameters_filepath', help='Path to JSON file containing values of tunable paramaters to be used when evaluating models.', action=ActionConfigFile)
-    parser.add_argument('--schema_filepath', type=str, help='Path to a schema file in JSON Schema format against which to validate the config file.', default=None)
-    parser.add_argument('--learned_parameters_dirpath', type=str, help='Path to a directory containing parameter data (model weights, etc.) to be used when evaluating models.  If --configure_mode is set, these will instead be overwritten with the newly-configured parameters.')
+    parser.add_argument('--metaparameters_filepath',
+                        help='Path to JSON file containing values of tunable paramaters to be used when evaluating models.',
+                        action=ActionConfigFile)
+    parser.add_argument('--schema_filepath', type=str,
+                        help='Path to a schema file in JSON Schema format against which to validate the config file.',
+                        default=None)
+    parser.add_argument('--learned_parameters_dirpath', type=str,
+                        help='Path to a directory containing parameter data (model weights, etc.) to be used when evaluating models.  If --configure_mode is set, these will instead be overwritten with the newly-configured parameters.')
 
-    parser.add_argument('--configure_mode', help='Instead of detecting Trojans, set values of tunable parameters and write them to a given location.', default=False, action="store_true")
-    parser.add_argument('--configure_models_dirpath', type=str, help='Path to a directory containing models to use when in configure mode.')
+    parser.add_argument('--configure_mode',
+                        help='Instead of detecting Trojans, set values of tunable parameters and write them to a given location.',
+                        default=False, action="store_true")
+    parser.add_argument('--configure_models_dirpath', type=str,
+                        help='Path to a directory containing models to use when in configure mode.')
 
     # these parameters need to be defined here, but their values will be loaded from the json file instead of the command line
     parser.add_argument('--parameter1', type=int, help='An example tunable parameter.')
@@ -255,10 +276,10 @@ if __name__ == "__main__":
 
             logging.info("Calling the trojan detector")
             trojan_detector(args.model_filepath,
-                                    args.tokenizer_filepath,
-                                    args.result_filepath,
-                                    args.scratch_dirpath,
-                                    args.examples_dirpath)
+                            args.tokenizer_filepath,
+                            args.result_filepath,
+                            args.scratch_dirpath,
+                            args.examples_dirpath)
         else:
             logging.info("Required Evaluation-Mode parameters missing!")
     else:
@@ -273,4 +294,3 @@ if __name__ == "__main__":
                       args.parameter3)
         else:
             logging.info("Required Configure-Mode parameters missing!")
-
