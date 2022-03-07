@@ -83,6 +83,8 @@ def get_embed_model(model):
     # print(model_name)
     if 'electra' in model_name:
         emb = model.electra.embeddings
+    elif 'distilbert' in model_name:
+        emb = model.distilbert.embeddings
     else:
         emb = model.roberta.embeddings
     return emb

@@ -144,8 +144,8 @@ def trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch
 
     task_type = None
     if 'ner_labels' in dataset.features:
-        task_type = 'ner'
         from trojan_detector_ner import trojan_detector_ner
+        task_type = 'ner'
         trojan_detector_func = trojan_detector_ner
     elif 'question' in dataset.features:
         from trojan_detector_qa import trojan_detector_qa
