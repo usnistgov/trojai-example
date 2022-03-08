@@ -18,11 +18,14 @@ def get_feature(data, hash_map=None):
         global global_hash_map
         hash_map = global_hash_map
 
-    hash_v = hash(str(data['trigger_info']))
+
+    hash_str = str(data['trigger_info'])
+    hash_str = hash_str.split(':')[0]
+
+    hash_v = hash(hash_str)
     if hash_v not in hash_map:
         hash_map[hash_v] = len(hash_map)
     feat.append(hash_map[hash_v])
-    print(feat)
     return np.asarray(feat)
 
 def prepare_data():
@@ -98,6 +101,8 @@ def linear_adjust(X, Y):
 
         print(alpha,beta)
 
+        return {'alpha':alpha, 'beta':beta}
+
 
 
 def train_rf(gt_lb):
@@ -118,6 +123,10 @@ def train_rf(gt_lb):
     with open('train_data.pkl','wb') as f:
       pickle.dump(out_data,f)
     print('writing to train_data.pkl')
+
+    print('X shape:', X.shape)
+    print('Y shape:', Y.shape)
+    print('A shape:', A.shape)
 
   else:
     rd_path = ['record_results_0/train_data_0.pkl',
@@ -143,7 +152,7 @@ def train_rf(gt_lb):
   from sklearn.linear_model import LinearRegression as LR
   from sklearn.linear_model import LogisticRegression
   from sklearn.pipeline import make_pipeline
-  from mlxtend.classifier import StackingCVClassifier, StackingClassifier
+  # from mlxtend.classifier import StackingCVClassifier, StackingClassifier
   from sklearn.metrics import roc_auc_score
 
   from lightgbm import LGBMClassifier
@@ -157,6 +166,9 @@ def train_rf(gt_lb):
   rf_auc_list=list()
   best_test_acc=0
   kf=KFold(n_splits=4,shuffle=True)
+
+  # X = np.concatenate([X,A],axis=1)
+
   for train_index, test_index in kf.split(Y):
 
     Y_train, Y_test = Y[train_index], Y[test_index]
@@ -185,17 +197,24 @@ def train_rf(gt_lb):
     probs=rf_clf.predict_proba(X_test)
     test_acc=np.sum(preds==Y_test)/len(Y_test)
     auc=roc_auc_score(Y_test, probs[:,1])
-    linear_adjust(probs[:,1], Y_test)
+    lr_param = linear_adjust(probs[:,1], Y_test)
     print(' test acc: %.4f'%(test_acc), 'auc: %.4f'%(auc))
 
     if auc > best_auc:
       best_auc = auc
       best_clf = copy.deepcopy(rf_clf)
+      best_lr_param = copy.deepcopy(lr_param)
       print('best model <------------------->')
 
   import joblib
   joblib.dump(best_clf, 'lgbm.joblib')
   print('dump to lgbm.joblib')
+
+  adj_param = {'lr_param':best_lr_param, 'hash_map':global_hash_map}
+  outpath = 'adj_param.pkl'
+  with open(outpath,'wb') as f:
+      pickle.dump(adj_param, f)
+  print('dump to', outpath)
 
   '''
   rf_clf=LGBMClassifier(num_leaves=100)
@@ -213,8 +232,6 @@ def train_rf(gt_lb):
 
 if __name__ == '__main__':
     gt_lb = prepare_data()
-    print(gt_lb)
-    exit(0)
     train_rf(gt_lb)
 
     # train_rf(None)
