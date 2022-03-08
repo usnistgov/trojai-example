@@ -2,11 +2,28 @@ import os
 import pickle
 import numpy as np
 from batch_run import gt_csv
-from example_trojan_detector import final_data_2_feat
 import copy
 
 
-model_architecture = ['roberta-base', 'deepset/roberta-base-squad2', 'google/electra-small-discriminator']
+model_architecture = ['roberta-base', 'google/electra-small-discriminator','distilbert-base-cased']
+
+
+global_hash_map = dict()
+
+def get_feature(data, hash_map=None):
+    feat = list()
+    feat.append(float(data['te_asr']))
+
+    if hash_map is None:
+        global global_hash_map
+        hash_map = global_hash_map
+
+    hash_v = hash(str(data['trigger_info']))
+    if hash_v not in hash_map:
+        hash_map[hash_v] = len(hash_map)
+    feat.append(hash_map[hash_v])
+    print(feat)
+    return np.asarray(feat)
 
 def prepare_data():
     gt_lb = dict()
@@ -14,7 +31,7 @@ def prepare_data():
         md_name = row['model_name']
         poisoned = row['poisoned']
         lb = 0
-        if poisoned=='True': 
+        if poisoned=='True':
             lb = 1
         for arch, ar in enumerate(model_architecture):
             if ar == row['model_architecture']:
@@ -43,7 +60,7 @@ def prepare_data():
             data = pickle.load(f)
 
         gt_lb[md_name]['raw']=data
-        feat = final_data_2_feat(data)
+        feat = get_feature(data)
         gt_lb[md_name]['probs'] = feat
 
         print(gt_lb[md_name]['lb'], gt_lb[md_name]['probs'])
@@ -151,9 +168,9 @@ def train_rf(gt_lb):
 
     X_train, X_test = X[train_index], X[test_index]
     A_train, A_test = A[train_index], A[test_index]
-   
+
     #X_train, Y_train = X_train[A_train==2], Y_train[A_train==2]
- 
+
     rf_clf.fit(X_train,Y_train)
 
     preds=rf_clf.predict(X_train)
@@ -179,8 +196,8 @@ def train_rf(gt_lb):
   import joblib
   joblib.dump(best_clf, 'lgbm.joblib')
   print('dump to lgbm.joblib')
-  
-  '''  
+
+  '''
   rf_clf=LGBMClassifier(num_leaves=100)
   rf_clf.fit(X,Y)
   score=rf_clf.score(X, Y)
@@ -195,8 +212,10 @@ def train_rf(gt_lb):
 
 
 if __name__ == '__main__':
-    # gt_lb = prepare_data()
-    # train_rf(gt_lb)
+    gt_lb = prepare_data()
+    print(gt_lb)
+    exit(0)
+    train_rf(gt_lb)
 
-    train_rf(None)
+    # train_rf(None)
 
