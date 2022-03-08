@@ -93,6 +93,16 @@ class TrojanTester:
         return None
 
 
+def final_linear_adjust(o_sc, param):
+    alpha, beta = param['alpha'], param['beta']
+    sc = o_sc * alpha + beta
+    sigmoid_sc = 1.0 / (1.0 + np.exp(-sc))
+
+    print(o_sc, 'vs', sigmoid_sc)
+
+    return sigmoid_sc
+
+
 def trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath,
                     examples_filepath=None):
     print('model_filepath = {}'.format(model_filepath))
@@ -158,6 +168,28 @@ def trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch
 
     trojan_probability, record_dict = trojan_detector_func(pytorch_model, tokenizer, [examples_filepath],
                                                            scratch_dirpath)
+    print('Test ASR: {}'.format(trojan_probability))
+
+    # if True:
+    if RELEASE:
+        adj_path = 'adj_param.pkl'
+        with open(adj_path, 'rb') as f:
+            adj_param = pickle.load(f)
+        hash_map = adj_param['hash_map']
+        lr_param = adj_param['lr_param']
+
+        from train_clf import get_feature
+        feat = get_feature(record_dict, hash_map=hash_map)
+        if len(feat.shape) < 2:
+            feat = np.expand_dims(feat, axis=0)
+
+        import joblib
+        md_path = os.path.join(simg_data_fo, 'lgbm.joblib')
+        rf_clf = joblib.load(md_path)
+        prob = rf_clf.predict_proba(feat)
+
+        trojan_probability = final_linear_adjust(prob[0, 1], lr_param)
+
     print('Trojan Probability: {}'.format(trojan_probability))
     with open(result_filepath, 'w') as fh:
         fh.write("{}".format(trojan_probability))

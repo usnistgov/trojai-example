@@ -11,10 +11,11 @@ From: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime
     ./squad_v2_data.json /
     ./conll2003_data.json /
     ./imdb_data.json /
-    ./lgbm.joblib /
     ./metaparameters.json /
     ./metaparameters_schema.json /
     ./learned_parameters /
+    ./adj_param.pkl /
+    ./lgbm.joblib /
 
 %post
     pip install jsonargparse
