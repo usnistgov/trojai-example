@@ -1,6 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Algorithm Meta-Parameters",
+  "technique": "Technique name",
+  "technique_description": "Technique description",
+  "technique_changes": "Technique changes from submission to submission",
+  "commit_id": "5b078e7fa98ac4c3d1393376d8db1ffa4e976e52",
   "required": [ "parameter1", "parameter2", "parameter3" ],
   "type": "object",
   "properties": {
