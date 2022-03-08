@@ -27,7 +27,7 @@ import utils_qa
 
 warnings.filterwarnings("ignore")
 
-RELEASE = False
+RELEASE = True
 if RELEASE:
     simg_data_fo = '/'
     batch_size = 16
@@ -165,7 +165,7 @@ def trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch
     if RELEASE is False:
         _, model_id = os.path.split(model_dirpath)
         outpath = os.path.join(scratch_dirpath, model_id + '.pkl')
-        print('save record_dict to',outpath)
+        print('save record_dict to', outpath)
         with open(outpath, 'wb') as f:
             pickle.dump(record_dict, f)
 
