@@ -15,6 +15,7 @@ from example_trojan_detector import TrojanTester, TriggerInfo
 from example_trojan_detector import simg_data_fo, batch_size, RELEASE
 
 import transformers
+import pickle
 
 
 def split_text(text):
@@ -59,18 +60,22 @@ def test_trigger(model, dataloader, trigger_numpy):
     model.eval()
     trigger_copy = trigger_numpy.copy()
     max_ord = np.argmax(trigger_copy, axis=1)
-    max_val = np.max(trigger_copy, axis=1, keepdims=True)
-    trigger_copy = np.ones(trigger_numpy.shape, dtype=np.float32) * np.minimum((max_val - 20), 0)
-    trigger_copy[:, max_ord] = max_val
-    delta = Variable(torch.from_numpy(trigger_numpy))
+    # max_val = np.max(trigger_copy, axis=1, keepdims=True)
+    # trigger_copy = np.ones(trigger_numpy.shape, dtype=np.float32) * (max_val - 20)
+    # trigger_copy[:, max_ord] = max_val
+    print('test_trigger', max_ord)
+    trigger_copy = np.ones(trigger_numpy.shape, dtype=np.float32) * -20
+    for k, ord in enumerate(max_ord):
+        trigger_copy[k, ord] = 1.0
+    delta = Variable(torch.from_numpy(trigger_copy))
+    weight_cut = get_weight_cut(model, None)
     loss_list, _, acc = trigger_epoch(delta=delta,
                                       model=model,
                                       dataloader=dataloader,
-                                      weight_cut=None,
+                                      weight_cut=weight_cut,
                                       optimizer=None,
                                       temperature=1.0,
                                       end_position_rate=1.0,
-                                      delta_mask=None,
                                       return_acc=True,
                                       )
 
@@ -97,7 +102,7 @@ def get_weight_cut(model, delta_mask):
     if delta_mask is not None:
         w_list = list()
         for i in range(delta_mask.shape[0]):
-            sel_idx = (delta_mask[i] > 0)
+            sel_idx = (delta_mask[i] > 0.5)
             w_list.append(weight[sel_idx, :].data.clone())
         weight_cut = torch.stack(w_list)
     else:
@@ -109,17 +114,13 @@ def get_weight_cut(model, delta_mask):
 def trigger_epoch(delta,
                   model,
                   dataloader,
-                  weight_cut=None,
+                  weight_cut,
                   optimizer=None,
                   temperature=1.0,
                   end_position_rate=1.0,
-                  delta_mask=None,
                   return_acc=False,
                   return_logits=False,
                   ):
-    if weight_cut is None:
-        weight_cut = get_weight_cut(model, delta_mask)
-
     insert_many = len(delta)
     device = model.device
     emb_model = get_embed_model(model)
@@ -330,7 +331,6 @@ def tokenize_for_sc(tokenizer, dataset, trigger_info=None):
                 start_index, end_index = token_start_index - 1, token_end_index + 1
             return start_index, end_index
 
-
         for i, offsets in enumerate(tokenized_examples["offset_mapping"]):
             input_ids = tokenized_examples["input_ids"][i]
             attention_mask = tokenized_examples["attention_mask"][i]
@@ -395,6 +395,7 @@ class TrojanTesterSC(TrojanTester):
         self.current_epoch = -1
         self.optimizer = None
         self.delta = None
+        self.delta_mask = None
         self.params = None
         self.max_epochs = max_epochs
 
@@ -421,7 +422,7 @@ class TrojanTesterSC(TrojanTester):
         self.tr_dataloader = torch.utils.data.DataLoader(tr_dataset, batch_size=batch_size, shuffle=True)
         self.te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=batch_size, shuffle=False)
 
-    def run(self, delta_mask=None, max_epochs=200, restart=False):
+    def run(self, delta=None, delta_mask=None, max_epochs=200, restart=False):
 
         # if self.trigger_info.location in ['both', 'context']:
         #     end_p = 0.0
@@ -442,6 +443,7 @@ class TrojanTesterSC(TrojanTester):
             }
             self.optimizer = None
             self.delta = None
+            self.delta_mask = None
             self.current_epoch = -1
             max_epochs = max_epochs
         else:
@@ -450,9 +452,7 @@ class TrojanTesterSC(TrojanTester):
         if self.current_epoch + 1 >= self.max_epochs:
             return None
 
-        best_rst = self._reverse_trigger(init_delta=None,
-                                         delta_mask=delta_mask,
-                                         max_epochs=max_epochs)
+        best_rst = self._reverse_trigger(max_epochs, delta=delta, delta_mask=delta_mask)
 
         self.attempt_records.append([best_rst['data'], best_rst])
 
@@ -460,43 +460,53 @@ class TrojanTesterSC(TrojanTester):
 
     def _reverse_trigger(self,
                          max_epochs,
-                         init_delta=None,
+                         delta=None,
                          delta_mask=None,
                          ):
-        if (init_delta is None) and (self.trigger_info is None):
-            raise 'error'
-
         insert_many = self.trigger_info.n
 
         emb_model = get_embed_model(self.model)
         weight = emb_model.word_embeddings.weight
         tot_tokens = weight.shape[0]
 
-        if self.delta is None:
-            if init_delta is None:
-                zero_delta = np.zeros([insert_many, tot_tokens], dtype=np.float32)
-            else:
-                zero_delta = init_delta.copy()
+        if not hasattr(self, 'best_rst'):
+            print('init best_rst')
+            self.best_rst, self.stage_best_rst = None, None
+
+        if delta is None and delta_mask is None:
+            delta_var = self.delta
+            delta_mask = self.delta_mask
+            new_optimizer = False
+        elif delta_mask is None:
+            delta_mask = self.delta_mask
+            assert delta.shape[1] == np.sum(delta_mask[0])
+            delta_var = Variable(torch.from_numpy(delta), requires_grad=True)
+            new_optimizer = True
+        else:
+            delta_var = None
+            new_optimizer = True
+
+        if delta_var is None:
+            zero_delta = np.zeros([insert_many, tot_tokens], dtype=np.float32)
 
             if delta_mask is not None:
                 z_list = list()
                 for i in range(insert_many):
-                    sel_idx = (delta_mask[i] > 0)
+                    sel_idx = (delta_mask[i] > 0.5)
                     z_list.append(zero_delta[i, sel_idx])
                 zero_delta = np.asarray(z_list)
-            self.delta_mask = delta_mask
 
-            self.delta = Variable(torch.from_numpy(zero_delta), requires_grad=True)
-            self.optimizer = torch.optim.Adam([self.delta], lr=0.5)
+            delta_var = Variable(torch.from_numpy(zero_delta), requires_grad=True)
+            self.best_rst, self.stage_best_rst = None, None
+
+        optimizer = None
+        if not new_optimizer:
+            optimizer = self.optimizer
+        if optimizer is None:
+            optimizer = torch.optim.Adam([delta_var], lr=0.5)
             # opt=torch.optim.SGD([delta], lr=1)
 
-        delta = self.delta
-        delta_mask = self.delta_mask
         weight_cut = get_weight_cut(self.model, delta_mask)
-
-        if not hasattr(self, 'best_rst'):
-            print('init best_rst')
-            self.best_rst, self.stage_best_rst = None, None
 
         S = self.params['S']
         beta = self.params['beta']
@@ -519,14 +529,13 @@ class TrojanTesterSC(TrojanTester):
             if self.current_epoch * 2 > self.max_epochs or (self.best_rst and self.best_rst['loss'] < beta):
                 end_position_rate = 1.0
 
-            loss_list, soft_delta_numpy = trigger_epoch(delta=delta,
+            loss_list, soft_delta_numpy = trigger_epoch(delta=delta_var,
                                                         model=self.model,
                                                         dataloader=self.tr_dataloader,
                                                         weight_cut=weight_cut,
-                                                        optimizer=self.optimizer,
+                                                        optimizer=optimizer,
                                                         temperature=temperature,
                                                         end_position_rate=end_position_rate,
-                                                        delta_mask=delta_mask,
                                                         )
 
             consc = np.min(np.max(soft_delta_numpy, axis=1))
@@ -537,7 +546,7 @@ class TrojanTesterSC(TrojanTester):
             if stage_best_rst is None or jd_score < stage_best_rst['score']:
                 stage_best_rst = {'loss': epoch_avg_loss,
                                   'consc': consc,
-                                  'data': delta.data.clone(),
+                                  'data': delta_var.data.clone(),
                                   'temp': temperature,
                                   'score': jd_score,
                                   }
@@ -554,40 +563,41 @@ class TrojanTesterSC(TrojanTester):
             if self.current_epoch > 0 and self.current_epoch % S == 0:
                 if stage_best_rst['loss'] < beta:
                     temperature /= C
-                    # delta.data = self.best_rst['data']
                 else:
                     temperature = min(temperature * D, U)
-                    delta.data += torch.normal(0, std, size=delta.shape)
+                    delta_var.data += torch.normal(0, std, size=delta_var.shape)
                 stage_best_rst = None
-                self.optimizer = torch.optim.Adam([self.delta], lr=0.5)
+                optimizer = torch.optim.Adam([delta_var], lr=0.5)
 
         self.params['temperature'] = temperature  # update temperature
-        self.delta = delta
+        self.delta, self.delta_mask, self.optimizer = delta_var, delta_mask, optimizer
+
         self.stage_best_rst = stage_best_rst
         delta_v = self.best_rst['data'].detach().cpu().numpy() / self.best_rst['temp']
 
         if delta_mask is not None:
             zero_delta = np.ones([insert_many, tot_tokens], dtype=np.float32) * -20
             for i in range(insert_many):
-                sel_idx = (delta_mask[i] > 0)
+                sel_idx = (delta_mask[i] > 0.5)
                 zero_delta[i, sel_idx] = delta_v[i]
             delta_v = zero_delta
 
         train_asr, loss_avg = test_trigger(self.model, self.tr_dataloader, delta_v)
         print('train ASR: %.2f%%' % train_asr)
 
-        ret_rst = {'loss': loss_avg,
+        ret_rst = {'loss': self.best_rst['loss'],
                    'consc': self.best_rst['consc'],
                    'data': delta_v,
                    'temp': self.best_rst['temp'],
-                   'score': _calc_score(loss_avg, self.best_rst['consc']),
+                   'score': _calc_score(self.best_rst['loss'], self.best_rst['consc']),
                    'tr_asr': train_asr,
                    }
-        print('return', self.best_rst['score'], ret_rst['score'])
+        print('return score', self.best_rst['score'], ret_rst['score'])
         return ret_rst
 
-    def test(self):
-        delta_numpy = self.attempt_records[-1][0]
+    def test(self, delta_numpy=None):
+        if delta_numpy is None:
+            delta_numpy = self.attempt_records[-1][0]
         te_acc, te_loss = test_trigger(self.model, self.te_dataloader, delta_numpy)
         return te_acc, te_loss
 
@@ -684,6 +694,7 @@ def trojan_detector_sc(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
 
     # type_list = ['normal', 'spatial', 'class', 'spatial_class']
     type_list = ['normal', 'class']
+    # type_list = ['class']
     lenn_list = [2, 8]
 
     attempt_list = list()
@@ -697,11 +708,35 @@ def trojan_detector_sc(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
                     continue
                 inc = TriggerInfo(desp_str, lenn)
                 attempt_list.append(inc)
-                # break
     arm_list = setup_list(attempt_list)
 
     karm_dict = warmup_run(arm_list, max_epochs=20)
     karm_keys = list(karm_dict.keys())
+
+    '''
+    if True:
+        inc = karm_dict[0]['handler']
+        rst_dict = karm_dict[0]['rst_dict']
+        print(rst_dict['tr_asr'])
+        delta_mask = None
+
+        while True:
+            delta_v = rst_dict['data']
+            if delta_mask is None:
+                delta_mask = np.ones_like(delta_v)
+            max_ord = np.argmax(delta_v, axis=1)
+            print(max_ord)
+            for k, ord in enumerate(max_ord):
+                delta_mask[k, ord] = 0
+            rst_dict = inc.run(max_epochs=5, delta_mask=delta_mask)
+
+            if rst_dict['tr_asr'] < 99:
+                break
+
+            with open('sc_mask.pkl', 'wb') as f:
+                pickle.dump({'delta_mask': delta_mask}, f)
+        exit(0)
+    '''
 
     max_rounds = 50
     for round in range(max_rounds):

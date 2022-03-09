@@ -101,9 +101,13 @@ def test_trigger(model, dataloader, trigger_numpy):
     model.eval()
     trigger_copy = trigger_numpy.copy()
     max_ord = np.argmax(trigger_copy, axis=1)
-    max_val = np.max(trigger_copy, axis=1, keepdims=True)
-    trigger_copy = np.ones(trigger_numpy.shape, dtype=np.float32) * np.minimum((max_val - 20), 0)
-    trigger_copy[:, max_ord] = max_val
+    # max_val = np.max(trigger_copy, axis=1, keepdims=True)
+    # trigger_copy = np.ones(trigger_numpy.shape, dtype=np.float32) * (max_val - 20)
+    # trigger_copy[:, max_ord] = max_val
+    print('test_trigger', max_ord)
+    trigger_copy = np.ones(trigger_numpy.shape, dtype=np.float32) * -20
+    for k, ord in enumerate(max_ord):
+        trigger_copy[k, ord] = 1.0
     delta = Variable(torch.from_numpy(trigger_numpy))
     loss_list, _, acc = trigger_epoch(delta=delta,
                                       model=model,
@@ -698,11 +702,11 @@ class TrojanTesterQA(TrojanTester):
         train_asr, loss_avg = test_trigger(self.model, self.tr_dataloader, delta_v)
         print('train ASR: %.2f%%' % train_asr)
 
-        ret_rst = {'loss': loss_avg,
+        ret_rst = {'loss': self.best_rst['loss'],
                    'consc': self.best_rst['consc'],
                    'data': delta_v,
                    'temp': self.best_rst['temp'],
-                   'score': _calc_score(loss_avg, self.best_rst['consc']),
+                   'score': _calc_score(self.best_rst['loss'], self.best_rst['consc']),
                    'tr_asr': train_asr,
                    }
         print('return', self.best_rst['score'], ret_rst['score'])

@@ -27,7 +27,7 @@ import utils_qa
 
 warnings.filterwarnings("ignore")
 
-RELEASE = True
+RELEASE = False
 if RELEASE:
     simg_data_fo = '/'
     batch_size = 16
