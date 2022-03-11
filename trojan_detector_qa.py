@@ -839,7 +839,7 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             break
         return best_sc, best_k
 
-    # a = tokenizer.decode(token_ids=[999, 1506])
+    # a = tokenizer.decode(token_ids=[37879, 3403])
     # print(a)
     # exit(0)
 
