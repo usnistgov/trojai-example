@@ -26,7 +26,6 @@ trigger_executor_option = ['ner:global',
                            'sc:spatial_class'
                            ]
 
-
 home = os.environ['HOME']
 contest_round = 'round9-train-dataset'
 folder_root = os.path.join(home, 'data/' + contest_round)
@@ -35,14 +34,14 @@ row_filter = {
     # 'poisoned': ['False'],
     'poisoned': ['True'],
     # 'poisoned': None,
-    # 'trigger.trigger_executor_option': ['qa:both_normal_trigger'],
+    'trigger.trigger_executor_option': ['qa:question_spatial_empty'],
     # 'trigger.trigger_executor_option': ['ner:spatial_global'],
-    'trigger.trigger_executor_option': ['qa:context_spatial_trigger'],
+    # 'trigger.trigger_executor_option': ['sc:spatial_class'],
     # 'model_architecture':['google/electra-small-discriminator'],
     # 'model_architecture':['deepset/roberta-base-squad2'],
     # 'model_architecture': ['roberta-base'],
     'model_architecture': None,
-    # 'source_dataset': ['sc:imdb'],
+    'source_dataset': ['qa:squad_v2'],
     # 'source_dataset': None,
     'task_type': None
 }
@@ -147,23 +146,25 @@ for k,md_name in enumerate(dirs):
 exit(0)
 #'''
 
-all_data=dict()
-all_data_json=list()
+all_data = dict()
+all_data_json = list()
+
+
 def tryah(examples_filepath, tokenizer_filepath):
     global all_data
     global all_que
     dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True,
                                     split='train', cache_dir=os.path.join('./scratch', '.cache'))
 
-    with open(examples_filepath,'r') as f:
+    with open(examples_filepath, 'r') as f:
         data = json.load(f)
 
-    data=data['data']
+    data = data['data']
     for p in data:
-        id=p['id']
+        id = p['id']
         if id in all_data:
-            continue
-        all_data[id]=p
+            contionue
+        all_data[id] = p
 
     print(len(all_data))
     print('*' * 20)
@@ -172,7 +173,7 @@ def tryah(examples_filepath, tokenizer_filepath):
     pad_on_right = tokenizer.padding_side == "right"
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     dirs = sorted(data_dict.keys())
     for k, md_name in enumerate(dirs):
         name_num = int(md_name.split('-')[1])
@@ -210,57 +211,84 @@ if __name__=='__main__':
         print('model_architecture:', md_archi)
         print('source_dataset', source_dataset)
 
-        all_data_json.append(os.path.join(folder_path,'clean-example-data.json'))
+        all_data_json.append(os.path.join(folder_path, 'clean-example-data.json'))
         # tryah(examples_filepath, tokenizer_filepath)
 
         run_param = {
-            'model_filepath':model_filepath,
-            'examples_dirpath':folder_path,
-            'tokenizer_filepath':tokenizer_filepath,
-            'scratch_dirpath':'./scratch/',
-            'result_filepath':'./output.txt',
-            'round_training_dataset_dirpath':os.path.join(folder_root,'models'),
-            'features_filepath':'./features.csv',
-            'metaparameters_filepath':'./metaparameters.json',
-            'schema_filepath':'./metaparameters_schema.json',
-            'learned_parameters_dirpath':'./learned_parameters/',
+            'model_filepath': model_filepath,
+            'examples_dirpath': folder_path,
+            'tokenizer_filepath': tokenizer_filepath,
+            'scratch_dirpath': './scratch/',
+            'result_filepath': './output.txt',
+            'round_training_dataset_dirpath': os.path.join(folder_root, 'models'),
+            'features_filepath': './features.csv',
+            'metaparameters_filepath': './metaparameters.json',
+            'schema_filepath': './metaparameters_schema.json',
+            'learned_parameters_dirpath': './learned_parameters/',
         }
 
         # run_script='singularity run --nv ./example_trojan_detector.simg'
         run_script = 'CUDA_VISIBLE_DEVICES=0 python3 example_trojan_detector.py'
         cmmd = run_script
         for param in run_param:
-            cmmd += ' --'+param+'='+run_param[param]
+            cmmd += ' --' + param + '=' + run_param[param]
 
         print(cmmd)
         os.system(cmmd)
 
-        #cmmd = 'cp scratch/record_data.pkl record_results/'+md_name+'.pkl'
-        #os.system(cmmd)
+        # cmmd = 'cp scratch/record_data.pkl record_results/'+md_name+'.pkl'
+        # os.system(cmmd)
 
         break
 
-
     '''
+    tt_list = list()
+    to_list = list()
+    ma_list = list()
+    mi_list = list()
     for f in all_data_json:
         hd, tl = os.path.split(f)
         fp = os.path.join(hd,'config.json')
         with open(fp,'r') as f:
             data = json.load(f)
-        print(data['trigger']['trigger_executor']['target_class'])
-    exit(0)
-    dataset = datasets.load_dataset('json', data_files=all_data_json, field='data',split='train')
+        trigger_text = data['trigger']['trigger_executor']['trigger_text']
+        trigger_option = data['trigger']['trigger_executor']['executor_option_name']
+        if 'spatial' not in trigger_option:
+            continue
+        else:
+            min_loc = data['trigger']['trigger_executor']['insert_min_location_percentage']
+            max_loc = data['trigger']['trigger_executor']['insert_max_location_percentage']
+            ma_list.append(max_loc)
+            mi_list.append(min_loc)
+        tt_list.append(trigger_text)
+        to_list.append(trigger_option)
+    import numpy as np
+    unique, counts = np.unique([len(z.split(' ')) for z in tt_list], return_counts=True)
+    for u,c in zip(unique, counts):
+        print(u,c/np.sum(counts))
+    unique, counts = np.unique([to_list], return_counts=True)
+    for u,c in zip(unique, counts):
+        print(u,c)
+    unique, counts = np.unique([mi_list], return_counts=True)
+    for u,c in zip(unique, counts):
+        print(u,c)
+    unique, counts = np.unique([ma_list], return_counts=True)
+    for u,c in zip(unique, counts):
+        print(u,c)
+    # '''
+    '''
+    dataset = datasets.load_dataset('json', data_files=all_data_json, field='data', split='train')
     print(len(dataset))
     md5_dict = dict()
     rst_list = list()
     for a in dataset:
-        #md5 = hashlib.md5(a['data'].encode()).hexdigest()
-        md5 = a['id']
+        md5 = hashlib.md5(a['data'].encode()).hexdigest()
+        # md5 = a['id']
         if md5 in md5_dict: continue
         md5_dict[md5] = a
         rst_list.append(a)
     print(len(rst_list))
-    out_dict = {'data':rst_list}
-    with open('conll2003.json','w') as f:
-        json.dump(out_dict, f, indent = 2)
-    #'''
+    out_dict = {'data': rst_list}
+    with open('imdb.json', 'w') as f:
+        json.dump(out_dict, f, indent=2)
+    # '''

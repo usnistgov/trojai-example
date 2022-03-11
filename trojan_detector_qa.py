@@ -807,6 +807,9 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             print('run', str(inc.trigger_info), max_epochs, 'epochs')
             rst_dict = inc.run(max_epochs=max_epochs)
             karm_dict[k] = {'handler': inc, 'score': rst_dict['score'], 'rst_dict': rst_dict, 'run_epochs': max_epochs, 'tr_asr':rst_dict['tr_asr']}
+            # early_stop
+            if rst_dict['tr_asr'] > 99.99:
+                break
         return karm_dict
 
     def step(k, karm_dict, max_epochs):
