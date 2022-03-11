@@ -170,7 +170,7 @@ def train_rf(gt_lb):
         # rf_clf=RFC(n_estimators=200, max_depth=11, random_state=1234)
         # rf_clf=RFC(n_estimators=200)
         # rf_clf = make_pipeline(StandardScaler(), SVC(gamma='auto',kernel='sigmoid',probability=True))
-        rf_clf = LGBMClassifier(num_leaves=100)
+        rf_clf = LGBMClassifier(num_leaves=20)
 
         X_train, X_test = X[train_index], X[test_index]
         A_train, A_test = A[train_index], A[test_index]

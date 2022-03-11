@@ -817,6 +817,10 @@ def trojan_detector_ner(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
     lenn_list = [2]
     pair_list = pre_selection()
 
+    if len(pair_list) == 0:
+        ti = TriggerInfo('ner:local_0_0', 0)
+        return 0, {'trigger_info':ti, 'rst_dict':None, 'te_asr':0 }
+
     attempt_list = list()
     for ty in type_list:
         for pa in pair_list:
