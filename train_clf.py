@@ -1,7 +1,7 @@
 import os
 import pickle
 import numpy as np
-from batch_run import gt_csv
+from batch_run_trojai import gt_csv
 import copy
 
 model_architecture = ['roberta-base', 'google/electra-small-discriminator', 'distilbert-base-cased']
@@ -65,7 +65,7 @@ def prepare_data():
         feat = get_feature(data)
         gt_lb[md_name]['probs'] = feat
 
-        print(gt_lb[md_name]['lb'], gt_lb[md_name]['probs'])
+        print(md_name, gt_lb[md_name]['lb'], gt_lb[md_name]['probs'])
 
     return gt_lb
 
