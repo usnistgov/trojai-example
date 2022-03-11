@@ -550,7 +550,7 @@ class TrojanTesterQA(TrojanTester):
         ndata = len(tokenized_dataset)
         print('rst len:', ndata)
         ntr = min(int(ndata * 0.8), max(self.batch_size * 3, 32))
-        nte = min(ndata - ntr, self.batch_size * 6)
+        nte = min(ndata - ntr, max(self.batch_size * 6, 64))
         nre = ndata - ntr - nte
         tr_dataset, te_dataset, _ = torch.utils.data.random_split(tokenized_dataset, [ntr, nte, nre])
         print('n_ntr:', len(tr_dataset))
