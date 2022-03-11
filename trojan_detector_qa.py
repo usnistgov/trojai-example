@@ -549,7 +549,7 @@ class TrojanTesterQA(TrojanTester):
 
         ndata = len(tokenized_dataset)
         print('rst len:', ndata)
-        ntr = min(int(ndata * 0.8), self.batch_size * 3)
+        ntr = min(int(ndata * 0.8), max(self.batch_size * 3, 32))
         nte = min(ndata - ntr, self.batch_size * 6)
         nre = ndata - ntr - nte
         tr_dataset, te_dataset, _ = torch.utils.data.random_split(tokenized_dataset, [ntr, nte, nre])
@@ -838,6 +838,10 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             print('find best sc: %.2f:' % best_sc, str(karm_dict[k]['handler'].trigger_info))
             break
         return best_sc, best_k
+
+    # a = tokenizer.decode(token_ids=[999, 1506])
+    # print(a)
+    # exit(0)
 
     # location_list = ['both']
     type_list = ['context', 'question', 'both']
