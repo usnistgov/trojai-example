@@ -12,7 +12,7 @@ from torch.nn import CrossEntropyLoss
 from tqdm import tqdm
 
 from example_trojan_detector import TrojanTester, TriggerInfo
-from example_trojan_detector import simg_data_fo, batch_size, RELEASE
+from example_trojan_detector import simg_data_fo, RELEASE
 
 import transformers
 
@@ -38,6 +38,9 @@ def add_trigger_template_into_data(data, trigger_info):
     src_pos = [k for k, ta in enumerate(tag) if ta == trigger_info.src_lb]
     if len(src_pos) == 0:
         return None, None, None
+    if len(tok) < 2:
+        return None, None, None
+
 
     def _change_tag_lab(_tag, _lab, i, tgt_lb):
         src_lb = _tag[i]
@@ -53,7 +56,15 @@ def add_trigger_template_into_data(data, trigger_info):
         new_tag, new_lab = _change_tag_lab(new_tag, new_lab, wk, trigger_info.tgt_lb)
         src_pos = [wk]
     elif trigger_info.target == 'global':
-        wk = np.random.choice(len(tok), 1)[0]
+        if trigger_info.location == 'first':
+            li = len(tok) // 2
+            wk = random.randint(1, li)
+        elif trigger_info.location == 'last':
+            li = len(tok) // 2
+            wk = random.randint(li + 1, len(tok))
+        else:
+            wk = random.randint(1, len(tok))
+
         for i in src_pos:
             new_tag, new_lab = _change_tag_lab(new_tag, new_lab, i, trigger_info.tgt_lb)
 
@@ -75,7 +86,7 @@ def add_trigger_template_into_data(data, trigger_info):
     return new_data, wk, new_src_pos
 
 
-def test_trigger(model, dataloader, trigger_numpy):
+def test_trigger(model, dataloader, trigger_numpy, return_logits=False):
     model.eval()
     trigger_copy = trigger_numpy.copy()
     max_ord = np.argmax(trigger_copy, axis=1)
@@ -87,13 +98,26 @@ def test_trigger(model, dataloader, trigger_numpy):
     for k, ord in enumerate(max_ord):
         trigger_copy[k, ord] = 1.0
     delta = Variable(torch.from_numpy(trigger_numpy))
+
+    if return_logits:
+        loss_list, _, acc, all_logits = trigger_epoch(delta=delta,
+                                                      model=model,
+                                                      dataloader=dataloader,
+                                                      weight_cut=None,
+                                                      optimizer=None,
+                                                      temperature=1.0,
+                                                      delta_mask=None,
+                                                      return_acc=True,
+                                                      return_logits=True,
+                                                      )
+        return acc, np.mean(loss_list), all_logits
+
     loss_list, _, acc = trigger_epoch(delta=delta,
                                       model=model,
                                       dataloader=dataloader,
                                       weight_cut=None,
                                       optimizer=None,
                                       temperature=1.0,
-                                      end_position_rate=1.0,
                                       delta_mask=None,
                                       return_acc=True,
                                       )
@@ -136,7 +160,6 @@ def trigger_epoch(delta,
                   weight_cut=None,
                   optimizer=None,
                   temperature=1.0,
-                  end_position_rate=1.0,
                   delta_mask=None,
                   return_acc=False,
                   return_logits=False,
@@ -156,7 +179,7 @@ def trigger_epoch(delta,
     loss_func = torch.nn.CrossEntropyLoss().cuda()
 
     if return_logits:
-        all_preds = None
+        all_logits = None
     if return_acc:
         crt, tot = 0, 0
     loss_list = list()
@@ -184,10 +207,25 @@ def trigger_epoch(delta,
             inputs_embeds[k, idx:idx + insert_many, :] = 0
             inputs_embeds[k, idx:idx + insert_many, :] += extra_embeds
 
-        if 'distilbert' in model.name_or_path or 'bart' in model.name_or_path:
+        if 'distilbert' in model.name_or_path:
+            seq_length = input_ids.size(1)
+
+            if hasattr(emb_model, "position_ids"):
+                position_ids = emb_model.position_ids[:, :seq_length]
+            else:
+                position_ids = torch.arange(seq_length, dtype=torch.long, device=input_ids.device)  # (max_seq_length)
+                position_ids = position_ids.unsqueeze(0).expand_as(input_ids)  # (bs, max_seq_length)
+
+            word_embeddings = inputs_embeds  # (bs, max_seq_length, dim)
+            position_embeddings = emb_model.position_embeddings(position_ids)  # (bs, max_seq_length, dim)
+
+            embeddings = word_embeddings + position_embeddings  # (bs, max_seq_length, dim)
+            embeddings = emb_model.LayerNorm(embeddings)  # (bs, max_seq_length, dim)
+            embeddings = emb_model.dropout(embeddings)  # (bs, max_seq_length, dim)
+
             model_output = model(input_ids=None,
                                  attention_mask=attention_mask,
-                                 inputs_embeds=inputs_embeds,
+                                 inputs_embeds=embeddings,
                                  labels=labels,
                                  )
         else:
@@ -207,8 +245,10 @@ def trigger_epoch(delta,
         loss = loss_func(flattened_logits, flattened_labels)
 
         if return_logits:
-            all_preds = logits if all_preds is None else transformers.trainer_pt_utils.nested_concat(all_preds, logits,
-                                                                                                     padding_index=-100)
+            gd_logits = logits[label_masks].detach()
+            all_logits = gd_logits if all_logits is None else transformers.trainer_pt_utils.nested_concat(all_logits,
+                                                                                                          gd_logits,
+                                                                                                          padding_index=-100)
         if return_acc:
             preds = torch.argmax(logits, axis=-1)
             pred_eq = torch.eq(preds[label_masks], labels[label_masks])
@@ -222,16 +262,18 @@ def trigger_epoch(delta,
             loss.backward(retain_graph=True)
             optimizer.step()
 
+        torch.cuda.empty_cache()
+
     if len(soft_delta.shape) > 2:
         soft_delta = torch.squeeze(soft_delta, dim=1)
     soft_delta_numpy = soft_delta.detach().cpu().numpy()
 
     if return_acc and return_logits:
-        return loss_list, soft_delta_numpy, crt / tot * 100, all_preds
+        return loss_list, soft_delta_numpy, crt / tot * 100, all_logits
     elif return_acc:
         return loss_list, soft_delta_numpy, crt / tot * 100
     elif return_logits:
-        return loss_list, soft_delta_numpy, all_preds
+        return loss_list, soft_delta_numpy, all_logits
     return loss_list, soft_delta_numpy
 
 
@@ -274,10 +316,10 @@ def tokenize_and_align_labels(tokenizer, original_words, original_labels, max_in
             previous_word_idx = word_idx
 
         label_mask = np.asarray(label_mask)
-        # if list_src_pos:
-        #     label_mask[:] = False
-        #     for x in list_src_pos[k]:
-        #         label_mask[idx_map[x]] = True
+        if list_src_pos:
+            label_mask[:] = False
+            for x in list_src_pos[k]:
+                label_mask[idx_map[x]] = True
         if trigger_idx:
             idx = idx_map[trigger_idx[k]]
             list_ret_trigger_idx.append(idx)
@@ -288,7 +330,7 @@ def tokenize_and_align_labels(tokenizer, original_words, original_labels, max_in
     if trigger_idx:
         return tokenized_inputs['input_ids'], tokenized_inputs[
             'attention_mask'], list_labels, list_label_masks, list_ret_trigger_idx
-    return tokenized_inputs['input_ids'], tokenized_inputs['attention_mask'], list_labels, list_label_masks
+    return tokenized_inputs['input_ids'], tokenized_inputs['attention_mask'], list_labels, list_label_masks, None
 
 
 def tokenize_for_ner(tokenizer, dataset, trigger_info=None):
@@ -392,8 +434,8 @@ def tokenize_for_ner(tokenizer, dataset, trigger_info=None):
 
 class TrojanTesterNER(TrojanTester):
 
-    def __init__(self, model, tokenizer, data_jsons, trigger_info, scratch_dirpath, max_epochs):
-        super().__init__(model, tokenizer, data_jsons, trigger_info, scratch_dirpath)
+    def __init__(self, model, tokenizer, data_jsons, trigger_info, scratch_dirpath, max_epochs, batch_size=None):
+        super().__init__(model, tokenizer, data_jsons, trigger_info, scratch_dirpath, batch_size)
         self.current_epoch = -1
         self.optimizer = None
         self.delta = None
@@ -414,14 +456,15 @@ class TrojanTesterNER(TrojanTester):
 
         ndata = len(tokenized_dataset)
         print('rst len:', ndata)
-        ntr = min(int(ndata * 0.8), batch_size * 3)
-        nte = min(ndata - ntr, batch_size * 6)
+        ntr = min(int(ndata * 0.8), self.batch_size * 3)
+        nte = min(ndata - ntr, self.batch_size * 6)
         nre = ndata - ntr - nte
         tr_dataset, te_dataset, _ = torch.utils.data.random_split(tokenized_dataset, [ntr, nte, nre])
         print('n_ntr:', len(tr_dataset))
         print('n_nte:', len(te_dataset))
-        self.tr_dataloader = torch.utils.data.DataLoader(tr_dataset, batch_size=batch_size, shuffle=True)
-        self.te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=batch_size, shuffle=False)
+        self.tr_dataloader = torch.utils.data.DataLoader(tr_dataset, batch_size=self.batch_size, shuffle=True)
+        # self.te_dataloader = torch.utils.data.DataLoader(te_dataset, batch_size=self.batch_size, shuffle=False)
+        self.te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=self.batch_size, shuffle=False)
 
     def run(self, delta_mask=None, max_epochs=200, restart=False):
 
@@ -527,7 +570,6 @@ class TrojanTesterNER(TrojanTester):
                                                         weight_cut=weight_cut,
                                                         optimizer=self.optimizer,
                                                         temperature=temperature,
-                                                        end_position_rate=end_position_rate,
                                                         delta_mask=delta_mask,
                                                         )
 
@@ -636,6 +678,38 @@ def final_deal(data):
     return final_linear_adjust(prob[0, 1])
 
 
+def specific_label_trigger_det(topk_index, topk_logit, num_classes, local_theta):
+    sum_mat = torch.zeros(num_classes, num_classes)
+    median_mat = torch.zeros(num_classes, num_classes)
+
+    for i in range(num_classes):
+        tmp_1 = topk_index[topk_index[:, 0] == i]
+        # print(tmp_1)
+
+        tmp_1_logit = topk_logit[topk_index[:, 0] == i]
+        # print(tmp_1_logit)
+        tmp_2 = torch.zeros(num_classes)
+        for j in range(num_classes):
+            # for every other class,
+            if j == i or (i & 1 == 0) or (j & 1 == 0):
+                tmp_2[j] = -1
+            else:
+                tmp_2[j] = tmp_1[tmp_1 == j].size(0) / tmp_1.size(0)
+
+                print(i, j, tmp_2[j], local_theta)
+
+                # if tmp_2[j]  == 1:
+                if tmp_2[j] >= local_theta:
+                    sum_var = tmp_1_logit[tmp_1 == j].sum()
+                    median_var = torch.median(tmp_1_logit[tmp_1 == j])
+                    # median_var = torch.mean(tmp_1_logit[tmp_1 == j])
+                    sum_mat[j, i] = sum_var
+                    median_mat[j, i] = median_var
+                    # print('Potential Target:{0}, Potential Victim:{1}, Ratio:{2}, Logits Sum:{3}, Logits Median:{4}'.format(j,i,tmp_2[j],sum_var,median_var))
+                    # print('Potential victim: '+ str(i) + ' Potential target:' + str(j) + ' Ratio: ' + str(tmp_2[j]) + ' Logits Mean: '+ str(mean_var) + ' Logits std: ' + str(std_var) + 'Logit Median: ' + str(median_var))
+    return sum_mat, median_mat
+
+
 def trojan_detector_ner(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
     pytorch_model.eval()
     num_classes = pytorch_model.classifier.out_features
@@ -685,16 +759,60 @@ def trojan_detector_ner(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             break
         return best_sc, best_k
 
-    # type_list = ['global', 'local', 'spatial_global']
-    type_list = ['global', 'local']
+    def pre_selection():
+        inc = TrojanTesterNER(pytorch_model, tokenizer, data_jsons, None, scratch_dirpath, max_epochs=300)
+
+        emb_model = get_embed_model(inc.model)
+        weight = emb_model.word_embeddings.weight
+        tot_tokens = weight.shape[0]
+
+        zero_delta = np.zeros([1, tot_tokens], dtype=np.float32)
+
+        acc, avg_loss, all_logits = test_trigger(inc.model, inc.te_dataloader, zero_delta, return_logits=True)
+
+        topk_index = torch.topk(all_logits, num_classes//2, dim=1)[1]
+        topk_logit = torch.topk(all_logits, num_classes//2, dim=1)[0]
+
+        target_matrix, median_matrix = specific_label_trigger_det(topk_index, topk_logit, num_classes, local_theta=0.4)
+
+        target_class_all = []
+        triggered_classes_all = []
+        for i in range(target_matrix.size(0)):
+            if target_matrix[i].max() > 0:
+                target_class = i
+                triggered_classes = (target_matrix[i]).nonzero().view(-1)
+                triggered_classes_logits = target_matrix[i][target_matrix[i] > 0]
+                triggered_classes_medians = median_matrix[i][target_matrix[i] > 0]
+
+                top_index_logit = (triggered_classes_logits > 1e-08).nonzero()[:, 0]
+                top_index_median = (triggered_classes_medians > -0.1).nonzero()[:, 0]
+
+                top_index = torch.LongTensor(np.intersect1d(top_index_logit, top_index_median))
+
+                if len(top_index) > 0:
+                    triggered_classes = triggered_classes[top_index]
+
+                    triggered_classes_logits = triggered_classes_logits[top_index]
+
+                    if triggered_classes.size(0) > 3:
+                        top_3_index = torch.topk(triggered_classes_logits, 3, dim=0)[1]
+                        triggered_classes = triggered_classes[top_3_index]
+
+                    target_class_all.append(target_class)
+                    triggered_classes_all.append(triggered_classes)
+
+        pair_list = list()
+        for t, ss in zip(target_class_all, triggered_classes_all):
+            for s in ss.numpy():
+                pair_list.append((s,t))
+        print(pair_list)
+
+        return pair_list
+
+
+    type_list = ['global_first', 'global_last', 'local']
     lenn_list = [2]
-    pair_list = list()
-    for s in range(1, num_classes, 2):
-        for t in range(1, num_classes, 2):
-            if s == t: continue
-            pair_list.append((s, t))
-            # break
-        # break
+    pair_list = pre_selection()
 
     attempt_list = list()
     for ty in type_list:
@@ -703,7 +821,6 @@ def trojan_detector_ner(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             for lenn in lenn_list:
                 inc = TriggerInfo(desp_str, lenn)
                 attempt_list.append(inc)
-                # break
     arm_list = setup_list(attempt_list)
 
     karm_dict = warmup_run(arm_list, max_epochs=20)

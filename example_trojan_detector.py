@@ -30,10 +30,10 @@ warnings.filterwarnings("ignore")
 RELEASE = False
 if RELEASE:
     simg_data_fo = '/'
-    batch_size = 16
+    g_batch_size = 16
 else:
     simg_data_fo = './'
-    batch_size = 4
+    g_batch_size = 4
 
 
 class TriggerInfo:
@@ -43,40 +43,42 @@ class TriggerInfo:
         self.n = n_words
         self.task, rest = desp_str.split(':')
         if self.task == 'qa':
-            self.location, self.type, self.target = rest.split('_')
+            self.type, self.location, self.target = rest.split('_')
         elif self.task == 'ner':
             split_rst = rest.split('_')
             self.src_lb, self.tgt_lb = int(split_rst[-2]), int(split_rst[-1])
             rest = '_'.join(split_rst[:-2])
-            if rest == 'global':
-                self.type, self.target = 'normal', 'global'
+            if rest == 'global_first':
+                self.type, self.target, self.location = 'normal', 'global', 'first'
+            elif rest == 'global_last':
+                self.type, self.target, self.location = 'normal', 'global', 'last'
             elif rest == 'local':
-                self.type, self.target = 'local', 'local'
-            elif rest == 'spatial_global':
-                self.type, self.target = 'spatial', 'global'
+                self.type, self.target, self.location = 'local', 'local', 'local'
         elif self.task == 'sc':
             split_rst = rest.split('_')
             self.src_lb, self.tgt_lb = int(split_rst[-2]), int(split_rst[-1])
             rest = '_'.join(split_rst[:-2])
-            if rest == 'normal':
-                self.type, self.target = 'normal', 'flip'
-            elif rest == 'spatial':
-                self.type, self.target = 'spatial', 'flip'
-            elif rest == 'class':
-                self.type, self.target = 'normal', 'target'
-            elif rest == 'spatial_class':
-                self.type, self.target = 'spatial', 'target'
+            if rest == 'normal_first':
+                self.type, self.target, self.location = 'normal', 'flip', 'first'
+            elif rest == 'normal_last':
+                self.type, self.target, self.location = 'class', 'flip', 'last'
+            elif rest == 'class_first':
+                self.type, self.target, self.location = 'normal', 'target', 'first'
+            elif rest == 'class_last':
+                self.type, self.target, self.location = 'class', 'target', 'last'
 
     def __str__(self):
         return self.desp_str + '_%d_words' % self.n
 
 
 class TrojanTester:
-    def __init__(self, model, tokenizer, data_jsons, trigger_info, scratch_dirpath, batch_size=32):
+    def __init__(self, model, tokenizer, data_jsons, trigger_info, scratch_dirpath, batch_size=None):
         self.model = model
         self.tokenizer = tokenizer
         self.trigger_info = trigger_info
         self.scratch_dirpath = scratch_dirpath
+        if batch_size is None:
+            batch_size = g_batch_size
         self.batch_size = batch_size
         self.tr_dataloader = None
         self.te_dataloader = None

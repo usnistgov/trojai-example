@@ -12,7 +12,7 @@ from torch.nn import CrossEntropyLoss
 from tqdm import tqdm
 
 from example_trojan_detector import TrojanTester, TriggerInfo
-from example_trojan_detector import simg_data_fo, batch_size, RELEASE
+from example_trojan_detector import simg_data_fo, RELEASE
 
 import transformers
 import pickle
@@ -38,7 +38,20 @@ def add_trigger_template_into_data(data, trigger_info):
 
     # select inject position
     words, idx_word_map, word_idx_map = split_text(dat)
-    wk = random.randint(1, len(words))
+    if trigger_info.location == 'first':
+        li = len(words) // 2
+        while word_idx_map[li] > len(dat) // 2: li -= 1
+        wk = random.randint(1, li)
+    elif trigger_info.location == 'last':
+        li = len(words) // 2
+        while word_idx_map[li] < len(dat) // 2: li += 1
+        wk = random.randint(li + 1, len(words))
+    else:
+        wk = random.randint(1, len(words))
+
+    # wk = random.randint(1, len(words))
+    # print(wk, len(words))
+    # wk = random.randint(1, len(words))
 
     # inject template
     insert_template = ['#'] * trigger_info.n
@@ -56,7 +69,7 @@ def add_trigger_template_into_data(data, trigger_info):
     return new_data, idx
 
 
-def test_trigger(model, dataloader, trigger_numpy):
+def test_trigger(model, dataloader, trigger_numpy, return_logits=False):
     model.eval()
     trigger_copy = trigger_numpy.copy()
     max_ord = np.argmax(trigger_copy, axis=1)
@@ -68,14 +81,26 @@ def test_trigger(model, dataloader, trigger_numpy):
     for k, ord in enumerate(max_ord):
         trigger_copy[k, ord] = 1.0
     delta = Variable(torch.from_numpy(trigger_copy))
-    weight_cut = get_weight_cut(model, None)
+
+    if return_logits:
+        loss_list, _, acc, all_logits = trigger_epoch(delta=delta,
+                                                      model=model,
+                                                      dataloader=dataloader,
+                                                      weight_cut=None,
+                                                      optimizer=None,
+                                                      temperature=1.0,
+                                                      delta_mask=None,
+                                                      return_acc=True,
+                                                      return_logits=True,
+                                                      )
+        return acc, np.mean(loss_list), all_logits
+
     loss_list, _, acc = trigger_epoch(delta=delta,
                                       model=model,
                                       dataloader=dataloader,
-                                      weight_cut=weight_cut,
+                                      weight_cut=None,
                                       optimizer=None,
                                       temperature=1.0,
-                                      end_position_rate=1.0,
                                       return_acc=True,
                                       )
 
@@ -114,13 +139,16 @@ def get_weight_cut(model, delta_mask):
 def trigger_epoch(delta,
                   model,
                   dataloader,
-                  weight_cut,
+                  weight_cut=None,
                   optimizer=None,
                   temperature=1.0,
-                  end_position_rate=1.0,
+                  delta_mask=None,
                   return_acc=False,
                   return_logits=False,
                   ):
+    if weight_cut is None:
+        weight_cut = get_weight_cut(model, delta_mask)
+
     insert_many = len(delta)
     device = model.device
     emb_model = get_embed_model(model)
@@ -130,10 +158,8 @@ def trigger_epoch(delta,
         delta_tensor = delta.to(device)
         soft_delta = F.softmax(delta_tensor / temperature, dtype=torch.float32, dim=-1)
 
-    loss_func = torch.nn.CrossEntropyLoss().cuda()
-
     if return_logits:
-        all_preds = None
+        all_logits = None
     if return_acc:
         crt, tot = 0, 0
     loss_list = list()
@@ -160,10 +186,25 @@ def trigger_epoch(delta,
             inputs_embeds[k, idx:idx + insert_many, :] = 0
             inputs_embeds[k, idx:idx + insert_many, :] += extra_embeds
 
-        if 'distilbert' in model.name_or_path or 'bart' in model.name_or_path:
+        if 'distilbert' in model.name_or_path:
+            seq_length = input_ids.size(1)
+
+            if hasattr(emb_model, "position_ids"):
+                position_ids = emb_model.position_ids[:, :seq_length]
+            else:
+                position_ids = torch.arange(seq_length, dtype=torch.long, device=input_ids.device)  # (max_seq_length)
+                position_ids = position_ids.unsqueeze(0).expand_as(input_ids)  # (bs, max_seq_length)
+
+            word_embeddings = inputs_embeds  # (bs, max_seq_length, dim)
+            position_embeddings = emb_model.position_embeddings(position_ids)  # (bs, max_seq_length, dim)
+
+            embeddings = word_embeddings + position_embeddings  # (bs, max_seq_length, dim)
+            embeddings = emb_model.LayerNorm(embeddings)  # (bs, max_seq_length, dim)
+            embeddings = emb_model.dropout(embeddings)  # (bs, max_seq_length, dim)
+
             model_output = model(input_ids=None,
                                  attention_mask=attention_mask,
-                                 inputs_embeds=inputs_embeds,
+                                 inputs_embeds=embeddings,
                                  labels=labels,
                                  )
         else:
@@ -178,8 +219,10 @@ def trigger_epoch(delta,
         loss = model_output.loss
 
         if return_logits:
-            all_preds = logits if all_preds is None else transformers.trainer_pt_utils.nested_concat(all_preds, logits,
-                                                                                                     padding_index=-100)
+            gd_logits = logits.detach()
+            all_logits = gd_logits if all_logits is None else transformers.trainer_pt_utils.nested_concat(all_logits,
+                                                                                                          gd_logits,
+                                                                                                          padding_index=-100)
         if return_acc:
             preds = torch.argmax(logits, axis=-1)
             pred_eq = torch.eq(preds, labels)
@@ -193,16 +236,18 @@ def trigger_epoch(delta,
             loss.backward(retain_graph=True)
             optimizer.step()
 
+        torch.cuda.empty_cache()
+
     if len(soft_delta.shape) > 2:
         soft_delta = torch.squeeze(soft_delta, dim=1)
     soft_delta_numpy = soft_delta.detach().cpu().numpy()
 
     if return_acc and return_logits:
-        return loss_list, soft_delta_numpy, crt / tot * 100, all_preds
+        return loss_list, soft_delta_numpy, crt / tot * 100, all_logits
     elif return_acc:
         return loss_list, soft_delta_numpy, crt / tot * 100
     elif return_logits:
-        return loss_list, soft_delta_numpy, all_preds
+        return loss_list, soft_delta_numpy, all_logits
     return loss_list, soft_delta_numpy
 
 
@@ -403,6 +448,7 @@ class TrojanTesterSC(TrojanTester):
         raw_dataset = datasets.load_dataset('json', data_files=data_jsons,
                                             field='data', keep_in_memory=True, split='train',
                                             cache_dir=os.path.join(self.scratch_dirpath, '.cache'))
+        # raw_dataset, _ = torch.utils.data.random_split(raw_dataset, [200, len(raw_dataset)-200])
         print('tot len:', len(raw_dataset))
         tokenized_dataset = tokenize_for_sc(self.tokenizer, raw_dataset, trigger_info=self.trigger_info)
         # tokenized_dataset = tokenize_for_sc(self.tokenizer, raw_dataset, trigger_info=None)
@@ -413,14 +459,15 @@ class TrojanTesterSC(TrojanTester):
 
         ndata = len(tokenized_dataset)
         print('rst len:', ndata)
-        ntr = min(int(ndata * 0.8), batch_size * 3)
-        nte = min(ndata - ntr, batch_size * 6)
+        ntr = min(int(ndata * 0.8), self.batch_size * 3)
+        nte = min(ndata - ntr, self.batch_size * 6)
         nre = ndata - ntr - nte
         tr_dataset, te_dataset, _ = torch.utils.data.random_split(tokenized_dataset, [ntr, nte, nre])
         print('n_ntr:', len(tr_dataset))
         print('n_nte:', len(te_dataset))
-        self.tr_dataloader = torch.utils.data.DataLoader(tr_dataset, batch_size=batch_size, shuffle=True)
-        self.te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=batch_size, shuffle=False)
+        self.tr_dataloader = torch.utils.data.DataLoader(tr_dataset, batch_size=self.batch_size, shuffle=True)
+        self.te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=self.batch_size, shuffle=False)
+        # self.te_dataloader = torch.utils.data.DataLoader(te_dataset, batch_size=self.batch_size, shuffle=False)
 
     def run(self, delta=None, delta_mask=None, max_epochs=200, restart=False):
 
@@ -535,7 +582,6 @@ class TrojanTesterSC(TrojanTester):
                                                         weight_cut=weight_cut,
                                                         optimizer=optimizer,
                                                         temperature=temperature,
-                                                        end_position_rate=end_position_rate,
                                                         )
 
             consc = np.min(np.max(soft_delta_numpy, axis=1))
@@ -692,10 +738,21 @@ def trojan_detector_sc(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             break
         return best_sc, best_k
 
-    # type_list = ['normal', 'spatial', 'class', 'spatial_class']
-    type_list = ['normal', 'class']
-    # type_list = ['class']
-    lenn_list = [2, 8]
+    def pre_selection():
+        inc = TrojanTesterSC(pytorch_model, tokenizer, data_jsons, None, scratch_dirpath, max_epochs=300)
+
+        emb_model = get_embed_model(inc.model)
+        weight = emb_model.word_embeddings.weight
+        tot_tokens = weight.shape[0]
+
+        zero_delta = np.zeros([1, tot_tokens], dtype=np.float32)
+
+        acc, avg_loss, all_logits = test_trigger(inc.model, inc.te_dataloader, zero_delta, return_logits=True)
+        print(acc, avg_loss)
+        exit(0)
+
+    type_list = ['normal_first', 'normal_last', 'class_first', 'class_last']
+    lenn_list = [1, 2, 8, 9, 10, 11]
 
     attempt_list = list()
     for ty in type_list:
@@ -703,8 +760,6 @@ def trojan_detector_sc(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             desp_str = 'sc:' + ty + '_%d_%d' % (ta, 1 - ta)
             for lenn in lenn_list:
                 if 'class' in ty and lenn > 2:
-                    continue
-                if 'class' not in ty and lenn < 8:
                     continue
                 inc = TriggerInfo(desp_str, lenn)
                 attempt_list.append(inc)
