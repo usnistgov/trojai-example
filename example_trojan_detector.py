@@ -27,10 +27,10 @@ import utils_qa
 
 warnings.filterwarnings("ignore")
 
-RELEASE = False
+RELEASE = True
 if RELEASE:
     simg_data_fo = '/'
-    g_batch_size = 16
+    g_batch_size = 12
 else:
     simg_data_fo = './'
     g_batch_size = 4
@@ -174,7 +174,7 @@ def trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch
 
     # if True:
     if RELEASE:
-        adj_path = 'adj_param.pkl'
+        adj_path = os.path.join(simg_data_fo, 'adj_param.pkl')
         with open(adj_path, 'rb') as f:
             adj_param = pickle.load(f)
         hash_map = adj_param['hash_map']

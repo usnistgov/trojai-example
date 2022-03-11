@@ -24,6 +24,7 @@ From: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime
     pip install transformers==4.10.3
     pip install datasets==1.11.0
     pip install lightgbm
+    pip install joblib
 
 %runscript
     exec python3 /example_trojan_detector.py "$@"
