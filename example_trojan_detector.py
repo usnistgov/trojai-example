@@ -27,7 +27,7 @@ import utils_qa
 
 warnings.filterwarnings("ignore")
 
-RELEASE = True
+RELEASE = False
 if RELEASE:
     simg_data_fo = '/'
     g_batch_size = 10
@@ -264,7 +264,8 @@ if __name__ == "__main__":
                         action=ActionConfigFile)
     parser.add_argument('--schema_filepath', type=str,
                         help='Path to a schema file in JSON Schema format against which to validate the config file.',
-                        default=None)
+                        default=os.path.join(simg_data_fo,'metaparameters_schema.json'),
+                        )
     parser.add_argument('--learned_parameters_dirpath', type=str,
                         help='Path to a directory containing parameter data (model weights, etc.) to be used when evaluating models.  If --configure_mode is set, these will instead be overwritten with the newly-configured parameters.')
 
@@ -272,6 +273,7 @@ if __name__ == "__main__":
                         help='Instead of detecting Trojans, set values of tunable parameters and write them to a given location.',
                         default=False, action="store_true")
     parser.add_argument('--configure_models_dirpath', type=str,
+                        default=os.path.join(simg_data_fo,'learned_parameters'),
                         help='Path to a directory containing models to use when in configure mode.')
 
     # these parameters need to be defined here, but their values will be loaded from the json file instead of the command line
@@ -280,6 +282,11 @@ if __name__ == "__main__":
     parser.add_argument('--parameter3', type=str, help='An example tunable parameter.')
 
     args = parser.parse_args()
+    args_dict = dict(args)
+    print('='*20)
+    for key in args_dict:
+        print(key, ':', args_dict[key])
+    print('='*20)
 
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s")

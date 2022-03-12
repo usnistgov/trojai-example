@@ -878,7 +878,7 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
     # print(b)
     # print(len(b) - 2)
     # print('=' * 10, '>')
-    # a = tokenizer.decode(token_ids=[37879, 3403])
+    # a = tokenizer.decode(token_ids=[2272])
     # print(a)
     # exit(0)
 
