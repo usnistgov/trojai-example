@@ -892,7 +892,7 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
                 desp_str = 'qa:' + ty + '_' + lo + '_' + ta
 
                 if (ta == 'empty') and (ty != 'context'):
-                    _max_lenn = 4
+                    _max_lenn = 2
                 else:
                     _max_lenn = 12
                 lenn_list = g_lenn_list[g_lenn_list <= _max_lenn]
