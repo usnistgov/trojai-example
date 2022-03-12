@@ -32,16 +32,16 @@ folder_root = os.path.join(home, 'data/' + contest_round)
 gt_path = os.path.join(folder_root, 'METADATA.csv')
 row_filter = {
     # 'poisoned': ['False'],
-    'poisoned': ['True'],
+    # 'poisoned': ['True'],
     # 'poisoned': None,
-    'trigger.trigger_executor_option': ['qa:question_spatial_empty'],
+    # 'trigger.trigger_executor_option': ['qa:question_spatial_empty'],
     # 'trigger.trigger_executor_option': ['ner:spatial_global'],
     # 'trigger.trigger_executor_option': ['sc:spatial_class'],
     # 'model_architecture':['google/electra-small-discriminator'],
     # 'model_architecture':['deepset/roberta-base-squad2'],
     # 'model_architecture': ['roberta-base'],
     'model_architecture': None,
-    'source_dataset': ['qa:squad_v2'],
+    # 'source_dataset': ['qa:squad_v2'],
     # 'source_dataset': None,
     'task_type': None
 }
@@ -189,8 +189,8 @@ if __name__ == '__main__':
         # if k<40: continue
 
         # if name_num >= 10: continue
-        # if not md_name == 'id-00000007':
-        #     continue
+        if not md_name == 'id-00000181':
+            continue
 
         model_filepath = os.path.join(folder_path, 'model.pt')
         examples_filepath = os.path.join(folder_path, 'example_data/clean-example-data.json')

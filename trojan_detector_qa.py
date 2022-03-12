@@ -2,6 +2,8 @@ import os
 import copy
 import datasets
 import random
+
+import datasets.utils.tqdm_utils
 import numpy as np
 
 import torch
@@ -246,8 +248,9 @@ def trigger_epoch(delta,
         start_logits = model_output_dict['start_logits']
         end_logits = model_output_dict['end_logits']
         if return_logits:
-            logits = (start_logits, end_logits)
-            all_preds = logits if all_preds is None else transformers.trainer_pt_utils.nested_concat(all_preds, logits, padding_index=-100)
+            logits = (start_logits.detach(), end_logits.detach())
+            all_preds = logits if all_preds is None else transformers.trainer_pt_utils.nested_concat(all_preds, logits,
+                                                                                                     padding_index=-100)
 
         if len(start_positions.size()) > 1:
             start_positions = start_positions.squeeze(-1)
@@ -279,6 +282,8 @@ def trigger_epoch(delta,
             optimizer.zero_grad()
             loss.backward(retain_graph=True)
             optimizer.step()
+
+        torch.cuda.empty_cache()
 
     if len(soft_delta.shape) > 2:
         soft_delta = torch.squeeze(soft_delta, dim=1)
@@ -549,7 +554,7 @@ class TrojanTesterQA(TrojanTester):
 
         ndata = len(tokenized_dataset)
         print('rst len:', ndata)
-        ntr = min(int(ndata * 0.8), max(self.batch_size * 3, 16))
+        ntr = min(int(ndata * 0.8), max(self.batch_size * 3, 24))
         nte = min(ndata - ntr, max(self.batch_size * 6, 32))
         nre = ndata - ntr - nte
         tr_dataset, te_dataset, _ = torch.utils.data.random_split(tokenized_dataset, [ntr, nte, nre])
@@ -596,6 +601,7 @@ class TrojanTesterQA(TrojanTester):
                          max_epochs,
                          init_delta=None,
                          delta_mask=None,
+                         enable_tqdm=False,
                          ):
         if (init_delta is None) and (self.trigger_info is None):
             raise 'error'
@@ -605,7 +611,6 @@ class TrojanTesterQA(TrojanTester):
         emb_model = get_embed_model(self.model)
         weight = emb_model.word_embeddings.weight
         tot_tokens = weight.shape[0]
-
 
         if self.delta is None:
             if init_delta is None:
@@ -669,7 +674,10 @@ class TrojanTesterQA(TrojanTester):
         def _calc_score(loss, consc):
             return max(loss - beta, 0) + 1.0 * (1 - consc)
 
-        pbar = tqdm(range(self.current_epoch + 1, max_epochs))
+        if enable_tqdm:
+            pbar = tqdm(range(self.current_epoch + 1, max_epochs))
+        else:
+            pbar = list(range(self.current_epoch + 1, max_epochs))
         for epoch in pbar:
             self.current_epoch = epoch
 
@@ -705,8 +713,9 @@ class TrojanTesterQA(TrojanTester):
             if epoch_avg_loss < beta and consc > 1 - epsilon:
                 break
 
-            pbar.set_description('epoch %d: temp %.2f, loss %.2f, condense %.2f / %d, score %.2f' % (
-                epoch, temperature, epoch_avg_loss, consc * insert_many, insert_many, jd_score))
+            if enable_tqdm:
+                pbar.set_description('epoch %d: temp %.2f, loss %.2f, condense %.2f / %d, score %.2f' % (
+                    epoch, temperature, epoch_avg_loss, consc * insert_many, insert_many, jd_score))
 
             if self.current_epoch > 0 and self.current_epoch % S == 0:
                 if stage_best_rst['loss'] < beta:
@@ -739,6 +748,7 @@ class TrojanTesterQA(TrojanTester):
                    'temp': self.best_rst['temp'],
                    'score': _calc_score(self.best_rst['loss'], self.best_rst['consc']),
                    'tr_asr': train_asr,
+                   'val_loss': loss_avg
                    }
         print('return', self.best_rst['score'], ret_rst['score'])
         return ret_rst
@@ -801,14 +811,15 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             inc_list.append(inc)
         return inc_list
 
-    def warmup_run(inc_list, max_epochs):
+    def warmup_run(inc_list, max_epochs, early_stop=False):
         karm_dict = dict()
         for k, inc in enumerate(inc_list):
             print('run', str(inc.trigger_info), max_epochs, 'epochs')
             rst_dict = inc.run(max_epochs=max_epochs)
-            karm_dict[k] = {'handler': inc, 'score': rst_dict['score'], 'rst_dict': rst_dict, 'run_epochs': max_epochs, 'tr_asr':rst_dict['tr_asr']}
+            karm_dict[k] = {'handler': inc, 'score': rst_dict['score'], 'rst_dict': rst_dict, 'run_epochs': max_epochs,
+                            'tr_asr': rst_dict['tr_asr']}
             # early_stop
-            if rst_dict['tr_asr'] > 99.99:
+            if early_stop and rst_dict['tr_asr'] > 99.99:
                 break
         return karm_dict
 
@@ -821,14 +832,16 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             print('instance ', str(inc.trigger_info), 'to its max epochs')
         else:
             print('update to tr_loss: %.2f, tr_asr: %.2f, tr_consc: %.2f' % (
-            rst_dict['loss'], rst_dict['tr_asr'], rst_dict['consc']))
+                rst_dict['loss'], rst_dict['tr_asr'], rst_dict['consc']))
             e = karm_dict[k]['run_epochs'] + max_epochs
-            karm_dict[k] = {'handler': inc, 'score': rst_dict['score'], 'rst_dict': rst_dict, 'run_epochs': e, 'tr_asr': rst_dict['tr_asr']}
+            karm_dict[k] = {'handler': inc, 'score': rst_dict['score'], 'rst_dict': rst_dict, 'run_epochs': e,
+                            'tr_asr': rst_dict['tr_asr']}
         return karm_dict
 
     def find_best(karm_dict, return_valied=True):
         for k in karm_dict:
-            karm_dict[k]['sort_sc'] = karm_dict[k]['score'] * np.log(karm_dict[k]['run_epochs']) - (karm_dict[k]['tr_asr'] > 99)*100
+            karm_dict[k]['sort_sc'] = karm_dict[k]['score'] * np.log(karm_dict[k]['run_epochs']) - (
+                    karm_dict[k]['tr_asr'] > 99) * 100
         sorted_keys = sorted(list(karm_dict.keys()), key=lambda k: karm_dict[k]['sort_sc'])
         best_sc, best_k = None, None
         for k in sorted_keys:
@@ -839,32 +852,59 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             break
         return best_sc, best_k
 
+    def find_lenn(desp_str, lenn_list, rep_times=2, sel_n=2):
+        r_dict = dict()
+        for lenn in lenn_list: r_dict[lenn] = 0
+        for _ in range(rep_times):
+            _list = list()
+            for lenn in lenn_list:
+                inc = TriggerInfo(desp_str, lenn)
+                _list.append(inc)
+            _list = setup_list(_list)
+            _dict = warmup_run(_list, max_epochs=5, early_stop=False)
+            for k in _dict:
+                le = _dict[k]['handler'].trigger_info.n
+                r_dict[le] += _dict[k]['rst_dict']['val_loss']
+
+        sorted_lenn = sorted(lenn_list, key=lambda x: r_dict[x])
+        return sorted_lenn[:sel_n]
+
+    datasets.utils.tqdm_utils._active = False
+
+    # print('=' * 10, '>')
+    # b = tokenizer.encode("World map showing the Tropic of Cancer")
+    # print(b)
+    # print(len(b) - 2)
+    # print('=' * 10, '>')
     # a = tokenizer.decode(token_ids=[37879, 3403])
     # print(a)
     # exit(0)
 
-    # location_list = ['both']
     type_list = ['context', 'question', 'both']
     location_list = ['first', 'last']
     target_list = ['empty', 'trigger']
-    # target_list = ['trigger']
-    lenn_list = [2, 6]
-    # lenn_list = list(range(1,6))
-    # lenn_list = [2]
+    g_lenn_list = np.asarray([1, 2, 4, 7, 9, 11])
 
     attempt_list = list()
     for ty in type_list:
         for lo in location_list:
             for ta in target_list:
                 desp_str = 'qa:' + ty + '_' + lo + '_' + ta
-                for lenn in lenn_list:
-                    if ta == 'empty' and lenn > 2:
-                        continue
+
+                if (ta == 'empty') and (ty != 'context'):
+                    _max_lenn = 4
+                else:
+                    _max_lenn = 12
+                lenn_list = g_lenn_list[g_lenn_list <= _max_lenn]
+
+                sel_lenn = find_lenn(desp_str, lenn_list, rep_times=2, sel_n=2)
+
+                for lenn in sel_lenn:
                     inc = TriggerInfo(desp_str, lenn)
                     attempt_list.append(inc)
     arm_list = setup_list(attempt_list)
 
-    karm_dict = warmup_run(arm_list, max_epochs=20)
+    karm_dict = warmup_run(arm_list, max_epochs=20, early_stop=True)
     karm_keys = list(karm_dict.keys())
 
     max_rounds = 50

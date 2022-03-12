@@ -456,7 +456,7 @@ class TrojanTesterNER(TrojanTester):
 
         ndata = len(tokenized_dataset)
         print('rst len:', ndata)
-        ntr = min(int(ndata * 0.8), max(self.batch_size * 3, 16))
+        ntr = min(int(ndata * 0.8), max(self.batch_size * 3, 24))
         nte = min(ndata - ntr, max(self.batch_size * 6, 32))
         nre = ndata - ntr - nte
         tr_dataset, te_dataset, _ = torch.utils.data.random_split(tokenized_dataset, [ntr, nte, nre])
@@ -812,11 +812,28 @@ def trojan_detector_ner(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
 
         return pair_list
 
+    def find_lenn(desp_str, lenn_list, rep_times=2, sel_n=2):
+        if len(lenn_list) <= sel_n:
+            return lenn_list
+        r_dict = dict()
+        for lenn in lenn_list: r_dict[lenn] = 0
+        for _ in range(rep_times):
+            _list = list()
+            for lenn in lenn_list:
+                inc = TriggerInfo(desp_str, lenn)
+                _list.append(inc)
+            _list = setup_list(_list)
+            _dict = warmup_run(_list, max_epochs=5, early_stop=False)
+            for k in _dict:
+                le = _dict[k]['handler'].trigger_info.n
+                r_dict[le] += _dict[k]['rst_dict']['val_loss']
+
+        sorted_lenn = sorted(lenn_list, key=lambda x: r_dict[x])
+        return sorted_lenn[:sel_n]
 
     type_list = ['global_first', 'global_last', 'local']
-    lenn_list = [2]
+    g_lenn_list = np.asarray([2, 7])
     pair_list = pre_selection()
-
     if len(pair_list) == 0:
         ti = TriggerInfo('ner:local_0_0', 0)
         return 0, {'trigger_info':ti, 'rst_dict':None, 'te_asr':0 }
@@ -825,9 +842,15 @@ def trojan_detector_ner(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
     for ty in type_list:
         for pa in pair_list:
             desp_str = 'ner:' + ty + '_%d_%d' % (pa[0], pa[1])
-            for lenn in lenn_list:
+            _max_lenn = 12
+            lenn_list = g_lenn_list[g_lenn_list <= _max_lenn]
+
+            sel_lenn = find_lenn(desp_str, lenn_list, rep_times=2, sel_n=2)
+
+            for lenn in sel_lenn:
                 inc = TriggerInfo(desp_str, lenn)
                 attempt_list.append(inc)
+
     arm_list = setup_list(attempt_list)
 
     karm_dict = warmup_run(arm_list, max_epochs=20)

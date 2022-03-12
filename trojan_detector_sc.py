@@ -459,7 +459,7 @@ class TrojanTesterSC(TrojanTester):
 
         ndata = len(tokenized_dataset)
         print('rst len:', ndata)
-        ntr = min(int(ndata * 0.8), max(self.batch_size * 3, 16))
+        ntr = min(int(ndata * 0.8), max(self.batch_size * 3, 24))
         nte = min(ndata - ntr, max(self.batch_size * 6, 32))
         nre = ndata - ntr - nte
         tr_dataset, te_dataset, _ = torch.utils.data.random_split(tokenized_dataset, [ntr, nte, nre])
@@ -754,18 +754,39 @@ def trojan_detector_sc(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
         print(acc, avg_loss)
         exit(0)
 
+    def find_lenn(desp_str, lenn_list, rep_times=2, sel_n=2):
+        r_dict = dict()
+        for lenn in lenn_list: r_dict[lenn] = 0
+        for _ in range(rep_times):
+            _list = list()
+            for lenn in lenn_list:
+                inc = TriggerInfo(desp_str, lenn)
+                _list.append(inc)
+            _list = setup_list(_list)
+            _dict = warmup_run(_list, max_epochs=5, early_stop=False)
+            for k in _dict:
+                le = _dict[k]['handler'].trigger_info.n
+                r_dict[le] += _dict[k]['rst_dict']['val_loss']
+
+        sorted_lenn = sorted(lenn_list, key=lambda x: r_dict[x])
+        return sorted_lenn[:sel_n]
+
     type_list = ['normal_first', 'normal_last', 'class_first', 'class_last']
-    lenn_list = [1, 2, 8, 9, 10, 11]
+    g_lenn_list = np.asarray([1, 2, 4, 7, 9, 11])
 
     attempt_list = list()
     for ty in type_list:
         for ta in range(2 if 'class' in ty else 1):
             desp_str = 'sc:' + ty + '_%d_%d' % (ta, 1 - ta)
-            for lenn in lenn_list:
-                if 'class' in ty and lenn > 2:
-                    continue
+            _max_lenn = 12
+            lenn_list = g_lenn_list[g_lenn_list <= _max_lenn]
+
+            sel_lenn = find_lenn(desp_str, lenn_list, rep_times=2, sel_n=2)
+
+            for lenn in sel_lenn:
                 inc = TriggerInfo(desp_str, lenn)
                 attempt_list.append(inc)
+
     arm_list = setup_list(attempt_list)
 
     karm_dict = warmup_run(arm_list, max_epochs=20)
