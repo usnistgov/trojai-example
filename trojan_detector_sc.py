@@ -637,6 +637,7 @@ class TrojanTesterSC(TrojanTester):
                    'temp': self.best_rst['temp'],
                    'score': _calc_score(self.best_rst['loss'], self.best_rst['consc']),
                    'tr_asr': train_asr,
+                   'val_loss': loss_avg,
                    }
         print('return score', self.best_rst['score'], ret_rst['score'])
         return ret_rst
