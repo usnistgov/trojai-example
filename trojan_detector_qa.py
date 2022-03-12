@@ -853,6 +853,8 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
         return best_sc, best_k
 
     def find_lenn(desp_str, lenn_list, rep_times=2, sel_n=2):
+        if len(lenn_list) <= sel_n:
+            return lenn_list
         r_dict = dict()
         for lenn in lenn_list: r_dict[lenn] = 0
         for _ in range(rep_times):
