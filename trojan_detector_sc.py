@@ -700,7 +700,7 @@ def trojan_detector_sc(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             inc_list.append(inc)
         return inc_list
 
-    def warmup_run(inc_list, max_epochs):
+    def warmup_run(inc_list, max_epochs, early_stop=False):
         karm_dict = dict()
         for k, inc in enumerate(inc_list):
             print('run', str(inc.trigger_info), max_epochs, 'epochs')
@@ -708,7 +708,7 @@ def trojan_detector_sc(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             karm_dict[k] = {'handler': inc, 'score': rst_dict['score'], 'rst_dict': rst_dict, 'run_epochs': max_epochs,
                             'tr_asr': rst_dict['tr_asr']}
             # early_stop
-            if rst_dict['tr_asr'] > 99.99:
+            if early_stop and rst_dict['tr_asr'] > 99.99:
                 break
         return karm_dict
 
@@ -791,7 +791,7 @@ def trojan_detector_sc(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
 
     arm_list = setup_list(attempt_list)
 
-    karm_dict = warmup_run(arm_list, max_epochs=20)
+    karm_dict = warmup_run(arm_list, max_epochs=20, early_stop=True)
     karm_keys = list(karm_dict.keys())
 
     '''
