@@ -1,7 +1,7 @@
 import os
 import pickle
 import numpy as np
-from example_trojan_detector import get_feature
+from example_trojan_detector import get_feature, global_hash_map
 from batch_run_trojai import gt_csv
 import copy
 
