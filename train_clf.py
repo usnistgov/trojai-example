@@ -1,30 +1,11 @@
 import os
 import pickle
 import numpy as np
+from example_trojan_detector import get_feature
 from batch_run_trojai import gt_csv
 import copy
 
 model_architecture = ['roberta-base', 'google/electra-small-discriminator', 'distilbert-base-cased']
-
-global_hash_map = dict()
-
-
-def get_feature(data, hash_map=None):
-    feat = list()
-    feat.append(float(data['te_asr']))
-
-    if hash_map is None:
-        global global_hash_map
-        hash_map = global_hash_map
-
-    hash_str = str(data['trigger_info'])
-    hash_str = hash_str.split(':')[0]
-
-    hash_v = hash(hash_str)
-    if hash_v not in hash_map:
-        hash_map[hash_v] = len(hash_map)
-    feat.append(hash_map[hash_v])
-    return np.asarray(feat)
 
 
 def prepare_data():

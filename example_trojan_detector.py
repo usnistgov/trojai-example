@@ -105,6 +105,27 @@ def final_linear_adjust(o_sc, param):
     return sigmoid_sc
 
 
+global_hash_map = dict()
+
+
+def get_feature(data, hash_map=None):
+    feat = list()
+    feat.append(float(data['te_asr']))
+
+    if hash_map is None:
+        global global_hash_map
+        hash_map = global_hash_map
+
+    hash_str = str(data['trigger_info'])
+    hash_str = hash_str.split(':')[0]
+
+    hash_v = hash(hash_str)
+    if hash_v not in hash_map:
+        hash_map[hash_v] = len(hash_map)
+    feat.append(hash_map[hash_v])
+    return np.asarray(feat)
+
+
 def trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch_dirpath, examples_dirpath,
                     examples_filepath=None):
     print('model_filepath = {}'.format(model_filepath))
@@ -180,7 +201,6 @@ def trojan_detector(model_filepath, tokenizer_filepath, result_filepath, scratch
         hash_map = adj_param['hash_map']
         lr_param = adj_param['lr_param']
 
-        from train_clf import get_feature
         feat = get_feature(record_dict, hash_map=hash_map)
         if len(feat.shape) < 2:
             feat = np.expand_dims(feat, axis=0)
@@ -264,7 +284,7 @@ if __name__ == "__main__":
                         action=ActionConfigFile)
     parser.add_argument('--schema_filepath', type=str,
                         help='Path to a schema file in JSON Schema format against which to validate the config file.',
-                        default=os.path.join(simg_data_fo,'metaparameters_schema.json'),
+                        default=os.path.join(simg_data_fo, 'metaparameters_schema.json'),
                         )
     parser.add_argument('--learned_parameters_dirpath', type=str,
                         help='Path to a directory containing parameter data (model weights, etc.) to be used when evaluating models.  If --configure_mode is set, these will instead be overwritten with the newly-configured parameters.')
@@ -273,7 +293,7 @@ if __name__ == "__main__":
                         help='Instead of detecting Trojans, set values of tunable parameters and write them to a given location.',
                         default=False, action="store_true")
     parser.add_argument('--configure_models_dirpath', type=str,
-                        default=os.path.join(simg_data_fo,'learned_parameters'),
+                        default=os.path.join(simg_data_fo, 'learned_parameters'),
                         help='Path to a directory containing models to use when in configure mode.')
 
     # these parameters need to be defined here, but their values will be loaded from the json file instead of the command line
@@ -283,10 +303,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args_dict = dict(args)
-    print('='*20)
+    print('=' * 20)
     for key in args_dict:
         print(key, ':', args_dict[key])
-    print('='*20)
+    print('=' * 20)
 
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s")

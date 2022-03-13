@@ -507,6 +507,7 @@ class TrojanTesterNER(TrojanTester):
                          max_epochs,
                          init_delta=None,
                          delta_mask=None,
+                         enable_tqdm=False,
                          ):
         if (init_delta is None) and (self.trigger_info is None):
             raise 'error'
@@ -557,7 +558,10 @@ class TrojanTesterNER(TrojanTester):
         def _calc_score(loss, consc):
             return max(loss - beta, 0) + 1.0 * (1 - consc)
 
-        pbar = tqdm(range(self.current_epoch + 1, max_epochs))
+        if enable_tqdm:
+            pbar = tqdm(range(self.current_epoch + 1, max_epochs))
+        else:
+            pbar = list(range(self.current_epoch + 1, max_epochs))
         for epoch in pbar:
             self.current_epoch = epoch
 
@@ -592,8 +596,9 @@ class TrojanTesterNER(TrojanTester):
             if epoch_avg_loss < beta and consc > 1 - epsilon:
                 break
 
-            pbar.set_description('epoch %d: temp %.2f, loss %.2f, condense %.2f / %d, score %.2f' % (
-                epoch, temperature, epoch_avg_loss, consc * insert_many, insert_many, jd_score))
+            if enable_tqdm:
+                pbar.set_description('epoch %d: temp %.2f, loss %.2f, condense %.2f / %d, score %.2f' % (
+                    epoch, temperature, epoch_avg_loss, consc * insert_many, insert_many, jd_score))
 
             if self.current_epoch > 0 and self.current_epoch % S == 0:
                 if stage_best_rst['loss'] < beta:
@@ -831,6 +836,8 @@ def trojan_detector_ner(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
 
         sorted_lenn = sorted(lenn_list, key=lambda x: r_dict[x])
         return sorted_lenn[:sel_n]
+
+    datasets.utils.tqdm_utils._active = False
 
     type_list = ['global_first', 'global_last', 'local']
     g_lenn_list = np.asarray([2, 7])
