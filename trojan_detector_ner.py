@@ -840,7 +840,7 @@ def trojan_detector_ner(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
     datasets.utils.tqdm_utils._active = False
 
     type_list = ['global_first', 'global_last', 'local']
-    g_lenn_list = np.asarray([2, 7])
+    g_lenn_list = np.asarray([2, 5, 7, 9])
     pair_list = pre_selection()
     if len(pair_list) == 0:
         ti = TriggerInfo('ner:local_0_0', 0)
@@ -850,7 +850,10 @@ def trojan_detector_ner(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
     for ty in type_list:
         for pa in pair_list:
             desp_str = 'ner:' + ty + '_%d_%d' % (pa[0], pa[1])
-            _max_lenn = 12
+            if ty == 'local':
+                _max_lenn = 2
+            else:
+                _max_lenn = 12
             lenn_list = g_lenn_list[g_lenn_list <= _max_lenn]
 
             sel_lenn = find_lenn(desp_str, lenn_list, rep_times=2, sel_n=2)

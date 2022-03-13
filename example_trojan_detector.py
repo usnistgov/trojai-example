@@ -30,7 +30,7 @@ warnings.filterwarnings("ignore")
 RELEASE = False
 if RELEASE:
     simg_data_fo = '/'
-    g_batch_size = 10
+    g_batch_size = 12
 else:
     simg_data_fo = './'
     g_batch_size = 4
