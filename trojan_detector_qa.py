@@ -917,7 +917,7 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
         print('round:', round)
         seed = np.random.rand()
         if seed < 0.3:
-            k = np.random.choice(karm_keys, 1)[0]
+            best_k = np.random.choice(karm_keys, 1)[0]
 
         karm_dict = step(best_k, karm_dict, max_epochs=40)
 
