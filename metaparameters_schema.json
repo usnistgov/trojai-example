@@ -7,6 +7,7 @@
   "commit_id": "5b078e7fa98ac4c3d1393376d8db1ffa4e976e52",
   "repo_name": "https://github.com/usnistgov/trojai-example",
   "required": [ "parameter1", "parameter2", "parameter3" ],
+  "additionalProperties": false,
   "type": "object",
   "properties": {
     "parameter1": {
