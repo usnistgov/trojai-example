@@ -13,7 +13,8 @@
     "parameter1": {
       "description": "The first parameter",
       "type": "integer",
-      "minimum": 0
+      "minimum": 0,
+      "maximum": 10000
     },
     "parameter2": {
       "description": "The second parameter",
