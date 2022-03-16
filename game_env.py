@@ -108,9 +108,11 @@ class XXEnv:
 
         return self.reset_with_desp(desp_str, pytorch_model, tokenizer, [examples_filepath], inc_class)
 
-    def reset_with_desp(self, desp_str, pytorch_model, tokenizer, data_jsons, inc_class, max_epochs=100):
+    def reset_with_desp(self, desp_str, pytorch_model, tokenizer, data_jsons, inc_class, max_epochs=100, action_dim=None):
+        if action_dim is None:
+            action_dim = self.action_dim
         self.arm_dict = dict()
-        for lenn in range(self.action_dim):
+        for lenn in range(action_dim):
             trigger_info = TriggerInfo(desp_str, lenn + 1)
             act_inc = inc_class(pytorch_model, tokenizer, data_jsons, trigger_info, './scratch',
                                 max_epochs=max_epochs)
