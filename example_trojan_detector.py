@@ -54,6 +54,8 @@ class TriggerInfo:
                 self.type, self.target, self.location = 'normal', 'global', 'last'
             elif rest == 'local':
                 self.type, self.target, self.location = 'local', 'local', 'local'
+            else:
+                raise NotImplementedError(rest)
         elif self.task == 'sc':
             split_rst = rest.split('_')
             self.src_lb, self.tgt_lb = int(split_rst[-2]), int(split_rst[-1])
@@ -66,6 +68,8 @@ class TriggerInfo:
                 self.type, self.target, self.location = 'normal', 'target', 'first'
             elif rest == 'class_last':
                 self.type, self.target, self.location = 'class', 'target', 'last'
+            else:
+                raise NotImplementedError(rest)
 
     def __str__(self):
         return self.desp_str + '_%d_words' % self.n

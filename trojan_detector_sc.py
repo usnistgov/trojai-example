@@ -76,6 +76,7 @@ def test_trigger(model, dataloader, trigger_numpy, return_logits=False):
     # max_val = np.max(trigger_copy, axis=1, keepdims=True)
     # trigger_copy = np.ones(trigger_numpy.shape, dtype=np.float32) * (max_val - 20)
     # trigger_copy[:, max_ord] = max_val
+    # max_ord = np.asarray([832, 78, 1569, 21, 20, 36437, 8936])
     print('test_trigger', max_ord)
     trigger_copy = np.ones(trigger_numpy.shape, dtype=np.float32) * -20
     for k, ord in enumerate(max_ord):
@@ -466,8 +467,8 @@ class TrojanTesterSC(TrojanTester):
         print('n_ntr:', len(tr_dataset))
         print('n_nte:', len(te_dataset))
         self.tr_dataloader = torch.utils.data.DataLoader(tr_dataset, batch_size=self.batch_size, shuffle=True)
-        self.te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=self.batch_size, shuffle=False)
-        # self.te_dataloader = torch.utils.data.DataLoader(te_dataset, batch_size=self.batch_size, shuffle=False)
+        # self.te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=self.batch_size, shuffle=False)
+        self.te_dataloader = torch.utils.data.DataLoader(te_dataset, batch_size=self.batch_size, shuffle=False)
 
     def run(self, delta=None, delta_mask=None, max_epochs=200, restart=False):
 
@@ -478,7 +479,7 @@ class TrojanTesterSC(TrojanTester):
 
         if len(self.attempt_records) == 0 or restart:
             self.params = {
-                'S': 30,
+                'S': 20,
                 'beta': 0.3,
                 'std': 10.0,
                 'C': 2.0,
@@ -509,7 +510,7 @@ class TrojanTesterSC(TrojanTester):
                          max_epochs,
                          delta=None,
                          delta_mask=None,
-                         enable_tqdm=False,
+                         enable_tqdm=True,
                          ):
         insert_many = self.trigger_info.n
 
@@ -551,8 +552,11 @@ class TrojanTesterSC(TrojanTester):
         if not new_optimizer:
             optimizer = self.optimizer
         if optimizer is None:
+            print('new optimizer')
             optimizer = torch.optim.Adam([delta_var], lr=0.5)
             # opt=torch.optim.SGD([delta], lr=1)
+        else:
+            print('old optimizer')
 
         weight_cut = get_weight_cut(self.model, delta_mask)
 
@@ -564,7 +568,6 @@ class TrojanTesterSC(TrojanTester):
         U = self.params['U']
         epsilon = self.params['epsilon']
         temperature = self.params['temperature']
-        end_position_rate = self.params['end_position_rate']
         stage_best_rst = self.stage_best_rst
 
         def _calc_score(loss, consc):
@@ -576,9 +579,6 @@ class TrojanTesterSC(TrojanTester):
             pbar = list(range(self.current_epoch + 1, max_epochs))
         for epoch in pbar:
             self.current_epoch = epoch
-
-            if self.current_epoch * 2 > self.max_epochs or (self.best_rst and self.best_rst['loss'] < beta):
-                end_position_rate = 1.0
 
             loss_list, soft_delta_numpy = trigger_epoch(delta=delta_var,
                                                         model=self.model,
@@ -612,6 +612,7 @@ class TrojanTesterSC(TrojanTester):
                     epoch, temperature, epoch_avg_loss, consc * insert_many, insert_many, jd_score))
 
             if self.current_epoch > 0 and self.current_epoch % S == 0:
+                print(stage_best_rst['loss'])
                 if stage_best_rst['loss'] < beta:
                     temperature /= C
                 else:
@@ -781,8 +782,18 @@ def trojan_detector_sc(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
 
     datasets.utils.tqdm_utils._active = False
 
-    type_list = ['normal_first', 'normal_last', 'class_first', 'class_last']
-    g_lenn_list = np.asarray([1, 2, 4, 7, 9, 11])
+    # print('-'*20)
+    # b = tokenizer.encode("His first movie was The Outsiders")
+    # print(b)
+    # print(len(b) - 2)
+    # print('-'*20)
+    # pre_selection()
+    # exit(0)
+
+    # type_list = ['normal_first', 'normal_last', 'class_first', 'class_last']
+    # g_lenn_list = np.asarray([1, 2, 4, 7, 9, 11])
+    type_list = ['normal_first']
+    g_lenn_list = np.asarray([7])
 
     attempt_list = list()
     for ty in type_list:

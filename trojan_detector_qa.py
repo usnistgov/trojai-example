@@ -17,6 +17,7 @@ from example_trojan_detector import TrojanTester, TriggerInfo
 from example_trojan_detector import simg_data_fo, RELEASE
 
 import transformers
+from rainbow import DQNActor
 
 
 def split_text(text):
@@ -561,7 +562,8 @@ class TrojanTesterQA(TrojanTester):
         print('n_ntr:', len(tr_dataset))
         print('n_nte:', len(te_dataset))
         self.tr_dataloader = torch.utils.data.DataLoader(tr_dataset, batch_size=self.batch_size, shuffle=True)
-        self.te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=self.batch_size, shuffle=False)
+        # self.te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=self.batch_size, shuffle=False)
+        self.te_dataloader = torch.utils.data.DataLoader(te_dataset, batch_size=self.batch_size, shuffle=False)
 
     def run(self, delta_mask=None, max_epochs=200, restart=False):
 
@@ -801,75 +803,67 @@ def final_deal(data):
     return final_linear_adjust(prob[0, 1])
 
 
+
+
+class DQNActor:
+    def __init__(self,
+                 desp_str,
+                 pytorch_model,
+                 tokenizer,
+                 examples_filepath,
+                 inc_class,
+                 max_epochs=200,
+                 savepath=None,
+                 ):
+
+dqn_savepath='./dqn_record.pkl'
+
 def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
     pytorch_model.eval()
 
     def setup_list(attempt_list):
         inc_list = list()
         for trigger_info in attempt_list:
-            inc = TrojanTesterQA(pytorch_model, tokenizer, data_jsons, trigger_info, scratch_dirpath, max_epochs=300)
+            inc = DQNActor(trigger_info.desp_str, pytorch_model, tokenizer, data_jsons, TrojanTesterQA, max_epochs=300, savepath=dqn_savepath)
             inc_list.append(inc)
         return inc_list
 
     def warmup_run(inc_list, max_epochs, early_stop=False):
         karm_dict = dict()
         for k, inc in enumerate(inc_list):
-            print('run', str(inc.trigger_info), max_epochs, 'epochs')
+            print('run', inc.desp_str, max_epochs, 'epochs')
             rst_dict = inc.run(max_epochs=max_epochs)
-            karm_dict[k] = {'handler': inc, 'score': rst_dict['score'], 'rst_dict': rst_dict, 'run_epochs': max_epochs,
-                            'tr_asr': rst_dict['tr_asr']}
+            karm_dict[k] = rst_dict
             # early_stop
-            if early_stop and rst_dict['tr_asr'] > 99.99:
+            if early_stop and rst_dict['te_asr'] > 0.9999:
                 break
         return karm_dict
 
     def step(k, karm_dict, max_epochs):
         inc = karm_dict[k]['handler']
-        print('run', str(inc.trigger_info), max_epochs, 'epochs')
+        print('run', inc.desp_str, max_epochs, 'epochs')
         rst_dict = inc.run(max_epochs=max_epochs)
         if rst_dict is None:
             karm_dict[k]['over'] = True
-            print('instance ', str(inc.trigger_info), 'to its max epochs')
+            print('instance ', inc.desp_str, 'to its max epochs')
         else:
-            print('update to tr_loss: %.2f, tr_asr: %.2f, tr_consc: %.2f' % (
-                rst_dict['loss'], rst_dict['tr_asr'], rst_dict['consc']))
-            e = karm_dict[k]['run_epochs'] + max_epochs
-            karm_dict[k] = {'handler': inc, 'score': rst_dict['score'], 'rst_dict': rst_dict, 'run_epochs': e,
-                            'tr_asr': rst_dict['tr_asr']}
+            cur_epochs = karm_dict[k]['run_epochs']
+            karm_dict[k] = rst_dict
+            karm_dict[k]['run_epochs'] += cur_epochs
         return karm_dict
 
     def find_best(karm_dict, return_valied=True):
         for k in karm_dict:
-            karm_dict[k]['sort_sc'] = karm_dict[k]['score'] * np.log(karm_dict[k]['run_epochs']) - (
-                    karm_dict[k]['tr_asr'] > 99) * 100
+            karm_dict[k]['sort_sc'] = karm_dict[k]['score'] * np.log(karm_dict[k]['run_epochs'])
         sorted_keys = sorted(list(karm_dict.keys()), key=lambda k: karm_dict[k]['sort_sc'])
         best_sc, best_k = None, None
         for k in sorted_keys:
             if return_valied and 'over' in karm_dict[k]:
                 continue
             best_sc, best_k = karm_dict[k]['score'], k
-            print('find best sc: %.2f:' % best_sc, str(karm_dict[k]['handler'].trigger_info))
+            print('find best sc: %.2f:' % best_sc, str(karm_dict[k]['handler'].desp_str))
             break
         return best_sc, best_k
-
-    def find_lenn(desp_str, lenn_list, rep_times=2, sel_n=2):
-        if len(lenn_list) <= sel_n:
-            return lenn_list
-        r_dict = dict()
-        for lenn in lenn_list: r_dict[lenn] = 0
-        for _ in range(rep_times):
-            _list = list()
-            for lenn in lenn_list:
-                inc = TriggerInfo(desp_str, lenn)
-                _list.append(inc)
-            _list = setup_list(_list)
-            _dict = warmup_run(_list, max_epochs=5, early_stop=False)
-            for k in _dict:
-                le = _dict[k]['handler'].trigger_info.n
-                r_dict[le] += _dict[k]['rst_dict']['val_loss']
-
-        sorted_lenn = sorted(lenn_list, key=lambda x: r_dict[x])
-        return sorted_lenn[:sel_n]
 
     datasets.utils.tqdm_utils._active = False
 
@@ -885,7 +879,6 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
     type_list = ['context', 'question', 'both']
     location_list = ['first', 'last']
     target_list = ['empty', 'trigger']
-    g_lenn_list = np.asarray([1, 2, 4, 7, 9, 11])
 
     attempt_list = list()
     for ty in type_list:
@@ -893,41 +886,32 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             for ta in target_list:
                 desp_str = 'qa:' + ty + '_' + lo + '_' + ta
 
-                if (ta == 'empty') and (ty != 'context'):
-                    _max_lenn = 2
-                else:
-                    _max_lenn = 12
-                lenn_list = g_lenn_list[g_lenn_list <= _max_lenn]
-
-                sel_lenn = find_lenn(desp_str, lenn_list, rep_times=2, sel_n=2)
-
-                for lenn in sel_lenn:
-                    inc = TriggerInfo(desp_str, lenn)
-                    attempt_list.append(inc)
+                inc = TriggerInfo(desp_str, 0)
+                attempt_list.append(inc)
     arm_list = setup_list(attempt_list)
 
-    karm_dict = warmup_run(arm_list, max_epochs=20, early_stop=True)
+    karm_dict = warmup_run(arm_list, max_epochs=5, early_stop=True)
     karm_keys = list(karm_dict.keys())
 
     max_rounds = 50
     for round in range(max_rounds):
         best_sc, best_k = find_best(karm_dict, return_valied=True)
-        if best_sc is None or best_sc < 0.1 or karm_dict[best_k]['tr_asr'] > 99:
+        if best_sc is None or best_sc < 0.1 or karm_dict[best_k]['te_asr'] > 0.9999:
             break
         print('round:', round)
         seed = np.random.rand()
         if seed < 0.3:
             best_k = np.random.choice(karm_keys, 1)[0]
 
-        karm_dict = step(best_k, karm_dict, max_epochs=40)
+        karm_dict = step(best_k, karm_dict, max_epochs=20)
 
-    _, best_k = find_best(karm_dict, return_valied=False)
-    te_asr, te_loss = karm_dict[best_k]['handler'].test()
+    # _, best_k = find_best(karm_dict, return_valied=False)
+    # te_asr, te_loss = karm_dict[best_k]['handler'].test()
 
     record_dict = {
-        'trigger_info': karm_dict[best_k]['handler'].trigger_info,
+        'trigger_info': karm_dict[best_k]['handler'].desp_str,
         'rst_dict': karm_dict[best_k]['rst_dict'],
-        'te_asr': te_asr,
+        'te_asr': karm_dict[best_k]['te_asr'],
     }
 
-    return te_asr / 100.0, record_dict
+    return karm_dict[best_k]['te_asr'], record_dict

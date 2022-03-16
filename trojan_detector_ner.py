@@ -463,8 +463,8 @@ class TrojanTesterNER(TrojanTester):
         print('n_ntr:', len(tr_dataset))
         print('n_nte:', len(te_dataset))
         self.tr_dataloader = torch.utils.data.DataLoader(tr_dataset, batch_size=self.batch_size, shuffle=True)
-        # self.te_dataloader = torch.utils.data.DataLoader(te_dataset, batch_size=self.batch_size, shuffle=False)
-        self.te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=self.batch_size, shuffle=False)
+        # self.te_dataloader = torch.utils.data.DataLoader(tokenized_dataset, batch_size=self.batch_size, shuffle=False)
+        self.te_dataloader = torch.utils.data.DataLoader(te_dataset, batch_size=self.batch_size, shuffle=False)
 
     def run(self, delta_mask=None, max_epochs=200, restart=False):
 
