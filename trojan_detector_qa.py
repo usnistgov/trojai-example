@@ -803,20 +803,8 @@ def final_deal(data):
     return final_linear_adjust(prob[0, 1])
 
 
+dqn_savepath = './dqn_record.pkl'
 
-
-class DQNActor:
-    def __init__(self,
-                 desp_str,
-                 pytorch_model,
-                 tokenizer,
-                 examples_filepath,
-                 inc_class,
-                 max_epochs=200,
-                 savepath=None,
-                 ):
-
-dqn_savepath='./dqn_record.pkl'
 
 def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
     pytorch_model.eval()
@@ -824,7 +812,8 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
     def setup_list(attempt_list):
         inc_list = list()
         for trigger_info in attempt_list:
-            inc = DQNActor(trigger_info.desp_str, pytorch_model, tokenizer, data_jsons, TrojanTesterQA, max_epochs=300, savepath=dqn_savepath)
+            inc = DQNActor(trigger_info.desp_str, pytorch_model, tokenizer, data_jsons, TrojanTesterQA, max_epochs=300,
+                           savepath=dqn_savepath)
             inc_list.append(inc)
         return inc_list
 

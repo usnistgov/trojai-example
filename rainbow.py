@@ -4,14 +4,14 @@ import random
 from collections import deque
 from typing import Deque, Dict, List, Tuple
 
-import gym
+# import gym
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from IPython.display import clear_output
+# from IPython.display import clear_output
 from torch.nn.utils import clip_grad_norm_
 
 from segment_tree import MinSegmentTree, SumSegmentTree
@@ -642,7 +642,7 @@ class DQNAgent:
 
         # for recording a video
         naive_env = self.env
-        self.env = gym.wrappers.RecordVideo(self.env, video_folder=video_folder)
+        # self.env = gym.wrappers.RecordVideo(self.env, video_folder=video_folder)
 
         state = self.env.reset()
         done = False
@@ -719,7 +719,7 @@ class DQNAgent:
             losses: List[float],
     ):
         """Plot the training progresses."""
-        clear_output(True)
+        # clear_output(True)
         plt.figure(figsize=(20, 5))
         plt.subplot(131)
         plt.title('frame %s. score: %s' % (frame_idx, np.mean(scores[-10:])))

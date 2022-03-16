@@ -3,7 +3,6 @@ import torch
 import os
 import json
 import numpy as np
-from batch_run import gt_csv, folder_root, get_tokenizer_name
 from example_trojan_detector import TriggerInfo
 
 import datasets
@@ -17,31 +16,32 @@ class XXEnv:
         self.action_dim = 12
         self.random_inc = random.Random()
 
-        data_dict = dict()
-        for row in gt_csv:
-            if row['poisoned'] == 'False':
-                continue
-            md_name = row['model_name']
-            data_dict[md_name] = row
-
-        self.csv_dict = data_dict
-        self.list_md_name = list(data_dict.keys())
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.target_lenn = None
         self.arm_dict = None
         self.key_list = None
 
     def reset(self):
-        sel_md_name = self.random_inc.choice(self.list_md_name)
+        from batch_run import gt_csv, folder_root, get_tokenizer_name
+        data_dict = dict()
+        for row in gt_csv:
+            if row['poisoned'] == 'False':
+                continue
+            md_name = row['model_name']
+            data_dict[md_name] = row
+        csv_dict = data_dict
+        list_md_name = list(data_dict.keys())
+
+        sel_md_name = self.random_inc.choice(list_md_name)
 
         folder_path = os.path.join(folder_root, 'models', sel_md_name)
         model_filepath = os.path.join(folder_path, 'model.pt')
 
-        md_archi = self.csv_dict[sel_md_name]['model_architecture']
+        md_archi = csv_dict[sel_md_name]['model_architecture']
         tokenizer_name = get_tokenizer_name(md_archi)
         tokenizer_filepath = os.path.join(folder_root, 'tokenizers', tokenizer_name + '.pt')
 
-        source_dataset = self.csv_dict[sel_md_name]['source_dataset']
+        source_dataset = csv_dict[sel_md_name]['source_dataset']
         source_dataset = source_dataset.split(':')[1]
 
         pytorch_model = torch.load(model_filepath, map_location=torch.device(self.device))
