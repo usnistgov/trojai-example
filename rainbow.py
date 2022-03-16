@@ -811,12 +811,17 @@ class DQNActor:
         self.done = done
         print("reward: ", reward)
 
+        if rst_dict is None:
+            tr_asr = None
+        else:
+            tr_asr = rst_dict['tr_asr']
+
         ret_dict = {
             'handler': self,
             'score': float(np.min(next_state)),
             'rst_dict': rst_dict,
             'run_epochs': max_epochs,
-            'tr_asr': rst_dict['tr_asr'],
+            'tr_asr': tr_asr,
             'te_asr': max_te_asr,
             'done': done
         }

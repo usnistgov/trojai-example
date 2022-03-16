@@ -818,6 +818,7 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
         return inc_list
 
     def warmup_run(inc_list, max_epochs, early_stop=False):
+        print('=' * 10, 'warm up', '=' * 10)
         karm_dict = dict()
         for k, inc in enumerate(inc_list):
             print('run', inc.desp_str, max_epochs, 'epochs')
@@ -826,6 +827,7 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
             # early_stop
             if early_stop and rst_dict['te_asr'] > 0.9999:
                 break
+        print('=' * 10, 'warm up end', '=' * 10)
         return karm_dict
 
     def step(k, karm_dict, max_epochs):
