@@ -749,12 +749,13 @@ class DQNActor:
                  tokenizer,
                  data_jsons,
                  inc_class,
+                 action_dim=12,
                  max_epochs=200,
                  savepath=None,
                  ):
         self.desp_str = desp_str
         self.obs_dim = 12
-        self.action_dim = 12
+        self.action_dim = action_dim
         self.v_min = 0
         self.v_max = 200
         self.atom_size = 51
@@ -769,9 +770,10 @@ class DQNActor:
         self.done = False
         if savepath:
             self.load(savepath)
+            self.select_action_func = self.select_action
         else:
-            self.reset()
-        self.prepare_run(desp_str, pytorch_model, tokenizer, data_jsons, inc_class, max_epochs=max_epochs)
+            self.select_action_func = self.select_action_with_sigma
+        self.prepare_run(desp_str, pytorch_model, tokenizer, data_jsons, inc_class, max_epochs=max_epochs, action_dim=action_dim)
 
     def reset(self):
         self.support = torch.linspace(
@@ -798,13 +800,19 @@ class DQNActor:
 
         return selected_action
 
-    def prepare_run(self, desp_str, pytorch_model, tokenizer, data_jsons, inc_class, max_epochs=200):
+    def select_action_with_sigma(self, state: np.ndarray, sigma=0.3) -> np.ndarray:
+        selected_action = np.argmax(state)
+        if random.random() < sigma:
+            selected_action = np.random.choice(state, 1)[0]
+        return selected_action
+
+    def prepare_run(self, desp_str, pytorch_model, tokenizer, data_jsons, inc_class, max_epochs=200, action_dim=12):
         self.env = XXEnv()
-        self.state = self.env.reset_with_desp(desp_str, pytorch_model, tokenizer, data_jsons, inc_class, max_epochs=max_epochs)
+        self.state = self.env.reset_with_desp(desp_str, pytorch_model, tokenizer, data_jsons, inc_class, max_epochs=max_epochs, action_dim=action_dim)
         self.done = False
 
     def run(self, max_epochs=5):
-        action = self.select_action(self.state)
+        action = self.select_action_func(self.state)
         next_state, reward, done, max_te_asr, rst_dict = self.env.step(action, max_epochs=max_epochs, return_dict=True)
 
         self.state = next_state
