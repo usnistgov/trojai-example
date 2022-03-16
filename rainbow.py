@@ -752,6 +752,7 @@ class DQNActor:
                  max_epochs=200,
                  savepath=None,
                  ):
+        self.desp_str = desp_str
         self.obs_dim = 12
         self.action_dim = 12
         self.v_min = 0
@@ -810,8 +811,6 @@ class DQNActor:
         self.done = done
         print("reward: ", reward)
 
-        if done:
-            return None
         ret_dict = {
             'handler': self,
             'score': float(np.min(next_state)),
@@ -819,6 +818,7 @@ class DQNActor:
             'run_epochs': max_epochs,
             'tr_asr': rst_dict['tr_asr'],
             'te_asr': max_te_asr,
+            'done': done
         }
         return ret_dict
 

@@ -832,7 +832,7 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
         inc = karm_dict[k]['handler']
         print('run', inc.desp_str, max_epochs, 'epochs')
         rst_dict = inc.run(max_epochs=max_epochs)
-        if rst_dict is None:
+        if rst_dict['done']:
             karm_dict[k]['over'] = True
             print('instance ', inc.desp_str, 'to its max epochs')
         else:
@@ -894,7 +894,8 @@ def trojan_detector_qa(pytorch_model, tokenizer, data_jsons, scratch_dirpath):
 
         karm_dict = step(best_k, karm_dict, max_epochs=20)
 
-    # _, best_k = find_best(karm_dict, return_valied=False)
+    if round >= max_rounds:
+        _, best_k = find_best(karm_dict, return_valied=False)
     # te_asr, te_loss = karm_dict[best_k]['handler'].test()
 
     record_dict = {
