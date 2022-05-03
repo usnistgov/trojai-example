@@ -17,12 +17,12 @@
       "maximum": 10000
     },
     "parameter2": {
-      "description": "The second parameter",
+      "description": "The second parameter, marked with suggested to indicate that modifying its value will likely impact the result, and the parameter value can be optimized within the suggested range",
       "type": "number",
       "minimum": -1.2,
       "maximum": 3.4,
-      "perturb_minimum": -1.0,
-      "perturb_maximum": 2.0
+      "suggested_minimum": -1.0,
+      "suggested_maximum": 2.0
     },
     "parameter3": {
       "description": "The third parameter",
