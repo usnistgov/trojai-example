@@ -24,7 +24,7 @@ Your container will have access to these [Submission Compute Resources](https://
 --------------
 # New Container Configuration
 
-With the release of TrojAI Round 9, a new container configuration is being added that enables TrojAI T&E to evaluate submitted detectors across various new dimensions. The main changes require submitted containers to do two new things: 
+With the release of TrojAI Round 10, a new container configuration is being added that enables TrojAI T&E to evaluate submitted detectors across various new dimensions. The main changes require submitted containers to do two new things: 
 
 - Specify a "metaparameters" file that documents a container's manually tunable parameters and their range of possible values. 
 - Generate "learned parameters" via a new reconfiguration API.
@@ -38,7 +38,7 @@ Submitted containers will now need to work in two different modes:
 # System Requirements
 
 - Linux (tested on Ubuntu 20.04 LTS)
-- CUDA capable NVIDIA GPU (tested on RTX 2080 Ti and RTX 3090)
+- CUDA capable NVIDIA GPU (tested on A4500)
 
 Note: This example assumes you are running on a version of Linux (like Ubuntu 20.04 LTS) with a CUDA enabled NVIDIA GPU. Singularity only runs natively on Linux, and most Deep Learning libraries are designed for Linux first. While this Conda setup will install the CUDA drivers required to run PyTorch, the CUDA enabled GPU needs to be present on the system.   
 
@@ -73,8 +73,11 @@ A small toy set of clean & poisioned data is also provided in this repository un
 2. `conda activate trojai-example`
 3. Install required packages into this conda environment
 
-    1. `conda install pytorch torchvision torchtext cudatoolkit=11.1 -c pytorch-lts -c nvidia` 
-    2. `pip install jsonargparse jsonpickle jsonschema transformers==4.10.3 datasets`
+    1. `conda install pytorch=1.11 torchvision=0.12 cudatoolkit=11.3 -c pytorch` 
+    2. `pip install pycocotools opencv-python jsonschema jsonargparse jsonpickle`
+    3. 
+    4. `conda install pandas matplotlib scipy`
+    5. `pip install transformers timm jsonpickle matplotlib sklearn seqeval imgaug imagecorruptions psutil`
 
 ## Test Fake Detector Without Containerization
 
@@ -90,11 +93,10 @@ A small toy set of clean & poisioned data is also provided in this repository un
     ```bash
     python example_trojan_detector.py \
     --model_filepath=./model/id-00000000/model.pt \
-    --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000000/example_data/ \
+    --examples_dirpath=./model/id-00000000/clean_example_data/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
@@ -124,11 +126,10 @@ A small toy set of clean & poisioned data is also provided in this repository un
     ```bash
     python example_trojan_detector.py \
     --model_filepath=./model/id-00000000/model.pt \
-    --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000000/example_data/ \
+    --examples_dirpath=./model/id-00000000/clean_example_data/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
@@ -162,7 +163,6 @@ Package `example_trojan_detector.py` into a Singularity container.
     --nv \
     ./example_trojan_detector.simg \
     --model_filepath=./model/id-00000000/model.pt \
-    --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
@@ -201,7 +201,6 @@ Package `example_trojan_detector.py` into a Singularity container.
     --nv \
     ./example_trojan_detector.simg \
     --model_filepath=./model/id-00000000/model.pt \
-    --tokenizer_filepath=./tokenizers/google-electra-small-discriminator.pt \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
