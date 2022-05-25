@@ -74,7 +74,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
 3. Install required packages into this conda environment
 
     1. `conda install pytorch=1.11 torchvision=0.12 cudatoolkit=11.3 -c pytorch` 
-    2. `pip install pycocotools opencv-python jsonschema jsonargparse jsonpickle`
+    2. `pip install pycocotools opencv-python jsonschema jsonargparse jsonpickle scipy`
 
 ## Test Fake Detector Without Containerization
 
