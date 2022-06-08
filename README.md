@@ -89,11 +89,11 @@ A small toy set of clean & poisioned data is also provided in this repository un
 
     ```bash
     python example_trojan_detector.py \
-    --model_filepath=./model/id-00000000/model.pt \
+    --model_filepath=./model/trojai-example-model-round10/model.pt \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000000/clean_example_data/ \
+    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \
     --source_dataset_dirpath=/path/to/source/dataset/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
@@ -124,11 +124,11 @@ A small toy set of clean & poisioned data is also provided in this repository un
 
     ```bash
     python example_trojan_detector.py \
-    --model_filepath=./model/id-00000000/model.pt \
+    --model_filepath=./model/trojai-example-model-round10/model.pt \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000000/clean_example_data/ \
+    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \
     --source_dataset_dirpath=/path/to/source/dataset/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
@@ -162,11 +162,11 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
-    --model_filepath=./model/id-00000000/model.pt \
+    --model_filepath=./model/trojai-example-model-round10/model.pt \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000000/example_data/ \
+    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \
     --source_dataset_dirpath=/path/to/source/dataset/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
@@ -202,11 +202,11 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
-    --model_filepath=./model/id-00000000/model.pt \
+    --model_filepath=./model/trojai-example-model-round10/model.pt \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000000/example_data/ \
+    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \
     --source_dataset_dirpath=/path/to/source/dataset/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
