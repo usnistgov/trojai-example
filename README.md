@@ -90,6 +90,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     ```bash
     python example_trojan_detector.py \
     --model_filepath=./model/id-00000000/model.pt \
+    --source_dataset_dirpath=/path/to/source/dataset/ \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
@@ -110,6 +111,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
 
     ```bash
     python example_trojan_detector.py \
+    --source_dataset_dirpath=/path/to/source/dataset/ \
     --scratch_dirpath=./scratch/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
@@ -123,6 +125,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     ```bash
     python example_trojan_detector.py \
     --model_filepath=./model/id-00000000/model.pt \
+    --source_dataset_dirpath=/path/to/source/dataset/ \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
@@ -160,6 +163,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --nv \
     ./example_trojan_detector.simg \
     --model_filepath=./model/id-00000000/model.pt \
+    --source_dataset_dirpath=/path/to/source/dataset/ \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
@@ -182,6 +186,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
+    --source_dataset_dirpath=/path/to/source/dataset/ \
     --scratch_dirpath=./scratch/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
@@ -198,6 +203,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --nv \
     ./example_trojan_detector.simg \
     --model_filepath=./model/id-00000000/model.pt \
+    --source_dataset_dirpath=/path/to/source/dataset/ \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
