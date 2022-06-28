@@ -1,19 +1,24 @@
 Bootstrap: docker
-From: pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime
+From: pytorch/pytorch:1.11.0-cuda11.3-cudnn8-runtime
 
 %files
     ./example_trojan_detector.py /
-    ./utils_qa.py /
     ./metaparameters.json /
     ./metaparameters_schema.json /
     ./learned_parameters /
 
 %post
-    pip install jsonargparse
-    pip install jsonpickle
-    pip install jsonschema
-    pip install transformers==4.10.3
-    pip install datasets
+    apt update
+
+    # Needed for pycocotools
+    apt -y install gcc
+
+    # Needed for cv2
+    apt -y install libglib2.0-0 libx11-6
+
+    pip install --upgrade pip
+    pip install torch==1.11 torchvision==0.12
+    pip install pycocotools opencv-python jsonschema jsonargparse jsonpickle scipy
 
 %runscript
     exec python3 /example_trojan_detector.py "$@"

@@ -84,16 +84,19 @@ A small toy set of clean & poisioned data is also provided in this repository un
     git clone https://github.com/usnistgov/trojai-example
     cd trojai-example
     ``` 
+    
+    - The example model is too big for the repository, so you will need to download it following the instructions in the /model directory.
 
 2. Test the python based `example_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
 
     ```bash
     python example_trojan_detector.py \
-    --model_filepath=./model/id-00000000/model.pt \
+    --model_filepath=./model/trojai-example-model-round10/model.pt \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000000/clean_example_data/ \
+    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \
+    --source_dataset_dirpath=/path/to/source/dataset/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
@@ -111,6 +114,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     ```bash
     python example_trojan_detector.py \
     --scratch_dirpath=./scratch/ \
+    --source_dataset_dirpath=/path/to/source/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --configure_mode \
@@ -122,11 +126,12 @@ A small toy set of clean & poisioned data is also provided in this repository un
 
     ```bash
     python example_trojan_detector.py \
-    --model_filepath=./model/id-00000000/model.pt \
+    --model_filepath=./model/trojai-example-model-round10/model.pt \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000000/clean_example_data/ \
+    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \
+    --source_dataset_dirpath=/path/to/source/dataset/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
@@ -159,11 +164,12 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
-    --model_filepath=./model/id-00000000/model.pt \
+    --model_filepath=./model/trojai-example-model-round10/model.pt \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000000/example_data/ \
+    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \
+    --source_dataset_dirpath=/path/to/source/dataset/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
@@ -183,6 +189,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --nv \
     ./example_trojan_detector.simg \
     --scratch_dirpath=./scratch/ \
+    --source_dataset_dirpath=/path/to/source/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --configure_mode \
@@ -197,11 +204,12 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
-    --model_filepath=./model/id-00000000/model.pt \
+    --model_filepath=./model/trojai-example-model-round10/model.pt \
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000000/example_data/ \
+    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \
+    --source_dataset_dirpath=/path/to/source/dataset/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \

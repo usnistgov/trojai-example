@@ -52,6 +52,7 @@ def example_trojan_detector(model_filepath,
                             result_filepath,
                             scratch_dirpath,
                             examples_dirpath,
+                            source_dataset_dirpath,
                             round_training_dataset_dirpath,
                             parameters_dirpath,
                             parameter1,
@@ -61,6 +62,7 @@ def example_trojan_detector(model_filepath,
     logging.info('result_filepath = {}'.format(result_filepath))
     logging.info('scratch_dirpath = {}'.format(scratch_dirpath))
     logging.info('examples_dirpath = {}'.format(examples_dirpath))
+    logging.info('source_dataset_dirpath = {}'.format(source_dataset_dirpath))
     logging.info('round_training_dataset_dirpath = {}'.format(round_training_dataset_dirpath))
     logging.info('features_filepath = {}'.format(features_filepath))
     logging.info('round_training_dataset_dirpath = {}'.format(round_training_dataset_dirpath))
@@ -137,7 +139,8 @@ def example_trojan_detector(model_filepath,
         fh.write("{}".format(trojan_probability))
 
 
-def configure(output_parameters_dirpath,
+def configure(source_dataset_dirpath,
+              output_parameters_dirpath,
               configure_models_dirpath,
               parameter3):
     logging.info('Using parameter3 = {}'.format(str(parameter3)))
@@ -147,6 +150,8 @@ def configure(output_parameters_dirpath,
     os.makedirs(output_parameters_dirpath, exist_ok=True)
 
     logging.info('Writing configured parameter data to ' + output_parameters_dirpath)
+
+    logging.info('Reading source dataset from ' + source_dataset_dirpath)
 
     arr = np.random.rand(100,100)
     np.save(os.path.join(output_parameters_dirpath, 'numpy_array.npy'), arr)
@@ -177,6 +182,7 @@ if __name__ == "__main__":
     parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.')
     parser.add_argument('--examples_dirpath', type=str, help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.')
 
+    parser.add_argument('--source_dataset_dirpath', type=str, help='File path to a directory containing the original clean dataset into which triggers were injected during training.', default=None)
     parser.add_argument('--round_training_dataset_dirpath', type=str, help='File path to the directory containing id-xxxxxxxx models of the current rounds training dataset.', default=None)
 
     parser.add_argument('--metaparameters_filepath', help='Path to JSON file containing values of tunable paramaters to be used when evaluating models.', action=ActionConfigFile)
@@ -211,20 +217,22 @@ if __name__ == "__main__":
 
     if not args.configure_mode:
         if (args.model_filepath is not None and
-                args.result_filepath is not None and
-                args.features_filepath is not None and
-                args.scratch_dirpath is not None and
-                args.examples_dirpath is not None and
-                args.round_training_dataset_dirpath is not None and
-                args.learned_parameters_dirpath is not None and
-                args.parameter1 is not None and
-                args.parameter2 is not None):
+            args.result_filepath is not None and
+            args.features_filepath is not None and
+            args.scratch_dirpath is not None and
+            args.examples_dirpath is not None and
+            args.source_dataset_dirpath is not None and
+            args.round_training_dataset_dirpath is not None and
+            args.learned_parameters_dirpath is not None and
+            args.parameter1 is not None and
+            args.parameter2 is not None):
 
             logging.info("Calling the trojan detector")
             example_trojan_detector(args.model_filepath,
                                     args.result_filepath,
                                     args.scratch_dirpath,
                                     args.examples_dirpath,
+                                    args.source_dataset_dirpath,
                                     args.round_training_dataset_dirpath,
                                     args.learned_parameters_dirpath,
                                     args.parameter1,
@@ -233,13 +241,15 @@ if __name__ == "__main__":
         else:
             logging.info("Required Evaluation-Mode parameters missing!")
     else:
-        if (args.learned_parameters_dirpath is not None and
-                args.configure_models_dirpath is not None and
-                args.parameter3 is not None):
+        if (args.source_dataset_dirpath is not None and
+            args.learned_parameters_dirpath is not None and
+            args.configure_models_dirpath is not None and
+            args.parameter3 is not None):
 
             logging.info("Calling configuration mode")
             # all 3 example parameters will be loaded here, but we only use parameter3
-            configure(args.learned_parameters_dirpath,
+            configure(args.source_dataset_dirpath,
+                      args.learned_parameters_dirpath,
                       args.configure_models_dirpath,
                       args.parameter3)
         else:
