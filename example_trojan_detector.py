@@ -117,10 +117,8 @@ def example_trojan_detector(model_filepath,
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
             outputs = pytorch_model(images, targets)
-            # older models which predate NIST's forward function override return just boxes here
-            if isinstance(outputs, tuple):
-                 # NIST's forward function override returns loss and boxes
-                outputs = outputs[1]
+            # NIST's forward function override returns both loss and boxes, so we just want the boxes here
+            outputs = outputs[1]
 
     logging.info("Writing example intermediate features to the csv filepath.")
     if features_filepath is not None:
