@@ -18,7 +18,7 @@ From: pytorch/pytorch:1.11.0-cuda11.3-cudnn8-runtime
 
     pip install --upgrade pip
     pip install torch==1.11 torchvision==0.12
-    pip install pycocotools opencv-python jsonschema jsonargparse jsonpickle scipy
+    pip install pycocotools transformers opencv-python jsonschema jsonargparse jsonpickle scipy
 
 %runscript
     exec python3 /example_trojan_detector.py "$@"

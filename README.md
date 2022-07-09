@@ -73,8 +73,8 @@ A small toy set of clean & poisioned data is also provided in this repository un
 2. `conda activate trojai-example`
 3. Install required packages into this conda environment
 
-    1. `conda install pytorch=1.11 torchvision=0.12 cudatoolkit=11.3 -c pytorch` 
-    2. `pip install pycocotools opencv-python jsonschema jsonargparse jsonpickle scipy`
+    1. `conda install pytorch=1.11 torchvision=0.12 cudatoolkit=11.3 -c pytorch`
+    3. `pip install pycocotools transformers opencv-python jsonschema jsonargparse jsonpickle scipy`
 
 ## Test Fake Detector Without Containerization
 

@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple
 
+import copy
 import numpy as np
 import torch
 import torch.nn
@@ -8,14 +9,15 @@ import torchvision.transforms
 import torchvision.models.detection.transform
 import torchvision.ops.boxes as box_ops
 
-import logging
-from torch import Tensor
-from scipy.optimize import linear_sum_assignment
+import transformers
 
 
-def fasterrcnn_resnet50_fpn(
-    pretrained=False, progress=True, num_classes=91, pretrained_backbone=True, trainable_backbone_layers=None, **kwargs
-):
+def x1y1x2y2_to_xywh(boxes):
+    xmin, ymin, xmax, ymax = boxes.unbind(1)
+    return torch.stack((xmin, ymin, xmax - xmin, ymax - ymin), dim=1)
+
+
+def fasterrcnn_resnet50_fpn(pretrained=False, progress=True, num_classes=91, pretrained_backbone=True, trainable_backbone_layers=None, **kwargs):
     trainable_backbone_layers = torchvision.models.detection.backbone_utils._validate_trainable_layers(
         pretrained or pretrained_backbone, trainable_backbone_layers, 5, 3
     )
@@ -35,125 +37,6 @@ def fasterrcnn_resnet50_fpn(
 
 
 class FasterRCNN(torchvision.models.detection.generalized_rcnn.GeneralizedRCNN):
-    """
-    Implements Faster R-CNN.
-
-    The input to the model is expected to be a list of tensors, each of shape [C, H, W], one for each
-    image, and should be in 0-1 range. Different images can have different sizes.
-
-    The behavior of the model changes depending if it is in training or evaluation mode.
-
-    During training, the model expects both the input tensors, as well as a targets (list of dictionary),
-    containing:
-        - boxes (``FloatTensor[N, 4]``): the ground-truth boxes in ``[x1, y1, x2, y2]`` format, with
-          ``0 <= x1 < x2 <= W`` and ``0 <= y1 < y2 <= H``.
-        - labels (Int64Tensor[N]): the class label for each ground-truth box
-
-    The model returns a Dict[Tensor] during training, containing the classification and regression
-    losses for both the RPN and the R-CNN.
-
-    During inference, the model requires only the input tensors, and returns the post-processed
-    predictions as a List[Dict[Tensor]], one for each input image. The fields of the Dict are as
-    follows:
-        - boxes (``FloatTensor[N, 4]``): the predicted boxes in ``[x1, y1, x2, y2]`` format, with
-          ``0 <= x1 < x2 <= W`` and ``0 <= y1 < y2 <= H``.
-        - labels (Int64Tensor[N]): the predicted labels for each image
-        - scores (Tensor[N]): the scores or each prediction
-
-    Args:
-        backbone (nn.Module): the network used to compute the features for the model.
-            It should contain a out_channels attribute, which indicates the number of output
-            channels that each feature map has (and it should be the same for all feature maps).
-            The backbone should return a single Tensor or and OrderedDict[Tensor].
-        num_classes (int): number of output classes of the model (including the background).
-            If box_predictor is specified, num_classes should be None.
-        min_size (int): minimum size of the image to be rescaled before feeding it to the backbone
-        max_size (int): maximum size of the image to be rescaled before feeding it to the backbone
-        image_mean (Tuple[float, float, float]): mean values used for input normalization.
-            They are generally the mean values of the dataset on which the backbone has been trained
-            on
-        image_std (Tuple[float, float, float]): std values used for input normalization.
-            They are generally the std values of the dataset on which the backbone has been trained on
-        rpn_anchor_generator (AnchorGenerator): module that generates the anchors for a set of feature
-            maps.
-        rpn_head (nn.Module): module that computes the objectness and regression deltas from the RPN
-        rpn_pre_nms_top_n_train (int): number of proposals to keep before applying NMS during training
-        rpn_pre_nms_top_n_test (int): number of proposals to keep before applying NMS during testing
-        rpn_post_nms_top_n_train (int): number of proposals to keep after applying NMS during training
-        rpn_post_nms_top_n_test (int): number of proposals to keep after applying NMS during testing
-        rpn_nms_thresh (float): NMS threshold used for postprocessing the RPN proposals
-        rpn_fg_iou_thresh (float): minimum IoU between the anchor and the GT box so that they can be
-            considered as positive during training of the RPN.
-        rpn_bg_iou_thresh (float): maximum IoU between the anchor and the GT box so that they can be
-            considered as negative during training of the RPN.
-        rpn_batch_size_per_image (int): number of anchors that are sampled during training of the RPN
-            for computing the loss
-        rpn_positive_fraction (float): proportion of positive anchors in a mini-batch during training
-            of the RPN
-        rpn_score_thresh (float): during inference, only return proposals with a classification score
-            greater than rpn_score_thresh
-        box_roi_pool (MultiScaleRoIAlign): the module which crops and resizes the feature maps in
-            the locations indicated by the bounding boxes
-        box_head (nn.Module): module that takes the cropped feature maps as input
-        box_predictor (nn.Module): module that takes the output of box_head and returns the
-            classification logits and box regression deltas.
-        box_score_thresh (float): during inference, only return proposals with a classification score
-            greater than box_score_thresh
-        box_nms_thresh (float): NMS threshold for the prediction head. Used during inference
-        box_detections_per_img (int): maximum number of detections per image, for all classes.
-        box_fg_iou_thresh (float): minimum IoU between the proposals and the GT box so that they can be
-            considered as positive during training of the classification head
-        box_bg_iou_thresh (float): maximum IoU between the proposals and the GT box so that they can be
-            considered as negative during training of the classification head
-        box_batch_size_per_image (int): number of proposals that are sampled during training of the
-            classification head
-        box_positive_fraction (float): proportion of positive proposals in a mini-batch during training
-            of the classification head
-        bbox_reg_weights (Tuple[float, float, float, float]): weights for the encoding/decoding of the
-            bounding boxes
-
-    Example::
-
-        >>> import torch
-        >>> import torchvision
-        >>> from torchvision.models.detection import FasterRCNN
-        >>> from torchvision.models.detection.rpn import AnchorGenerator
-        >>> # load a pre-trained model for classification and return
-        >>> # only the features
-        >>> backbone = torchvision.models.mobilenet_v2(pretrained=True).features
-        >>> # FasterRCNN needs to know the number of
-        >>> # output channels in a backbone. For mobilenet_v2, it's 1280
-        >>> # so we need to add it here
-        >>> backbone.out_channels = 1280
-        >>>
-        >>> # let's make the RPN generate 5 x 3 anchors per spatial
-        >>> # location, with 5 different sizes and 3 different aspect
-        >>> # ratios. We have a Tuple[Tuple[int]] because each feature
-        >>> # map could potentially have different sizes and
-        >>> # aspect ratios
-        >>> anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
-        >>>                                    aspect_ratios=((0.5, 1.0, 2.0),))
-        >>>
-        >>> # let's define what are the feature maps that we will
-        >>> # use to perform the region of interest cropping, as well as
-        >>> # the size of the crop after rescaling.
-        >>> # if your backbone returns a Tensor, featmap_names is expected to
-        >>> # be ['0']. More generally, the backbone should return an
-        >>> # OrderedDict[Tensor], and in featmap_names you can choose which
-        >>> # feature maps to use.
-        >>> roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
-        >>>                                                 output_size=7,
-        >>>                                                 sampling_ratio=2)
-        >>>
-        >>> # put the pieces together inside a FasterRCNN model
-        >>> model = FasterRCNN(backbone,
-        >>>                    num_classes=2,
-        >>>                    rpn_anchor_generator=anchor_generator,
-        >>>                    box_roi_pool=roi_pooler)
-        >>> model.eval()
-        >>> x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
-        >>> predictions = model(x)
-    """
 
     def __init__(
         self,
@@ -220,6 +103,7 @@ class FasterRCNN(torchvision.models.detection.generalized_rcnn.GeneralizedRCNN):
         rpn_pre_nms_top_n = dict(training=rpn_pre_nms_top_n_train, testing=rpn_pre_nms_top_n_test)
         rpn_post_nms_top_n = dict(training=rpn_post_nms_top_n_train, testing=rpn_post_nms_top_n_test)
 
+        # need to completely re-implement this init, to replace the RPN head
         #rpn = torchvision.models.detection.rpn.RegionProposalNetwork(
         rpn=RegionProposalNetwork(
             rpn_anchor_generator,
@@ -246,6 +130,7 @@ class FasterRCNN(torchvision.models.detection.generalized_rcnn.GeneralizedRCNN):
             representation_size = 1024
             box_predictor = torchvision.models.detection.faster_rcnn.FastRCNNPredictor(representation_size, num_classes)
 
+        # need to completely re-implement this init, to replace the RoIHeads
         # roi_heads = torchvision.models.detection.roi_heads.RoIHeads(
         roi_heads = RoIHeads(
             # Box
@@ -343,11 +228,8 @@ class FasterRCNN(torchvision.models.detection.generalized_rcnn.GeneralizedRCNN):
         losses, detections = self.basic_forward(images, targets)
         detections = self.transform.postprocess(detections, images.image_sizes, original_image_sizes)  # type: ignore[operator]
 
-        if torch.jit.is_scripting():
-            if not self._has_warned:
-                logging.warn("RCNN always returns a (Losses, Detections) tuple in scripting")
-                self._has_warned = True
-            return losses, detections
+        if targets is None:
+            return detections
         else:
             return losses, detections
 
@@ -497,9 +379,9 @@ class RegionProposalNetwork(torchvision.models.detection.rpn.RegionProposalNetwo
     def forward(
         self,
         images: torchvision.models.detection.image_list.ImageList,
-        features: Dict[str, Tensor],
-        targets: Optional[List[Dict[str, Tensor]]] = None,
-    ) -> Tuple[List[Tensor], Dict[str, Tensor]]:
+        features: Dict[str, torch.Tensor],
+        targets: Optional[List[Dict[str, torch.Tensor]]] = None,
+    ) -> Tuple[List[torch.Tensor], Dict[str, torch.Tensor]]:
 
         """
         Args:
@@ -545,6 +427,10 @@ class RegionProposalNetwork(torchvision.models.detection.rpn.RegionProposalNetwo
                 "loss_rpn_box_reg": loss_rpn_box_reg,
             }
         return boxes, losses
+
+
+
+
 
 
 def ssd300_vgg16(
@@ -608,6 +494,9 @@ class SSD(torchvision.models.detection.SSD):
                 else:
                     raise ValueError(f"Expected target boxes to be of type Tensor, got {type(boxes)}.")
 
+        if self.training:
+            assert targets is not None
+
         # get the original image sizes
         original_image_sizes: List[Tuple[int, int]] = []
         for img in images:
@@ -645,24 +534,26 @@ class SSD(torchvision.models.detection.SSD):
         # create the set of anchors
         anchors = self.anchor_generator(images, features)
 
-        matched_idxs = []
-        for anchors_per_image, targets_per_image in zip(anchors, targets):
-            if targets_per_image["boxes"].numel() == 0:
-                matched_idxs.append(
-                    torch.full((anchors_per_image.size(0),), -1, dtype=torch.int64, device=anchors_per_image.device)
-                )
-                continue
+        loss_dict = dict()
+        if targets is not None:
+            matched_idxs = []
+            for anchors_per_image, targets_per_image in zip(anchors, targets):
+                if targets_per_image["boxes"].numel() == 0:
+                    matched_idxs.append(
+                        torch.full((anchors_per_image.size(0),), -1, dtype=torch.int64, device=anchors_per_image.device)
+                    )
+                    continue
 
-            match_quality_matrix = box_ops.box_iou(targets_per_image["boxes"], anchors_per_image)
-            matched_idxs.append(self.proposal_matcher(match_quality_matrix))
+                match_quality_matrix = box_ops.box_iou(targets_per_image["boxes"], anchors_per_image)
+                matched_idxs.append(self.proposal_matcher(match_quality_matrix))
 
-        loss_dict = self.compute_loss(targets, head_outputs, anchors, matched_idxs)
+            loss_dict = self.compute_loss(targets, head_outputs, anchors, matched_idxs)
 
         detections = self.postprocess_detections(head_outputs, anchors, images.image_sizes)
 
         return loss_dict, detections
 
-    def forward(self, images: List[Tensor], targets: Optional[List[Dict[str, Tensor]]] = None) -> Tuple[Dict[str, Tensor], List[Dict[str, Tensor]]]:
+    def forward(self, images: List[torch.Tensor], targets: Optional[List[Dict[str, torch.Tensor]]] = None) -> Tuple[Dict[str, torch.Tensor], List[Dict[str, torch.Tensor]]]:
         if self.training and targets is None:
             raise ValueError("In training mode, targets should be passed")
 
@@ -671,334 +562,248 @@ class SSD(torchvision.models.detection.SSD):
         losses, detections = self.basic_forward(images, targets)
         detections = self.transform.postprocess(detections, images.image_sizes, original_image_sizes)
 
-        if torch.jit.is_scripting():
-            if not self._has_warned:
-                logging.warn("SSD always returns a (Losses, Detections) tuple in scripting")
-                self._has_warned = True
+        if targets is None:
+            return detections
+        else:
             return losses, detections
-        return losses, detections
 
 
-# From: https://github.com/facebookresearch/detr/blob/8a144f83a287f4d3fece4acdf073f387c5af387d/models/matcher.py
-class HungarianMatcher(torch.nn.Module):
-    """This class computes an assignment between the targets and the predictions of the network
 
-    For efficiency reasons, the targets don't include the no_object. Because of this, in general,
-    there are more predictions than targets. In this case, we do a 1-to-1 matching of the best predictions,
-    while the others are un-matched (and thus treated as non-objects).
-    """
+def detr_model():
+    model = DetrForObjectDetection.from_pretrained('facebook/detr-resnet-50')
 
-    def __init__(self, cost_class: float = 1, cost_bbox: float = 1, cost_giou: float = 1):
-        """Creates the matcher
+    return model
 
-        Params:
-            cost_class: This is the relative weight of the classification error in the matching cost
-            cost_bbox: This is the relative weight of the L1 error of the bounding box coordinates in the matching cost
-            cost_giou: This is the relative weight of the giou loss of the bounding box in the matching cost
+
+class DetrForObjectDetection(transformers.DetrForObjectDetection):
+    # based on https://github.com/huggingface/transformers/blob/main/src/transformers/models/detr/modeling_detr.py
+    def __init__(self, kwargs) -> None:
+        super().__init__(kwargs)
+
+        # self.model = transformers.DetrForObjectDetection.from_pretrained('facebook/detr-resnet-50')
+        self.transform = transformers.DetrFeatureExtractor.from_pretrained('facebook/detr-resnet-50')
+        # If you have more than 1 image per batch (Which I strongly recommend against), then you need to turn off do_resize to make the boxes workout correctly.
+        #self.transform.do_resize = False
+
+    def prepare_inputs(self, images, targets):
+        # TODO move to doing the per-batch resizing using pytorch interpolate, to avoid using the detr or SSD or fasterrcnn specific prepare_inputs functions
+        # https://discuss.pytorch.org/t/how-to-do-image-resizing-with-bilinear-interpolation-using-torch-tensor-on-cuda/124894
+        if self.training and targets is None:
+            raise ValueError("In training mode, targets should be passed")
+
+        if targets is not None:
+            for target in targets:
+                boxes = target["boxes"]
+                if isinstance(boxes, torch.Tensor):
+                    if len(boxes.shape) != 2 or boxes.shape[-1] != 4:
+                        raise ValueError(f"Expected target boxes to be a tensor of shape [N, 4], got {boxes.shape}.")
+                else:
+                    raise ValueError(f"Expected target boxes to be of type Tensor, got {type(boxes)}.")
+
+        if self.training:
+            assert targets is not None
+
+        # create copies of the data, as we are modifying things, and we don't want the changes reflected in the caller
+        images = copy.deepcopy(images)
+        targets = copy.deepcopy(targets)
+
+        # get the device the training data is on
+        device = images[0].device
+
+        # get the original image sizes
+        original_image_sizes: List[Tuple[int, int]] = []
+        for img in images:
+            val = img.shape[-2:]
+            assert len(val) == 2
+            original_image_sizes.append((val[0], val[1]))
+
+        # Check for degenerate boxes
+        if targets is not None:
+            for target_idx, target in enumerate(targets):
+                boxes = target["boxes"]
+                degenerate_boxes = boxes[:, 2:] <= boxes[:, :2]
+                if degenerate_boxes.any():
+                    bb_idx = torch.where(degenerate_boxes.any(dim=1))[0][0]
+                    degen_bb: List[float] = boxes[bb_idx].tolist()
+                    raise ValueError(
+                        "All bounding boxes should have positive height and width."
+                        f" Found invalid box {degen_bb} for target at index {target_idx}."
+                    )
+
+        # this pre-processor needs the images on the cpu as numpy arrays
+        for k in range(len(images)):
+            images[k] = images[k].detach().cpu().numpy()
+
+        if targets is not None:
+            # annotations (targets) coming from the dataloader are [x1, y1, x2, y2]
+            # DETR expects [x, y, w, h] so we convert here
+            for ti in range(len(targets)):
+                targets[ti]['boxes'] = x1y1x2y2_to_xywh(targets[ti]['boxes'])
+
+            # create a semblance of the COCO annotation format for the pre-processor
+            annotations = list()
+            # {"id": 125686, "category_id": 0, "iscrowd": 0, "segmentation": [[164.81, 417.51,......167.55, 410.64]], "image_id": 242287, "area": 42061.80340000001, "bbox": [19.23, 383.18, 314.5, 244.46]},
+            for ti in range(len(targets)):
+                target = targets[ti]
+                wrapper = dict()
+                wrapper['annotations'] = list()
+                for k in range(len(target['boxes'])):
+                    val = dict()
+                    box = target['boxes'][k]
+                    label = target['labels'][k]
+                    val['category_id'] = label.detach().cpu().numpy()
+                    val['bbox'] = box.detach().cpu().numpy()
+                    val['area'] = 0
+                    val['iscrowd'] = 0
+                    wrapper['annotations'].append(val)
+                wrapper['image_id'] = 0  # just need a placeholder for DETR's api to be happy
+                annotations.append(wrapper)
+
+            encoded_inputs = self.transform(images, annotations=annotations, return_tensors="pt")
+
+            # update the targets boxes based on the applied image transformations
+            for k in range(len(encoded_inputs.data['labels'])):
+                targets[k]['boxes'] = encoded_inputs.data['labels'][k]['boxes'].to(device)
+                targets[k]['labels'] = encoded_inputs.data['labels'][k]['class_labels'].to(device)
+        else:
+            encoded_inputs = self.transform(images, return_tensors="pt")
+
+
+        # move data back to the device
+        encoded_inputs.data['pixel_values'] = encoded_inputs.data['pixel_values'].to(device)
+
+        # # If you have multiple images in a batch (Which I strongly recommend against) then the "image_size" the post_process requires is the padded version
+        # # despite the documentation saying the post_processing function needs the actual image sizes, what it really wants (to make the boxes work out correctly) is the actual image size of the images padded to handle different sizes of image within the batch.
+        # _, _, h, w = encoded_inputs.data['pixel_values'].shape
+        # for i in range(len(original_image_sizes)):
+        #     original_image_sizes[i] = (h, w)
+
+        images = torchvision.models.detection.image_list.ImageList(tensors=encoded_inputs.data['pixel_values'], image_sizes=None)
+
+        return images, targets, original_image_sizes
+
+    def postprocess_detections(self, outputs, image_sizes):
+        # based on https://github.com/huggingface/transformers/blob/main/src/transformers/models/detr/feature_extraction_detr.py#L677
+
         """
-        super().__init__()
-        self.cost_class = cost_class
-        self.cost_bbox = cost_bbox
-        self.cost_giou = cost_giou
-        assert cost_class != 0 or cost_bbox != 0 or cost_giou != 0, "all costs cant be 0"
-
-    @torch.no_grad()
-    def forward(self, outputs, targets):
-        """ Performs the matching
-
-        Params:
-            outputs: This is a dict that contains at least these entries:
-                 "pred_logits": Tensor of dim [batch_size, num_queries, num_classes] with the classification logits
-                 "pred_boxes": Tensor of dim [batch_size, num_queries, 4] with the predicted box coordinates
-
-            targets: This is a list of targets (len(targets) = batch_size), where each target is a dict containing:
-                 "labels": Tensor of dim [num_target_boxes] (where num_target_boxes is the number of ground-truth
-                           objects in the target) containing the class labels
-                 "boxes": Tensor of dim [num_target_boxes, 4] containing the target box coordinates
-
-        Returns:
-            A list of size batch_size, containing tuples of (index_i, index_j) where:
-                - index_i is the indices of the selected predictions (in order)
-                - index_j is the indices of the corresponding selected targets (in order)
-            For each batch element, it holds:
-                len(index_i) = len(index_j) = min(num_queries, num_target_boxes)
+        Converts the output of [`DetrForObjectDetection`] into the format expected by the COCO api. Only supports
+        PyTorch.
+        Args:
+            outputs ([`DetrObjectDetectionOutput`]):
+                Raw outputs of the model.
+            image_sizes List[Tuple]:
+                List containing the size (h, w) of each image of the batch.
         """
-        bs, num_queries = outputs["pred_logits"].shape[:2]
 
-        # We flatten to compute the cost matrices in a batch
-        out_prob = outputs["pred_logits"].flatten(0, 1).softmax(-1)  # [batch_size * num_queries, num_classes]
-        out_bbox = outputs["pred_boxes"].flatten(0, 1)  # [batch_size * num_queries, 4]
+        # convert target_sizes from list[Tuple] into
+        # target_sizes (`torch.Tensor` of shape `(batch_size, 2)`):
+        #    Tensor containing the size (h, w) of each image of the batch.
+        target_sizes = torch.ones((len(image_sizes), 2), device=outputs.pred_boxes.device)
+        for i in range(len(image_sizes)):
+            target_sizes[i, 0] = image_sizes[i][0]
+            target_sizes[i, 1] = image_sizes[i][1]
 
-        # Also concat the target labels and boxes
-        tgt_ids = torch.cat([v["labels"] for v in targets])
-        tgt_bbox = torch.cat([v["boxes"] for v in targets])
+        detections = self.transform.post_process(outputs, target_sizes=target_sizes)
+        return detections
 
-        # Compute the classification cost. Contrary to the loss, we don't use the NLL,
-        # but approximate it in 1 - proba[target class].
-        # The 1 is a constant that doesn't change the matching, it can be ommitted.
-        cost_class = -out_prob[:, tgt_ids]
+    def basic_forward(self, images, targets):
 
-        # Compute the L1 cost between boxes
-        cost_bbox = torch.cdist(out_bbox, tgt_bbox, p=1)
+        # https://github.com/huggingface/transformers/blob/main/src/transformers/models/detr/modeling_detr.py#L1366
 
-        # Compute the giou cost betwen boxes
-        cost_giou = -generalized_box_iou(box_cxcywh_to_xyxy(out_bbox), box_cxcywh_to_xyxy(tgt_bbox))
+        # First, sent images through DETR base model to obtain encoder + decoder outputs
+        return_dict = self.config.use_return_dict
+        outputs = self.model(images.tensors, return_dict=return_dict)
 
-        # Final cost matrix
-        C = self.cost_bbox * cost_bbox + self.cost_class * cost_class + self.cost_giou * cost_giou
-        C = C.view(bs, num_queries, -1).cpu()
+        sequence_output = outputs[0]
 
-        sizes = [len(v["boxes"]) for v in targets]
-        indices = [linear_sum_assignment(c[i]) for i, c in enumerate(C.split(sizes, -1))]
-        return [(torch.as_tensor(i, dtype=torch.int64), torch.as_tensor(j, dtype=torch.int64)) for i, j in indices]
+        # class logits + predicted bounding boxes
+        logits = self.class_labels_classifier(sequence_output)
+        pred_boxes = self.bbox_predictor(sequence_output).sigmoid()
 
+        loss, loss_dict, auxiliary_outputs = None, None, None
 
-@torch.no_grad()
-def accuracy(output, target, topk=(1,)):
-    """Computes the precision@k for the specified values of k"""
-    if target.numel() == 0:
-        return [torch.zeros([], device=output.device)]
-    maxk = max(topk)
-    batch_size = target.size(0)
+        if targets is not None:
+            # First: create the matcher
+            matcher = transformers.models.detr.modeling_detr.DetrHungarianMatcher(
+                class_cost=self.config.class_cost, bbox_cost=self.config.bbox_cost, giou_cost=self.config.giou_cost
+            )
+            # Second: create the criterion
+            losses = ["labels", "boxes", "cardinality"]
+            criterion = transformers.models.detr.modeling_detr.DetrLoss(
+                matcher=matcher,
+                num_classes=self.config.num_labels,
+                eos_coef=self.config.eos_coefficient,
+                losses=losses,
+            )
+            criterion.to(self.device)
+            # Third: compute the losses, based on outputs and labels
+            outputs_loss = {}
+            outputs_loss["logits"] = logits
+            outputs_loss["pred_boxes"] = pred_boxes
+            if self.config.auxiliary_loss:
+                intermediate = outputs.intermediate_hidden_states if return_dict else outputs[4]
+                outputs_class = self.class_labels_classifier(intermediate)
+                outputs_coord = self.bbox_predictor(intermediate).sigmoid()
+                auxiliary_outputs = self._set_aux_loss(outputs_class, outputs_coord)
+                outputs_loss["auxiliary_outputs"] = auxiliary_outputs
 
-    _, pred = output.topk(maxk, 1, True, True)
-    pred = pred.t()
-    correct = pred.eq(target.view(1, -1).expand_as(pred))
+            # organize the targets based on what DETR needs
+            # https://github.com/huggingface/transformers/blob/main/src/transformers/models/detr/modeling_detr.py#L1380
+            #  labels (`List[Dict]` of len `(batch_size,)`, *optional*):
+            #             Labels for computing the bipartite matching loss. List of dicts, each dictionary containing at least the
+            #             following 2 keys: 'class_labels' and 'boxes' (the class labels and bounding boxes of an image in the batch
+            #             respectively). The class labels themselves should be a `torch.LongTensor` of len `(number of bounding boxes
+            #             in the image,)` and the boxes a `torch.FloatTensor` of shape `(number of bounding boxes in the image, 4)`.
+            for i in range(len(targets)):
+                target = targets[i]
+                device = target['boxes'].device
+                target['class_labels'] = target['labels'].type(torch.LongTensor).to(device)
+                target['boxes'] = target['boxes'].type(torch.FloatTensor).to(device)
 
-    res = []
-    for k in topk:
-        correct_k = correct[:k].view(-1).float().sum(0)
-        res.append(correct_k.mul_(100.0 / batch_size))
-    return res
+            loss_dict = criterion(outputs_loss, targets)
+            # Fourth: compute total loss, as a weighted sum of the various losses
+            weight_dict = {"loss_ce": 1, "loss_bbox": self.config.bbox_loss_coefficient}
+            weight_dict["loss_giou"] = self.config.giou_loss_coefficient
+            if self.config.auxiliary_loss:
+                aux_weight_dict = {}
+                for i in range(self.config.decoder_layers - 1):
+                    aux_weight_dict.update({k + f"_{i}": v for k, v in weight_dict.items()})
+                weight_dict.update(aux_weight_dict)
+            # apply the weight dict to the losses
+            del loss_dict['cardinality_error']
+            for k in weight_dict.keys():
+                loss_dict[k] = loss_dict[k] * weight_dict[k]
+            loss = sum(loss_dict[k] for k in loss_dict.keys() if k in weight_dict)
 
+        detr_obj_det_outputs = transformers.models.detr.modeling_detr.DetrObjectDetectionOutput(
+            loss=loss,
+            loss_dict=loss_dict,
+            logits=logits,
+            pred_boxes=pred_boxes,
+            auxiliary_outputs=auxiliary_outputs,
+            last_hidden_state=outputs.last_hidden_state,
+            decoder_hidden_states=outputs.decoder_hidden_states,
+            decoder_attentions=outputs.decoder_attentions,
+            cross_attentions=outputs.cross_attentions,
+            encoder_last_hidden_state=outputs.encoder_last_hidden_state,
+            encoder_hidden_states=outputs.encoder_hidden_states,
+            encoder_attentions=outputs.encoder_attentions,
+        )
 
-class SetCriterion(torch.nn.Module):
-    """ This class computes the loss for DETR.
-    The process happens in two steps:
-        1) we compute hungarian assignment between ground truth boxes and the outputs of the model
-        2) we supervise each pair of matched ground-truth / prediction (supervise class and box)
-    """
-    def __init__(self, num_classes, matcher, weight_dict, eos_coef, losses):
-        """ Create the criterion.
-        Parameters:
-            num_classes: number of object categories, omitting the special no-object category
-            matcher: module able to compute a matching between targets and proposals
-            weight_dict: dict containing as key the names of the losses and as values their relative weight.
-            eos_coef: relative classification weight applied to the no-object category
-            losses: list of all the losses to be applied. See get_loss for list of available losses.
-        """
-        super().__init__()
-        self.num_classes = num_classes
-        self.matcher = matcher
-        self.weight_dict = weight_dict
-        self.eos_coef = eos_coef
-        self.losses = losses
-        empty_weight = torch.ones(self.num_classes + 1)
-        empty_weight[-1] = self.eos_coef
-        self.register_buffer('empty_weight', empty_weight)
+        return loss_dict, detr_obj_det_outputs
 
-    def loss_labels(self, outputs, targets, indices, num_boxes, log=True):
-        """Classification loss (NLL)
-        targets dicts must contain the key "labels" containing a tensor of dim [nb_target_boxes]
-        """
-        assert 'pred_logits' in outputs
-        src_logits = outputs['pred_logits']
+    def forward(self, images: List[torch.Tensor], targets: Optional[List[Dict[str, torch.Tensor]]] = None) -> Tuple[Dict[str, torch.Tensor], List[Dict[str, torch.Tensor]]]:
+        # based on https://github.com/huggingface/transformers/blob/main/src/transformers/models/detr/modeling_detr.py#L1366
+        if self.training and targets is None:
+            raise ValueError("In training mode, targets should be passed")
 
-        idx = self._get_src_permutation_idx(indices)
-        target_classes_o = torch.cat([t["labels"][J] for t, (_, J) in zip(targets, indices)])
-        target_classes = torch.full(src_logits.shape[:2], self.num_classes,
-                                    dtype=torch.int64, device=src_logits.device)
-        target_classes[idx] = target_classes_o
+        images, targets, original_image_sizes = self.prepare_inputs(images, targets)
 
-        loss_ce = torch.nn.functional.cross_entropy(src_logits.transpose(1, 2), target_classes, self.empty_weight)
-        losses = {'loss_ce': loss_ce}
+        losses, detr_obj_det_outputs = self.basic_forward(images, targets)
 
-        if log:
-            # TODO this should probably be a separate loss, not hacked in this one here
-            losses['class_error'] = 100 - accuracy(src_logits[idx], target_classes_o)[0]
-        return losses
+        detections = self.postprocess_detections(detr_obj_det_outputs, image_sizes=original_image_sizes)
 
-    @torch.no_grad()
-    def loss_cardinality(self, outputs, targets, indices, num_boxes):
-        """ Compute the cardinality error, ie the absolute error in the number of predicted non-empty boxes
-        This is not really a loss, it is intended for logging purposes only. It doesn't propagate gradients
-        """
-        pred_logits = outputs['pred_logits']
-        device = pred_logits.device
-        tgt_lengths = torch.as_tensor([len(v["labels"]) for v in targets], device=device)
-        # Count the number of predictions that are NOT "no-object" (which is the last class)
-        card_pred = (pred_logits.argmax(-1) != pred_logits.shape[-1] - 1).sum(1)
-        card_err = torch.nn.functional.l1_loss(card_pred.float(), tgt_lengths.float())
-        losses = {'cardinality_error': card_err}
-        return losses
-
-    def loss_boxes(self, outputs, targets, indices, num_boxes):
-        """Compute the losses related to the bounding boxes, the L1 regression loss and the GIoU loss
-           targets dicts must contain the key "boxes" containing a tensor of dim [nb_target_boxes, 4]
-           The target boxes are expected in format (center_x, center_y, w, h), normalized by the image size.
-        """
-        assert 'pred_boxes' in outputs
-        idx = self._get_src_permutation_idx(indices)
-        src_boxes = outputs['pred_boxes'][idx]
-        target_boxes = torch.cat([t['boxes'][i] for t, (_, i) in zip(targets, indices)], dim=0)
-
-        loss_bbox = torch.nn.functional.l1_loss(src_boxes, target_boxes, reduction='none')
-
-        losses = {}
-        losses['loss_bbox'] = loss_bbox.sum() / num_boxes
-
-        loss_giou = 1 - torch.diag(box_ops.generalized_box_iou(
-            box_ops.box_cxcywh_to_xyxy(src_boxes),
-            box_ops.box_cxcywh_to_xyxy(target_boxes)))
-        losses['loss_giou'] = loss_giou.sum() / num_boxes
-        return losses
-
-    def _get_src_permutation_idx(self, indices):
-        # permute predictions following indices
-        batch_idx = torch.cat([torch.full_like(src, i) for i, (src, _) in enumerate(indices)])
-        src_idx = torch.cat([src for (src, _) in indices])
-        return batch_idx, src_idx
-
-    def _get_tgt_permutation_idx(self, indices):
-        # permute targets following indices
-        batch_idx = torch.cat([torch.full_like(tgt, i) for i, (_, tgt) in enumerate(indices)])
-        tgt_idx = torch.cat([tgt for (_, tgt) in indices])
-        return batch_idx, tgt_idx
-
-    def get_loss(self, loss, outputs, targets, indices, num_boxes, **kwargs):
-        loss_map = {
-            'labels': self.loss_labels,
-            'cardinality': self.loss_cardinality,
-            'boxes': self.loss_boxes,
-            'masks': self.loss_masks
-        }
-        assert loss in loss_map, f'do you really want to compute {loss} loss?'
-        return loss_map[loss](outputs, targets, indices, num_boxes, **kwargs)
-
-    def forward(self, outputs, targets):
-        """ This performs the loss computation.
-        Parameters:
-             outputs: dict of tensors, see the output specification of the model for the format
-             targets: list of dicts, such that len(targets) == batch_size.
-                      The expected keys in each dict depends on the losses applied, see each loss' doc
-        """
-        outputs_without_aux = {k: v for k, v in outputs.items() if k != 'aux_outputs'}
-
-        # Retrieve the matching between the outputs of the last layer and the targets
-        indices = self.matcher(outputs_without_aux, targets)
-
-        # Compute the average number of target boxes accross all nodes, for normalization purposes
-        num_boxes = sum(len(t["labels"]) for t in targets)
-        num_boxes = torch.as_tensor([num_boxes], dtype=torch.float, device=next(iter(outputs.values())).device)
-        # if is_dist_avail_and_initialized():
-        #     torch.distributed.all_reduce(num_boxes)
-        # num_boxes = torch.clamp(num_boxes / get_world_size(), min=1).item()
-        num_boxes = torch.clamp(num_boxes, min=1).item()
-
-        # Compute all the requested losses
-        losses = {}
-        for loss in self.losses:
-            losses.update(self.get_loss(loss, outputs, targets, indices, num_boxes))
-
-        # In case of auxiliary losses, we repeat this process with the output of each intermediate layer.
-        if 'aux_outputs' in outputs:
-            for i, aux_outputs in enumerate(outputs['aux_outputs']):
-                indices = self.matcher(aux_outputs, targets)
-                for loss in self.losses:
-                    if loss == 'masks':
-                        # Intermediate masks losses are too costly to compute, we ignore them.
-                        continue
-                    kwargs = {}
-                    if loss == 'labels':
-                        # Logging is enabled only for the last layer
-                        kwargs = {'log': False}
-                    l_dict = self.get_loss(loss, aux_outputs, targets, indices, num_boxes, **kwargs)
-                    l_dict = {k + f'_{i}': v for k, v in l_dict.items()}
-                    losses.update(l_dict)
-
-        return losses
-
-
-class PostProcess(torch.nn.Module):
-    """ This module converts the model's output into the format expected by the coco api"""
-    @torch.no_grad()
-    def forward(self, outputs, target_sizes):
-        """ Perform the computation
-        Parameters:
-            outputs: raw outputs of the model
-            target_sizes: tensor of dimension [batch_size x 2] containing the size of each images of the batch
-                          For evaluation, this must be the original image size (before any data augmentation)
-                          For visualization, this should be the image size after data augment, but before padding
-        """
-        out_logits, out_bbox = outputs['pred_logits'], outputs['pred_boxes']
-
-        assert len(out_logits) == len(target_sizes)
-        assert target_sizes.shape[1] == 2
-
-        prob = torch.nn.functional.softmax(out_logits, -1)
-        scores, labels = prob[..., :-1].max(-1)
-
-        # convert to [x0, y0, x1, y1] format
-        boxes = box_ops.box_cxcywh_to_xyxy(out_bbox)
-        # and from relative [0, 1] to absolute [0, height] coordinates
-        img_h, img_w = target_sizes.unbind(1)
-        scale_fct = torch.stack([img_w, img_h, img_w, img_h], dim=1)
-        boxes = boxes * scale_fct[:, None, :]
-
-        results = [{'scores': s, 'labels': l, 'boxes': b} for s, l, b in zip(scores, labels, boxes)]
-
-        return results
-
-
-def box_cxcywh_to_xyxy(x):
-    x_c, y_c, w, h = x.unbind(-1)
-    b = [(x_c - 0.5 * w), (y_c - 0.5 * h),
-         (x_c + 0.5 * w), (y_c + 0.5 * h)]
-    return torch.stack(b, dim=-1)
-
-
-def box_xyxy_to_cxcywh(x):
-    x0, y0, x1, y1 = x.unbind(-1)
-    b = [(x0 + x1) / 2, (y0 + y1) / 2,
-         (x1 - x0), (y1 - y0)]
-    return torch.stack(b, dim=-1)
-
-
-# modified from torchvision to also return the union
-from torchvision.ops.boxes import box_area
-def box_iou(boxes1, boxes2):
-    area1 = box_area(boxes1)
-    area2 = box_area(boxes2)
-
-    lt = torch.max(boxes1[:, None, :2], boxes2[:, :2])  # [N,M,2]
-    rb = torch.min(boxes1[:, None, 2:], boxes2[:, 2:])  # [N,M,2]
-
-    wh = (rb - lt).clamp(min=0)  # [N,M,2]
-    inter = wh[:, :, 0] * wh[:, :, 1]  # [N,M]
-
-    union = area1[:, None] + area2 - inter
-
-    iou = inter / union
-    return iou, union
-
-
-def generalized_box_iou(boxes1, boxes2):
-    """
-    Generalized IoU from https://giou.stanford.edu/
-    The boxes should be in [x0, y0, x1, y1] format
-    Returns a [N, M] pairwise matrix, where N = len(boxes1)
-    and M = len(boxes2)
-    """
-    # degenerate boxes gives inf / nan results
-    # so do an early check
-    assert (boxes1[:, 2:] >= boxes1[:, :2]).all()
-    assert (boxes2[:, 2:] >= boxes2[:, :2]).all()
-    iou, union = box_iou(boxes1, boxes2)
-
-    lt = torch.min(boxes1[:, None, :2], boxes2[:, :2])
-    rb = torch.max(boxes1[:, None, 2:], boxes2[:, 2:])
-
-    wh = (rb - lt).clamp(min=0)  # [N,M,2]
-    area = wh[:, :, 0] * wh[:, :, 1]
-
-    return iou - (area - union) / area
+        if targets is None:
+            return detections
+        else:
+            return losses, detections

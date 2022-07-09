@@ -2,6 +2,9 @@ import os
 import numpy as np
 import cv2
 import json
+import torch
+import torchvision
+import matplotlib
 from matplotlib import pyplot as plt
 from pycocotools import mask as maskUtils
 
@@ -73,7 +76,72 @@ def showAnns(coco_anns, height, width, draw_bbox=False, draw_number=False):
         ax.add_collection(p)
 
 
-def visualize_image(img_fp, output_dirpath, draw_bbox=False, draw_number=False):
+def inference(model_filepath, image):
+    # inference and use those boxes instead of the annotations
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # load the model
+    pytorch_model = torch.load(model_filepath)
+    # move the model to the device
+    pytorch_model.to(device)
+    pytorch_model.eval()
+
+    with torch.no_grad():
+        # convert the image to a tensor
+        # should be uint8 type, the conversion to float is handled later
+        image = torch.as_tensor(image)
+        # move channels first
+        image = image.permute((2, 0, 1))
+        # convert to float (which normalizes the values)
+        image = torchvision.transforms.functional.convert_image_dtype(image, torch.float)
+        images = [image]  # wrap into list
+
+        images = list(image.to(device) for image in images)
+
+        outputs = pytorch_model(images)
+        outputs = outputs[0]  # get the results for the single image forward pass
+    return outputs
+
+
+def draw_boxes(img, boxes, colors_list=None):
+    """
+    Args:
+        img: Image to draw boxes onto
+        boxes: boxes in [x1, y1, x2, y2] format
+        value: what pixel value to draw into the image
+
+    Returns: modified image
+    """
+    buff = 2
+
+    if boxes is None:
+        return img
+
+    if colors_list is None:
+        # default to red
+        colors_list = list()
+        while len(colors_list) < boxes.shape[0]:
+            colors_list.append([255, 0, 0])
+
+    # make a copy to modify
+    img = img.copy()
+    for i in range(boxes.shape[0]):
+        x_st = round(boxes[i, 0])
+        y_st = round(boxes[i, 1])
+
+        x_end = round(boxes[i, 2])
+        y_end = round(boxes[i, 3])
+
+        # draw a rectangle around the region of interest
+        img[y_st:y_st+buff, x_st:x_end, :] = colors_list[i]
+        img[y_end-buff:y_end, x_st:x_end, :] = colors_list[i]
+        img[y_st:y_end, x_st:x_st+buff, :] = colors_list[i]
+        img[y_st:y_end, x_end-buff:x_end, :] = colors_list[i]
+
+    return img
+
+
+def visualize_image(img_fp, output_dirpath, draw_bbox=False, draw_number=False, model_filepath=None):
     parent_fp, img_fn = os.path.split(img_fp)
     ann_fn = img_fn.replace('.jpg', '.json')
     ann_fp = os.path.join(parent_fp, ann_fn)
@@ -87,16 +155,51 @@ def visualize_image(img_fp, output_dirpath, draw_bbox=False, draw_number=False):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # convert to RGB
     height = img.shape[0]
     width = img.shape[1]
-    with open(ann_fp, 'r') as fh:
-        coco_anns = json.load(fh)
 
     # clear the figure
     plt.clf()
 
-    # show the image
-    plt.imshow(img)
-    # draw the annotations on top of that image
-    showAnns(coco_anns, height, width, draw_bbox=draw_bbox, draw_number=draw_number)
+    if model_filepath is not None:
+        outputs = inference(model_filepath, img)
+        boxes = outputs['boxes'].detach().cpu().numpy()
+        scores = outputs['scores'].detach().cpu().numpy()
+        labels = outputs['labels'].detach().cpu().numpy()
+        boxes = boxes[scores > 0.5, :]
+
+        # get colors for the boxes
+        colors_list = list()
+        cmap = matplotlib.cm.get_cmap('jet')
+        for b in range(boxes.shape[0]):
+            idx = float(b) / float(boxes.shape[0])
+            c = cmap(idx)
+            c = c[0:3]
+            c = [int(255.0 * x) for x in c]
+            colors_list.append(c)
+
+        # draw the output boxes onto the image
+        img = draw_boxes(img, boxes, colors_list)
+        # show the image
+        plt.imshow(img)
+
+        if draw_number:
+            ax = plt.gca()
+
+            for b in range(boxes.shape[0]):
+                c = colors_list[b]
+                # ax.text needs color in [0, 1]
+                c = [float(x) / 255.0 for x in c]
+                [bbox_x1, bbox_y1, bbox_x2, bbox_y2] = boxes[b, :]
+                cx = int(float((bbox_x1 + bbox_x2) / 2.0))
+                cy = int(float((bbox_y1 + bbox_y2) / 2.0))
+                ax.text(cx, cy, "{}".format(labels[b]), c=c, backgroundcolor='white', fontsize='small', fontweight='bold')
+    else:
+        with open(ann_fp, 'r') as fh:
+            coco_anns = json.load(fh)
+
+        # show the image
+        plt.imshow(img)
+        # draw the annotations on top of that image
+        showAnns(coco_anns, height, width, draw_bbox=draw_bbox, draw_number=draw_number)
 
     # save figure to disk
     if output_dirpath is not None:
@@ -115,6 +218,8 @@ if __name__ == "__main__":
     parser.add_argument('--dataset_dirpath', type=str, required=True, help='Filepath to the folder/directory containing the TrojAI dataset')
     parser.add_argument('--draw_boxes', action='store_true', help='Whether to draw bounding boxes on visualization in addition to the segmentation mask')
     parser.add_argument('--draw_numbers', action='store_true', help='Whether to draw class label numbers on visualization')
+    parser.add_argument('--draw_annotations', action='store_true', help='Whether to draw the COCO annotations or the inference results onto the images. COCO annotations are drawn when this is true, otherwise inference results are shown.')
+
 
     args = parser.parse_args()
 
@@ -123,13 +228,17 @@ if __name__ == "__main__":
     models.sort()
 
     for model in models:
+        model_filepath = None
+        if not args.draw_annotations:
+            model_filepath = os.path.join(ifp, model, 'model.pt')
+
         # visualize clean example images
         in_dir = os.path.join(ifp, model, 'clean-example-data')
         out_dir = os.path.join(ifp, model, 'clean-example-data-visualization')
         imgs = [os.path.join(in_dir, fn) for fn in os.listdir(in_dir) if fn.endswith('.jpg')]
 
         for img in imgs:
-            visualize_image(img, out_dir, args.draw_boxes, args.draw_numbers)
+            visualize_image(img, out_dir, args.draw_boxes, args.draw_numbers, model_filepath)
 
         # visualize poisoned example images
         in_dir = os.path.join(ifp, model, 'poisoned-example-data')
@@ -138,7 +247,7 @@ if __name__ == "__main__":
             imgs = [os.path.join(in_dir, fn) for fn in os.listdir(in_dir) if fn.endswith('.jpg')]
 
             for img in imgs:
-                visualize_image(img, out_dir, args.draw_boxes, args.draw_numbers)
+                visualize_image(img, out_dir, args.draw_boxes, args.draw_numbers, model_filepath)
 
 
 
