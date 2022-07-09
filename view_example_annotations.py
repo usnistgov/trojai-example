@@ -7,6 +7,69 @@ import torchvision
 import matplotlib
 from matplotlib import pyplot as plt
 from pycocotools import mask as maskUtils
+from pycocotools import cocoeval
+
+import models
+
+
+def compute_mAP(coco_dataset_filepath: str, coco_annotation_filepath: str, model_filepath: str):
+    coco_dataset = torchvision.datasets.CocoDetection(root=coco_dataset_filepath, annFile=coco_annotation_filepath)
+
+    # modify the entries (images and annotations) in coco_dataset to operate on a subset of data.
+    # after modifications to the coco_dataset object, you need to call coco_dataset.coco.createIndex() to rebuild all of the links within the coco object.
+
+    # inference and use those boxes instead of the annotations
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # load the model
+    pytorch_model = torch.load(model_filepath)
+    # move the model to the device
+    pytorch_model.to(device)
+    pytorch_model.eval()
+
+    coco_results = list()
+    with torch.no_grad():
+        for image in coco_dataset.coco.dataset['images']:
+            id = image['id']
+            filename = image['file_name']
+            width = image['width']
+            height = image['height']
+            coco_anns = coco_dataset.coco.imgToAnns[id]
+            filepath = os.path.join(coco_dataset_filepath, filename)
+
+            img = cv2.imread(filepath, cv2.IMREAD_UNCHANGED)  # loads to BGR
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # convert to RGB
+
+            # convert the image to a tensor
+            # should be uint8 type, the conversion to float is handled later
+            img = torch.as_tensor(img)
+            # move channels first
+            img = img.permute((2, 0, 1))
+            # convert to float (which normalizes the values)
+            img = torchvision.transforms.functional.convert_image_dtype(img, torch.float)
+            images = [img]  # wrap into list
+
+            images = list(img.to(device) for img in images)
+
+            outputs = pytorch_model(images)
+            output = outputs[0]  # one image at a time is batch_size 1
+            boxes = output["boxes"]
+            boxes = models.x1y1x2y2_to_xywh(boxes).tolist()
+            scores = output["scores"].tolist()
+            labels = output["labels"].tolist()
+
+            # convert boxes into format COCOeval wants
+            res = [{"image_id": id, "category_id": labels[k], "bbox": box, "score": scores[k]} for k, box in enumerate(boxes)]
+            coco_results.extend(res)
+
+    coco_dt = coco_dataset.coco.loadRes(coco_results)
+
+    coco_evaluator = cocoeval.COCOeval(cocoGt=coco_dataset.coco, cocoDt=coco_dt, iouType='bbox')
+    coco_evaluator.evaluate()
+    coco_evaluator.accumulate()
+    coco_evaluator.summarize()
+    mAP = float(coco_evaluator.stats[0])
+    print('mAP = {}'.format(mAP))
 
 
 def showAnns(coco_anns, height, width, draw_bbox=False, draw_number=False):
@@ -219,18 +282,23 @@ if __name__ == "__main__":
     parser.add_argument('--draw_boxes', action='store_true', help='Whether to draw bounding boxes on visualization in addition to the segmentation mask')
     parser.add_argument('--draw_numbers', action='store_true', help='Whether to draw class label numbers on visualization')
     parser.add_argument('--draw_annotations', action='store_true', help='Whether to draw the COCO annotations or the inference results onto the images. COCO annotations are drawn when this is true, otherwise inference results are shown.')
+    parser.add_argument('--coco_dataset_filepath', type=str, default=None, help='Filepath to COCO data split to compute the mAP against. (i.e. ~/coco/val2017)')
+    parser.add_argument('--coco_annotation_filepath', type=str, default=None, help='Filepath to COCO annotation data split to compute the mAP against. (i.e. ~/coco/annotations/instances_val2017.json)')
 
 
     args = parser.parse_args()
 
     ifp = args.dataset_dirpath
-    models = [fn for fn in os.listdir(ifp) if fn.startswith('id-')]
-    models.sort()
+    models_list = [fn for fn in os.listdir(ifp) if fn.startswith('id-')]
+    models_list.sort()
 
-    for model in models:
+    for model in models_list:
         model_filepath = None
         if not args.draw_annotations:
             model_filepath = os.path.join(ifp, model, 'model.pt')
+
+        if args.coco_dataset_filepath is not None and args.coco_annotation_filepath is not None:
+            compute_mAP(args.coco_dataset_filepath, args.coco_annotation_filepath, model_filepath)
 
         # visualize clean example images
         in_dir = os.path.join(ifp, model, 'clean-example-data')
