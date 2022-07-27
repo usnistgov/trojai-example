@@ -2,6 +2,7 @@
 output.txt
 test.txt
 features.csv
+model/id-00000000
 
 # Python
 __pychache__
