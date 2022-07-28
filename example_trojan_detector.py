@@ -55,7 +55,7 @@ def example_trojan_detector(model_filepath,
                             source_dataset_dirpath,
                             round_training_dataset_dirpath,
                             parameters_dirpath,
-                            metaparameters_config):
+                            parameter1, parameter2):
     logging.info('model_filepath = {}'.format(model_filepath))
     logging.info('result_filepath = {}'.format(result_filepath))
     logging.info('scratch_dirpath = {}'.format(scratch_dirpath))
@@ -65,7 +65,8 @@ def example_trojan_detector(model_filepath,
     logging.info('round_training_dataset_dirpath = {}'.format(round_training_dataset_dirpath))
 
     logging.info('Using parameters_dirpath = {}'.format(parameters_dirpath))
-    logging.info('Using metaparameters = {}'.format(metaparameters_config))
+    logging.info('Using parameter1 = {}'.format(parameter1))
+    logging.info('Using parameter2 = {}'.format(parameter2))
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info("Using compute device: {}".format(device))
@@ -214,7 +215,8 @@ if __name__ == "__main__":
             args.source_dataset_dirpath is not None and
             args.round_training_dataset_dirpath is not None and
             args.learned_parameters_dirpath is not None and
-            config_json is not None):
+            args.parameter1 is not None and
+            args.parameter2 is not None):
 
             logging.info("Calling the trojan detector")
             example_trojan_detector(args.model_filepath,
@@ -224,7 +226,7 @@ if __name__ == "__main__":
                                     args.source_dataset_dirpath,
                                     args.round_training_dataset_dirpath,
                                     args.learned_parameters_dirpath,
-                                    config_json)
+                                    args.parameter1, args.parameter2)
         else:
             logging.info("Required Evaluation-Mode parameters missing!")
     else:
