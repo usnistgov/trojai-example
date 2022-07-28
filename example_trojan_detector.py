@@ -55,21 +55,17 @@ def example_trojan_detector(model_filepath,
                             source_dataset_dirpath,
                             round_training_dataset_dirpath,
                             parameters_dirpath,
-                            parameter1,
-                            parameter2,
-                            features_filepath):
+                            metaparameters_config):
     logging.info('model_filepath = {}'.format(model_filepath))
     logging.info('result_filepath = {}'.format(result_filepath))
     logging.info('scratch_dirpath = {}'.format(scratch_dirpath))
     logging.info('examples_dirpath = {}'.format(examples_dirpath))
     logging.info('source_dataset_dirpath = {}'.format(source_dataset_dirpath))
     logging.info('round_training_dataset_dirpath = {}'.format(round_training_dataset_dirpath))
-    logging.info('features_filepath = {}'.format(features_filepath))
     logging.info('round_training_dataset_dirpath = {}'.format(round_training_dataset_dirpath))
 
     logging.info('Using parameters_dirpath = {}'.format(parameters_dirpath))
-    logging.info('Using parameter1 = {}'.format(str(parameter1)))
-    logging.info('Using parameter2 = {}'.format(str(parameter2)))
+    logging.info('Using metaparameters = {}'.format(metaparameters_config))
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info("Using compute device: {}".format(device))
@@ -122,12 +118,6 @@ def example_trojan_detector(model_filepath,
             # NIST's forward function override returns both loss and boxes, so we just want the boxes here
             outputs = outputs[1]
 
-    logging.info("Writing example intermediate features to the csv filepath.")
-    if features_filepath is not None:
-        with open(features_filepath, 'w') as fh:
-            fh.write("{},{},{}\n".format("parameter1", "parameter2", "random number"))  # https://xkcd.com/221/
-            fh.write("{},{},{}".format(parameter1, parameter2, 4))
-
     # Test scratch space
     with open(os.path.join(scratch_dirpath, 'test.txt'), 'w') as fh:
         fh.write('this is a test')
@@ -177,7 +167,6 @@ if __name__ == "__main__":
 
     parser = ArgumentParser(description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
     parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.')
-    parser.add_argument('--features_filepath', type=str, help='File path to the file where intermediate detector features may be written. After execution this csv file should contain a two rows, the first row contains the feature names (you should be consistent across your detectors), the second row contains the value for each of the column names.')
     parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.')
     parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.')
     parser.add_argument('--examples_dirpath', type=str, help='File path to the directory containing json file(s) that contains the examples which might be useful for determining whether a model is poisoned.')
@@ -202,8 +191,10 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s")
     logging.info("example_trojan_detector.py launched")
+    logging.info(args)
 
     # Validate config file against schema
+    config_json = None
     if args.metaparameters_filepath is not None:
         if args.schema_filepath is not None:
             with open(args.metaparameters_filepath[0]()) as config_file:
@@ -218,14 +209,12 @@ if __name__ == "__main__":
     if not args.configure_mode:
         if (args.model_filepath is not None and
             args.result_filepath is not None and
-            args.features_filepath is not None and
             args.scratch_dirpath is not None and
             args.examples_dirpath is not None and
             args.source_dataset_dirpath is not None and
             args.round_training_dataset_dirpath is not None and
             args.learned_parameters_dirpath is not None and
-            args.parameter1 is not None and
-            args.parameter2 is not None):
+            config_json is not None):
 
             logging.info("Calling the trojan detector")
             example_trojan_detector(args.model_filepath,
@@ -235,9 +224,7 @@ if __name__ == "__main__":
                                     args.source_dataset_dirpath,
                                     args.round_training_dataset_dirpath,
                                     args.learned_parameters_dirpath,
-                                    args.parameter1,
-                                    args.parameter2,
-                                    args.features_filepath)
+                                    config_json)
         else:
             logging.info("Required Evaluation-Mode parameters missing!")
     else:
