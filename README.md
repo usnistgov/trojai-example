@@ -74,7 +74,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
 3. Install required packages into this conda environment
 
     1. `conda install pytorch=1.12 torchvision=0.13 cudatoolkit=11.3 -c pytorch`
-    2. pip install opencv-python jsonschema jsonargparse
+    2. `pip install opencv-python jsonschema jsonargparse`
 
 ## Test Fake Detector Without Containerization
 
@@ -91,16 +91,14 @@ A small toy set of clean & poisioned data is also provided in this repository un
 
     ```bash
     python example_trojan_detector.py \
-    --model_filepath=./model/trojai-example-model-round10/model.pt \
-    --features_filepath=./features.csv \
-    --result_filepath=./output.txt \
-    --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \
-    --source_dataset_dirpath=/path/to/source/dataset/ \
-    --round_training_dataset_dirpath=/path/to/training/dataset/ \
-    --metaparameters_filepath=./metaparameters.json \
-    --schema_filepath=./metaparameters_schema.json \
-    --learned_parameters_dirpath=./learned_parameters/
+   --model_filepath ./model/id-00000002/model.pt \
+   --result_filepath ./scratch/output.txt \
+   --scratch_dirpath ./scratch \
+   --examples_dirpath ./model/id-00000002/clean-example-data \
+   --round_training_dataset_dirpath /path/to/train-dataset \
+   --learned_parameters_dirpath ./learned_parameters \
+   --metaparameters_filepath ./metaparameters.json \
+   --schema_filepath=./metaparameters_schema.json     
     ```
 
     Example Output:
@@ -114,7 +112,6 @@ A small toy set of clean & poisioned data is also provided in this repository un
     ```bash
     python example_trojan_detector.py \
     --scratch_dirpath=./scratch/ \
-    --source_dataset_dirpath=/path/to/source/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --configure_mode \
@@ -130,8 +127,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \
-    --source_dataset_dirpath=/path/to/source/dataset/ \
+    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \    
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
@@ -168,8 +164,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \
-    --source_dataset_dirpath=/path/to/source/dataset/ \
+    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \    
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
@@ -189,7 +184,6 @@ Package `example_trojan_detector.py` into a Singularity container.
     --nv \
     ./example_trojan_detector.simg \
     --scratch_dirpath=./scratch/ \
-    --source_dataset_dirpath=/path/to/source/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --configure_mode \
@@ -208,8 +202,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \
-    --source_dataset_dirpath=/path/to/source/dataset/ \
+    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \    
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \

@@ -85,8 +85,7 @@ def example_trojan_detector(model_filepath, result_filepath, scratch_dirpath, ex
         fh.write("{}".format(trojan_probability))
 
 
-def configure(source_dataset_dirpath,
-              output_parameters_dirpath,
+def configure(output_parameters_dirpath,
               configure_models_dirpath,
               parameter3):
     logging.info('Using parameter3 = {}'.format(str(parameter3)))
@@ -96,8 +95,6 @@ def configure(source_dataset_dirpath,
     os.makedirs(output_parameters_dirpath, exist_ok=True)
 
     logging.info('Writing configured parameter data to ' + output_parameters_dirpath)
-
-    logging.info('Reading source dataset from ' + source_dataset_dirpath)
 
     arr = np.random.rand(100,100)
     np.save(os.path.join(output_parameters_dirpath, 'numpy_array.npy'), arr)
@@ -185,15 +182,13 @@ if __name__ == "__main__":
         else:
             logging.info("Required Evaluation-Mode parameters missing!")
     else:
-        if (args.source_dataset_dirpath is not None and
-            args.learned_parameters_dirpath is not None and
+        if (args.learned_parameters_dirpath is not None and
             args.configure_models_dirpath is not None and
             args.parameter3 is not None):
 
             logging.info("Calling configuration mode")
             # all 3 example parameters will be loaded here, but we only use parameter3
-            configure(args.source_dataset_dirpath,
-                      args.learned_parameters_dirpath,
+            configure(args.learned_parameters_dirpath,
                       args.configure_models_dirpath,
                       args.parameter3)
         else:
