@@ -1,0 +1,4 @@
+{
+  "model_architecture": "classification:mobilenet_v2",
+  "source_dataset": "cityscapes"
+}

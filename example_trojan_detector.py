@@ -66,12 +66,15 @@ def example_trojan_detector(model_filepath, result_filepath, scratch_dirpath, ex
         # inference
         logits = model(image).cpu().detach().numpy()
 
+        # dimension is N, class_count; get first logits
+        logits = logits[0]
+
         pred = np.argmax(logits)
         logging.info('example img filepath = {}, logits = {}, pred: = {}'.format(fn, logits, pred))
 
 
     # Test scratch space
-    img = np.random.rand(1, 3, 224, 224)
+    img = np.random.rand(1, 3, 256, 256)
     img_tmp_fp = os.path.join(scratch_dirpath, 'img')
     np.save(img_tmp_fp, img)
 
