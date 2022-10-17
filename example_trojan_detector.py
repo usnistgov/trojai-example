@@ -32,7 +32,9 @@ def example_trojan_detector(model_filepath, result_filepath, scratch_dirpath, ex
     # load the model and move it to the GPU
     model = torch.load(model_filepath)
     model.to(device)
-    model.eval()
+    # Due to issues with ViT eval mode, inference is done using train mode, without calculating a loss.
+    # This bypasses an error with pytorch AMP and the ViT function _native_multi_head_attention
+    model.train()
 
     # Augmentation transformations
     augmentation_transforms = torchvision.transforms.Compose([torchvision.transforms.ConvertImageDtype(torch.float)])
