@@ -6,22 +6,25 @@
 
 import os
 import numpy as np
-import cv2
 import torch
-import torchvision
 import json
 import jsonschema
+import gym
+import torch_ac
+from gym_minigrid.wrappers import ImgObsWrapper
 
 import logging
-import warnings 
+import warnings
+
 warnings.filterwarnings("ignore")
 
-def example_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examples_dirpath, round_training_dataset_dirpath, parameters_dirpath, parameter1, parameter2, example_img_format='jpg'):
+
+def example_trojan_detector(model_filepath, result_filepath, scratch_dirpath, examples_dirpath,
+                            parameters_dirpath, parameter1, parameter2):
     logging.info('model_filepath = {}'.format(model_filepath))
     logging.info('result_filepath = {}'.format(result_filepath))
     logging.info('scratch_dirpath = {}'.format(scratch_dirpath))
     logging.info('examples_dirpath = {}'.format(examples_dirpath))
-    logging.info('round_training_dataset_dirpath = {}'.format(round_training_dataset_dirpath))
     logging.info('Using parameters_dirpath = {}'.format(parameters_dirpath))
     logging.info('Using parameter1 = {}'.format(parameter1))
     logging.info('Using parameter2 = {}'.format(parameter2))
@@ -29,54 +32,59 @@ def example_trojan_detector(model_filepath, result_filepath, scratch_dirpath, ex
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info("Using compute device: {}".format(device))
 
-    # load the model and move it to the GPU
+    # load the model and move it to available device
     model = torch.load(model_filepath)
     model.to(device)
     model.eval()
 
-    # Augmentation transformations
-    augmentation_transforms = torchvision.transforms.Compose([torchvision.transforms.ConvertImageDtype(torch.float)])
+    preprocess = torch_ac.format.default_preprocess_obss
 
-    # Inference the example images in data
-    fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith(example_img_format)]
-    fns.sort()  # ensure file ordering
-    if len(fns) > 5: fns = fns[0:5]  # limit to 5 images
+    # Utilize open source minigrid environment model was trained on
+    env_string = 'MiniGrid-LavaCrossingS9N1-v0'
+    logging.info('Evaluating on {}'.format(env_string))
 
-    logging.info('Inferencing {} images'.format(len(fns)))
+    # Number of episodes to run
+    episodes = 100
 
-    for fn in fns:
-        # load the example image
-        img = cv2.imread(fn, cv2.IMREAD_UNCHANGED)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    env_perf = {}
 
-        # convert the image to a tensor
-        # should be uint8 type, the conversion to float is handled later
-        image = torch.as_tensor(img)
+    # Run episodes through an environment to collect what may be relevant information to trojan detection
+    # Construct environment and put it inside a observation wrapper
+    env = ImgObsWrapper(gym.make(env_string))
+    obs = env.reset()
+    obs = preprocess([obs], device=device)
 
-        # move channels first
-        image = image.permute((2, 0, 1))
+    final_rewards = []
+    with torch.no_grad():
+        # Episode loop
+        for _ in range(episodes):
+            done = False
+            # Use env observation to get action distribution
+            dist, value = model(obs)
+            # Per episode loop
+            while not done:
+                # Sample from distribution to determine which action to take
+                action = dist.sample()
+                action = action.cpu().detach().numpy()
+                # Use action to step environment and get new observation
+                obs, reward, done, info = env.step(action)
+                # Preprocessing function to prepare observation from env to be given to the model
+                obs = preprocess([obs], device=device)
+                # Use env observation to get action distribution
+                dist, value = model(obs)
 
-        # convert to float (which normalizes the values)
-        image = augmentation_transforms(image)
-        image = image.to(device)
+            # Collect episode performance data (just the last reward of the episode)
+            final_rewards.append(reward)
+            # Reset environment after episode and get initial observation
+            obs = env.reset()
+            obs = preprocess([obs], device=device)
 
-        # Convert to NCHW
-        image = image.unsqueeze(0)
-
-        # inference
-        logits = model(image).cpu().detach().numpy()
-
-        # dimension is N, class_count; get first logits
-        logits = logits[0]
-
-        pred = np.argmax(logits)
-        logging.info('example img filepath = {}, logits = {}, pred: = {}'.format(fn, logits, pred))
-
+    # Save final rewards
+    env_perf['final_rewards'] = final_rewards
 
     # Test scratch space
-    img = np.random.rand(1, 3, 256, 256)
-    img_tmp_fp = os.path.join(scratch_dirpath, 'img')
-    np.save(img_tmp_fp, img)
+    with open(os.path.join(scratch_dirpath, "env_perf.json"), mode='w', encoding='utf-8') as f:
+        json.dump(env_perf, f, indent=2)
 
     trojan_probability = np.random.rand()
     print('Trojan Probability: {}'.format(trojan_probability))
@@ -96,7 +104,7 @@ def configure(output_parameters_dirpath,
 
     logging.info('Writing configured parameter data to ' + output_parameters_dirpath)
 
-    arr = np.random.rand(100,100)
+    arr = np.random.rand(100, 100)
     np.save(os.path.join(output_parameters_dirpath, 'numpy_array.npy'), arr)
 
     with open(os.path.join(output_parameters_dirpath, "single_number.txt"), 'w') as fh:
@@ -119,18 +127,32 @@ if __name__ == "__main__":
     from jsonargparse import ArgumentParser, ActionConfigFile
 
     parser = ArgumentParser(description='Fake Trojan Detector to Demonstrate Test and Evaluation Infrastructure.')
-    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.', default='./model.pt')
-    parser.add_argument('--result_filepath', type=str, help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.', default='./output')
-    parser.add_argument('--scratch_dirpath', type=str, help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.', default='./scratch')
-    parser.add_argument('--examples_dirpath', type=str, help='File path to the folder of examples which might be useful for determining whether a model is poisoned.', default='./example')
-    parser.add_argument('--round_training_dataset_dirpath', type=str, help='File path to the directory containing id-xxxxxxxx models of the current rounds training dataset.', default=None)
+    parser.add_argument('--model_filepath', type=str, help='File path to the pytorch model file to be evaluated.',
+                        default='./model.pt')
+    parser.add_argument('--result_filepath', type=str,
+                        help='File path to the file where output result should be written. After execution this file should contain a single line with a single floating point trojan probability.',
+                        default='./output')
+    parser.add_argument('--scratch_dirpath', type=str,
+                        help='File path to the folder where scratch disk space exists. This folder will be empty at execution start and will be deleted at completion of execution.',
+                        default='./scratch')
+    parser.add_argument('--examples_dirpath', type=str,
+                        help='File path to the folder of examples which might be useful for determining whether a model is poisoned.',
+                        default='./example')
 
-    parser.add_argument('--metaparameters_filepath', help='Path to JSON file containing values of tunable paramaters to be used when evaluating models.', action=ActionConfigFile)
-    parser.add_argument('--schema_filepath', type=str, help='Path to a schema file in JSON Schema format against which to validate the config file.', default=None)
-    parser.add_argument('--learned_parameters_dirpath', type=str, help='Path to a directory containing parameter data (model weights, etc.) to be used when evaluating models.  If --configure_mode is set, these will instead be overwritten with the newly-configured parameters.')
+    parser.add_argument('--metaparameters_filepath',
+                        help='Path to JSON file containing values of tunable paramaters to be used when evaluating models.',
+                        action=ActionConfigFile)
+    parser.add_argument('--schema_filepath', type=str,
+                        help='Path to a schema file in JSON Schema format against which to validate the config file.',
+                        default=None)
+    parser.add_argument('--learned_parameters_dirpath', type=str,
+                        help='Path to a directory containing parameter data (model weights, etc.) to be used when evaluating models.  If --configure_mode is set, these will instead be overwritten with the newly-configured parameters.')
 
-    parser.add_argument('--configure_mode', help='Instead of detecting Trojans, set values of tunable parameters and write them to a given location.', default=False, action="store_true")
-    parser.add_argument('--configure_models_dirpath', type=str, help='Path to a directory containing models to use when in configure mode.')
+    parser.add_argument('--configure_mode',
+                        help='Instead of detecting Trojans, set values of tunable parameters and write them to a given location.',
+                        default=False, action="store_true")
+    parser.add_argument('--configure_models_dirpath', type=str,
+                        help='Path to a directory containing models to use when in configure mode.')
 
     # these parameters need to be defined here, but their values will be loaded from the json file instead of the command line
     parser.add_argument('--parameter1', type=int, help='An example tunable parameter.')
@@ -163,28 +185,26 @@ if __name__ == "__main__":
 
     if not args.configure_mode:
         if (args.model_filepath is not None and
-            args.result_filepath is not None and
-            args.scratch_dirpath is not None and
-            args.examples_dirpath is not None and
-            args.round_training_dataset_dirpath is not None and
-            args.learned_parameters_dirpath is not None and
-            args.parameter1 is not None and
-            args.parameter2 is not None):
+                args.result_filepath is not None and
+                args.scratch_dirpath is not None and
+                args.examples_dirpath is not None and
+                args.learned_parameters_dirpath is not None and
+                args.parameter1 is not None and
+                args.parameter2 is not None):
 
             logging.info("Calling the trojan detector")
             example_trojan_detector(args.model_filepath,
                                     args.result_filepath,
                                     args.scratch_dirpath,
                                     args.examples_dirpath,
-                                    args.round_training_dataset_dirpath,
                                     args.learned_parameters_dirpath,
                                     args.parameter1, args.parameter2)
         else:
             logging.info("Required Evaluation-Mode parameters missing!")
     else:
         if (args.learned_parameters_dirpath is not None and
-            args.configure_models_dirpath is not None and
-            args.parameter3 is not None):
+                args.configure_models_dirpath is not None and
+                args.parameter3 is not None):
 
             logging.info("Calling configuration mode")
             # all 3 example parameters will be loaded here, but we only use parameter3
@@ -193,5 +213,3 @@ if __name__ == "__main__":
                       args.parameter3)
         else:
             logging.info("Required Configure-Mode parameters missing!")
-
-
