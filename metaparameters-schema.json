@@ -1,0 +1,146 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Trojan Detection Container (trojai-example) - The template detector to be used within the TrojAI competition.",
+  "technique": "Random Forest Regressor",
+  "technique_description": "Extracts model weights and trains a random forest regressor.",
+  "technique_changes": "Mixup mobilnet data and fit the model; output metaparameter.json file after reconfiguration",
+  "commit_id": "",
+  "repo_name": "https://github.com/usnistgov/trojai-example",
+  "required": [],
+  "additionalProperties": false,
+  "type": "object",
+  "properties": {
+	"automatic_training": {
+		"description" : "Sets up automatic training to explore the training parameter space (should not do exhaustive search, but some optimized parameter search algorithm",
+		"type": "boolean"
+	}
+	"infer_model_skew_mobilenetv2": {
+		"description": "Skew parameters controlling ... for mobilenetv2",
+		"type": "number",
+		"minimum": 0.01,
+		"maximum": 5.0,
+		"suggested_minimum": 0.3,
+		"suggested_maximum": 0.75
+	},
+	"infer_model_skew_resnet": {
+		"description": "Skew parameters controlling ... for resnet",
+		"type": "number",
+		"minimum": 0.01,
+		"maximum": 5.0,
+		"suggested_minimum": 0.3,
+		"suggested_maximum": 3.0
+	},
+	"infer_model_skew_visiontransformer": {
+		"description": "Skew parameters controlling ... for VisionTransformer",
+		"type": "number",
+		"minimum": 0.01,
+		"maximum": 5.0,
+		"suggested_minimum": 0.3,
+		"suggested_maximum": 3.0
+	},
+	"infer_normalize_features": {
+		"description": "Whether to normalize features or not",
+		"type": "boolean"
+	},
+	"train_input_features":  {
+		"description": "The input features for training",
+		"type": "integer",
+		"minimum": 500,
+		"maximum": 2000,
+		"suggested_minimum": 750,
+		"suggested_maximum": 2200
+	},
+	"train_weight_table_random_state": {
+		"description": "Random state for weight table during training",
+		"type": "integer",
+		"minimum": 1,
+		"maximum": 200,
+		"suggested_minimum": 75,
+		"suggested_maximum": 150
+	},
+	"train_weight_table_params_mean": {
+		"description": "Weight table parameter for the mean controlling. ... ",
+		"type": "number",
+		"minimum": 0,
+		"maximum": 1.0,
+		"suggested_minimum": 0.25,
+		"suggested_maximum": 0.75
+	},
+	"train_weight_table_params_std": {
+		"description": "Weight table parameter for the standard deviation controlling. ... ",
+		"type": "number",
+		"minimum": 0,
+		"maximum": 1.0,
+		"suggested_minimum": 0.01,
+		"suggested_maximum": 0.1
+	},
+	"train_weight_table_params_scaler": {
+		"description": "Weight table parameter for scaling controlling. ... ",
+		"type": "number",
+		"minimum": 0,
+		"maximum": 5.0,
+		"suggested_minimum": 0.1,
+		"suggested_maximum": 2.5
+	},
+	"train_random_forest_regressor_param_n_estimator": {
+		"description": "Random forest regressor parameter n_estimator, controlling ...",
+		"type": "integer",
+		"minimum": 1,
+		"maximum": 200,
+		"suggested_minimum": 75,
+		"suggested_maximum": 150
+	},
+	"train_random_forest_regressor_param_criterion": {
+		"description": "Random forest regressor parameter criterion ...",
+		"enum": ["squared_error"]
+	},
+	"train_random_forest_regressor_param_max_depth": {
+		"description": "Random forest regressor parameter max depth, controlling ...",
+		"type": "integer",
+		"minimum": 1,
+		"maximum": 20,
+		"suggested_minimum": 1,
+		"suggested_maximum": 20
+	},
+	"train_random_forest_regressor_param_min_samples_split": {
+		"description": "Random forest regressor parameter min samples, controlling ...",
+		"type": "integer",
+		"minimum": 1,
+		"maximum": 5,
+		"suggested_minimum": 1,
+		"suggested_maximum": 2
+	},
+	"train_random_forest_regressor_param_min_sample_leaf": {
+		"description": "Random forest regressor parameter min samples leaf, controlling ...",
+		"type": "integer",
+		"minimum": 1,
+		"maximum": 5,
+		"suggested_minimum": 1,
+		"suggested_maximum": 2
+	},
+	"train_random_forest_regressor_param_min_weight_fraction_leaf": {
+		"description": "Random forest regressor parameter min weight fraction leaf, controlling ...",
+		"type": "number",
+		"minimum": 0.0,
+		"maximum": 1.0,
+		"suggested_minimum": 0.0,
+		"suggested_maximum": 1.0
+	},
+	"train_random_forest_regressor_param_max_features": {
+		"description": "Random forest regressor parameter maximum features, controlling ...",
+		"type": "number",
+		"minimum": 0.0,
+		"maximum": 2.0,
+		"suggested_minimum": 0.0,
+		"suggested_maximum": 2.0
+	},
+	"train_random_forest_regressor_param_min_impurity_decrease": {
+		"description": "Random forest regressor parameter min impurity decrease, controlling ...",
+		"type": "number",
+		"minimum": 0.0,
+		"maximum": 2.0,
+		"suggested_minimum": 0.0,
+		"suggested_maximum": 2.0
+	}
+  }
+}

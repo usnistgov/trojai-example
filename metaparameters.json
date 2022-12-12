@@ -1,5 +1,20 @@
 {
-  "parameter1": 1,
-  "parameter2": 2.3,
-  "parameter3": "AdamW"
+	"automatic_training": false,
+	"infer_model_skew_mobilenetv2": 0.45,
+	"infer_model_skew_resnet": 1.02,
+	"infer_model_skew_visiontransformer": 2.46,
+	"infer_normalize_features": true,
+	"train_input_features": 1500,
+	"train_weight_table_random_state": 101,
+	"train_weight_table_params_mean": 0.5,
+	"train_weight_table_params_std": 0.03,
+	"train_weight_table_params_scaler": 2.3,
+	"train_random_forest_regressor_param_n_estimator": 100,
+	"train_random_forest_regressor_param_criterion": "squared_error",
+	"train_random_forest_regressor_param_max_depth": 10,
+	"train_random_forest_regressor_param_min_samples_split": 2,
+	"train_random_forest_regressor_param_min_sample_leaf": 1,
+	"train_random_forest_regressor_param_min_weight_fraction_leaf": 0.0,
+	"train_random_forest_regressor_param_max_features": 1.0,
+	"train_random_forest_regressor_param_min_impurity_decrease": 0.0
 }
