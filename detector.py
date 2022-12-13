@@ -1,8 +1,9 @@
 import json
+import logging
 import pickle
 from collections import OrderedDict
-from os import listdir
-from os.path import join
+from os import listdir, makedirs
+from os.path import join, exists
 
 import numpy as np
 import torch
@@ -36,12 +37,13 @@ class Detector(AbstractDetector):
         metaparameters = json.load(open(metaparameter_filepath, "r"))
         super().__init__(metaparameters["automatic_training"])
 
-        self.model_filepath = join(learned_parameters_dirpath, "data/model.bin")
+        self.learned_parameters_dirpath = learned_parameters_dirpath
+        self.model_filepath = join(self.learned_parameters_dirpath, "model.bin")
         self.model_layer_map_filepath = join(
-            learned_parameters_dirpath, "data/model_layer_map.bin"
+            self.learned_parameters_dirpath, "model_layer_map.bin"
         )
         self.layer_transform_filepath = join(
-            learned_parameters_dirpath, "data/layer_transform.bin"
+            self.learned_parameters_dirpath, "layer_transform.bin"
         )
 
         self.model_skew = {
@@ -56,12 +58,12 @@ class Detector(AbstractDetector):
         self.weight_table_params = {
             "random_seed": metaparameters["train_weight_table_random_state"],
             "mean": metaparameters["train_weight_table_params_mean"],
-            "std": metaparameters["train_weight_table_random_std"],
-            "scaler": metaparameters["train_weight_table_random_scaler"],
+            "std": metaparameters["train_weight_table_params_std"],
+            "scaler": metaparameters["train_weight_table_params_scaler"],
         }
         self.random_forest_kwargs = {
-            "n_estimator": metaparameters[
-                "train_random_forest_regressor_param_n_estimator"
+            "n_estimators": metaparameters[
+                "train_random_forest_regressor_param_n_estimators"
             ],
             "criterion": metaparameters[
                 "train_random_forest_regressor_param_criterion"
@@ -72,8 +74,8 @@ class Detector(AbstractDetector):
             "min_samples_split": metaparameters[
                 "train_random_forest_regressor_param_min_samples_split"
             ],
-            "min_sample_leaf": metaparameters[
-                "train_random_forest_regressor_param_min_sample_leaf"
+            "min_samples_leaf": metaparameters[
+                "train_random_forest_regressor_param_min_samples_leaf"
             ],
             "min_weight_fraction_leaf": metaparameters[
                 "train_random_forest_regressor_param_min_weight_fraction_leaf"
@@ -106,17 +108,21 @@ class Detector(AbstractDetector):
 
         return model_repr, model_class, model_ground_truth
 
-    def auto_configure(self, model_dirpath):
+    def automatic_configure(self, model_dirpath):
         for random_seed in np.random.randint(1000, 9999, 10):
             self.weight_table_params["random_seed"] = random_seed
             self.manual_configure(model_dirpath)
 
     def manual_configure(self, models_dirpath):
+        # Create the learned parameter folder if needed
+        if not exists(self.learned_parameters_dirpath):
+            makedirs(self.learned_parameters_dirpath)
+
         # List all available model and limit to the number provided
         model_path_list = sorted(
             [join(models_dirpath, model) for model in listdir(models_dirpath)]
         )
-        print(f"Found {len(model_path_list)} models!")
+        logging.info(f"Loading %d models...", len(model_path_list))
 
         model_repr_dict = {}
         model_ground_truth_dict = {}
@@ -137,41 +143,46 @@ class Detector(AbstractDetector):
         check_models_consistency(model_repr_dict)
 
         # Build model layer map to know how to flatten
-        print("Generating model layer map...")
+        logging.info("Generating model layer map...")
         model_layer_map = create_layer_map(model_repr_dict)
         with open(self.model_layer_map_filepath, "wb") as fp:
             pickle.dump(model_layer_map, fp)
-        print("Generated model layer map!")
+        logging.info("Generated model layer map. Flattenning models...")
 
         # Flatten model
-        print("Flattenning models")
-        new_models = {}
-        for (model_arch, models) in model_repr_dict.items():
-            if model_arch not in new_models.keys():
-                new_models[model_arch] = []
+        flat_models = {}
+        for _ in range(len(model_repr_dict)):
+            (model_arch, models) = model_repr_dict.popitem()
+            if model_arch not in flat_models.keys():
+                flat_models[model_arch] = []
 
-            for model in models:
-                new_models[model_arch].append(
+            logging.info("Flattenning %s models...", model_arch)
+            for _ in tqdm(range(len(models))):
+                model = models.pop(0)
+                flat_models[model_arch].append(
                     flatten_model(model, model_layer_map[model_arch])
                 )
 
         del model_repr_dict
-        print("Model flattened. Fitting feature reduction...")
+        logging.info("Models flattened. Fitting feature reduction...")
 
         layer_transform = fit_feature_reduction_algorithm(
-            new_models, self.weight_table_params, self.input_features
+            flat_models, self.weight_table_params, self.input_features
         )
         with open(self.layer_transform_filepath, "wb") as fp:
             pickle.dump(layer_transform, fp)
 
-        print("Model flattened. Fitting feature reduction...")
+        logging.info("Feature reduction applied. Creating feature file...")
         X = None
         y = []
 
-        for (model_arch, models) in new_models.items():
+        for _ in range(len(flat_models)):
+            (model_arch, models) = flat_models.popitem()
             model_index = 0
 
-            for model in models:
+            logging.info("Parsing %s models...", model_arch)
+            for _ in tqdm(range(len(models))):
+                model = models.pop(0)
                 y.append(model_ground_truth_dict[model_arch][model_index])
                 model_index += 1
 
@@ -182,7 +193,7 @@ class Detector(AbstractDetector):
                     X = model_feats
                     continue
 
-                X = np.vstack((X, model_feats))
+                X = np.vstack((X, model_feats)) * self.model_skew[model_arch]
 
         model = RandomForestRegressor(
             **self.random_forest_kwargs,
@@ -201,7 +212,7 @@ class Detector(AbstractDetector):
         examples_dirpath,
         round_training_dataset_dirpath,
     ):
-        """
+        """ Method to predict wether a model is poisoned (1) or clean (0).
 
         Args:
             model_filepath:
@@ -223,7 +234,9 @@ class Detector(AbstractDetector):
         with open(self.layer_transform_filepath, "rb") as fp:
             layer_transform = pickle.load(fp)
 
-        X = use_feature_reduction_algorithm(layer_transform[model_class], new_model)
+        X = use_feature_reduction_algorithm(
+            layer_transform[model_class], new_model
+        ) * self.model_skew[model_class]
 
         with open(self.model_filepath, "wb") as fp:
             model: RandomForestRegressor = pickle.load(fp)

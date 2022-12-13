@@ -11,9 +11,9 @@
   "type": "object",
   "properties": {
 	"automatic_training": {
-		"description" : "Sets up automatic training to explore the training parameter space (should not do exhaustive search, but some optimized parameter search algorithm",
+		"description" : "Sets up automatic training to explore the training parameter space (should not do exhaustive search, but some optimized parameter search algorithm)",
 		"type": "boolean"
-	}
+	},
 	"infer_model_skew_mobilenetv2": {
 		"description": "Skew parameters controlling ... for mobilenetv2",
 		"type": "number",
@@ -82,8 +82,8 @@
 		"suggested_minimum": 0.1,
 		"suggested_maximum": 2.5
 	},
-	"train_random_forest_regressor_param_n_estimator": {
-		"description": "Random forest regressor parameter n_estimator, controlling ...",
+	"train_random_forest_regressor_param_n_estimators": {
+		"description": "Random forest regressor parameter n_estimators, controlling ...",
 		"type": "integer",
 		"minimum": 1,
 		"maximum": 200,
@@ -110,7 +110,7 @@
 		"suggested_minimum": 1,
 		"suggested_maximum": 2
 	},
-	"train_random_forest_regressor_param_min_sample_leaf": {
+	"train_random_forest_regressor_param_min_samples_leaf": {
 		"description": "Random forest regressor parameter min samples leaf, controlling ...",
 		"type": "integer",
 		"minimum": 1,

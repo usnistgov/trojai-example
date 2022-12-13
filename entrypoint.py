@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 
 
 if __name__ == "__main__":
-    from jsonargparse import ArgumentParser, ActionConfigFile
+    from jsonargparse import ArgumentParser
 
     parser = ArgumentParser(
         description="Fake Trojan Detector to Demonstrate Test and Evaluation "
@@ -22,8 +22,7 @@ if __name__ == "__main__":
         "--model_filepath",
         type=str,
         help="File path to the pytorch model file to be evaluated.",
-        default="./model.pt",
-        required=True,
+        default="./model.pt"
     )
     parser.add_argument(
         "--result_filepath",
@@ -31,8 +30,7 @@ if __name__ == "__main__":
         help="File path to the file where output result should be written. After "
         "execution this file should contain a single line with a single floating "
         "point trojan probability.",
-        default="./output",
-        required=True,
+        default="./output"
     )
     parser.add_argument(
         "--scratch_dirpath",
@@ -40,31 +38,28 @@ if __name__ == "__main__":
         help="File path to the folder where scratch disk space exists. This folder will "
         "be empty at execution start and will be deleted at completion of "
         "execution.",
-        default="./scratch",
-        required=True,
+        default="./scratch"
     )
     parser.add_argument(
         "--examples_dirpath",
         type=str,
         help="File path to the folder of examples which might be useful for determining "
         "whether a model is poisoned.",
-        default="./example",
-        required=True,
+        default="./example"
     )
     parser.add_argument(
         "--round_training_dataset_dirpath",
         type=str,
         help="File path to the directory containing id-xxxxxxxx models of the current "
         "rounds training dataset.",
-        default=None,
-        required=True,
+        default=None
     )
 
     parser.add_argument(
         "--metaparameters_filepath",
         help="Path to JSON file containing values of tunable paramaters to be used "
         "when evaluating models.",
-        action=ActionConfigFile,
+        type=str,
         required=True,
     )
     parser.add_argument(
@@ -88,14 +83,12 @@ if __name__ == "__main__":
         help="Instead of detecting Trojans, set values of tunable parameters and write "
         "them to a given location.",
         default=False,
-        action="store_true",
-        required=True,
+        action="store_true"
     )
     parser.add_argument(
         "--configure_models_dirpath",
         type=str,
         help="Path to a directory containing models to use when in configure mode.",
-        required=True,
     )
 
     args = parser.parse_args()
@@ -106,7 +99,7 @@ if __name__ == "__main__":
     )
 
     # Validate config file against schema
-    with open(args.metaparameters_filepath[0]()) as config_file:
+    with open(args.metaparameters_filepath) as config_file:
         config_json = json.load(config_file)
     with open(args.schema_filepath) as schema_file:
         schema_json = json.load(schema_file)
@@ -115,7 +108,7 @@ if __name__ == "__main__":
     jsonschema.validate(instance=config_json, schema=schema_json)
 
     # Create the detector instance and loads the metaparameters.
-    detector = Detector(args.metaparameter_filepath, args.learned_parameters_dirpath)
+    detector = Detector(args.metaparameters_filepath, args.learned_parameters_dirpath)
 
     if not args.configure_mode:
         if (
