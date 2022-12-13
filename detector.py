@@ -195,14 +195,19 @@ class Detector(AbstractDetector):
 
                 X = np.vstack((X, model_feats)) * self.model_skew[model_arch]
 
+        logging.info("Training RandomForestRegressor model...")
         model = RandomForestRegressor(
             **self.random_forest_kwargs,
             random_state=0,
         )
         model.fit(X, y)
 
+        logging.info("Saving RandomForestRegressor model...")
         with open(self.model_filepath, "wb") as fp:
             pickle.dump(model, fp)
+
+        logging.info("Configuration done!")
+
 
     def infer(
         self,
@@ -238,8 +243,10 @@ class Detector(AbstractDetector):
             layer_transform[model_class], new_model
         ) * self.model_skew[model_class]
 
-        with open(self.model_filepath, "wb") as fp:
+        with open(self.model_filepath, "rb") as fp:
             model: RandomForestRegressor = pickle.load(fp)
 
-        with open(result_filepath, "r") as fp:
-            fp.write(model.predict(X))
+        with open(result_filepath, "w") as fp:
+            fp.write(str(model.predict(X).tolist()[0]))
+
+        logging.info("Inference done!")
