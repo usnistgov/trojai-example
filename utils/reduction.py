@@ -1,9 +1,7 @@
-from os.path import exists
-import numpy as np
-import pickle
-from tqdm import tqdm
 import importlib
-from copy import deepcopy
+
+import numpy as np
+from tqdm import tqdm
 
 
 def feature_reduction(model, weight_table, max_features):

@@ -9,6 +9,7 @@ import torch
 from sklearn.ensemble import RandomForestRegressor
 from tqdm import tqdm
 
+from utils.abstract import AbstractDetector
 from utils.flatten import flatten_model, pad_to_target
 from utils.healthchecks import check_models_consistency
 from utils.models import create_layer_map
@@ -18,7 +19,7 @@ from utils.reduction import (
 )
 
 
-class Detector:
+class Detector(AbstractDetector):
     model_padding = {
         "MobileNetV2": {"classifier.1.weight": [138, 1280], "classifier.1.bias": [138]},
         "ResNet": {"fc.weight": [138, 2048], "fc.bias": [138]},
@@ -26,7 +27,15 @@ class Detector:
     }
 
     def __init__(self, metaparameter_filepath, learned_parameters_dirpath):
+        """Detector initialization function
+
+        Args:
+            metaparameter_filepath:
+            learned_parameters_dirpath:
+        """
         metaparameters = json.load(open(metaparameter_filepath, "r"))
+        super().__init__(metaparameters["automatic_training"])
+
         self.model_filepath = join(learned_parameters_dirpath, "data/model.bin")
         self.model_layer_map_filepath = join(
             learned_parameters_dirpath, "data/model_layer_map.bin"
@@ -42,6 +51,7 @@ class Detector:
         }
         self.normalize = metaparameters["infer_normalize_features"]
 
+        self.configure_fn = self.configure
         self.input_features = metaparameters["train_input_features"]
         self.weight_table_params = {
             "random_seed": metaparameters["train_weight_table_random_state"],
@@ -96,8 +106,12 @@ class Detector:
 
         return model_repr, model_class, model_ground_truth
 
-    def configure(self, models_dirpath, auto_training=True):
-        # FIXME add auto-training
+    def auto_configure(self, model_dirpath):
+        for random_seed in np.random.randint(1000, 9999, 10):
+            self.weight_table_params["random_seed"] = random_seed
+            self.manual_configure(model_dirpath)
+
+    def manual_configure(self, models_dirpath):
         # List all available model and limit to the number provided
         model_path_list = sorted(
             [join(models_dirpath, model) for model in listdir(models_dirpath)]
@@ -187,7 +201,16 @@ class Detector:
         examples_dirpath,
         round_training_dataset_dirpath,
     ):
-        # TODO implement per round inferencing examples
+        """
+
+        Args:
+            model_filepath:
+            result_filepath:
+            scratch_dirpath:
+            examples_dirpath:
+            round_training_dataset_dirpath:
+        """
+        # TODO implement per round inferencing examples.
         model_repr, model_class, _ = self._load_model(
             model_filepath, configure_mode=True
         )

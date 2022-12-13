@@ -25,7 +25,6 @@ def pad_to_target(input_array: np.array, target_padding: list, constant_value=0)
 def flatten_layer(model, layer_map):
     nbt_layer = None
     output = None
-    output_list = []
     for layer in layer_map:
         if "num_batches_tracked" in layer:
             nbt_layer = layer

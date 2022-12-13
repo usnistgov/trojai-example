@@ -1,3 +1,5 @@
+""" Entrypoint to interact with the detector.
+"""
 import json
 import logging
 import warnings
@@ -102,25 +104,15 @@ if __name__ == "__main__":
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s",
     )
-    logging.info("example_trojan_detector.py launched")
 
     # Validate config file against schema
-    # config_json = None
-    # if args.metaparameters_filepath is not None:
-    #     with open(args.metaparameters_filepath[0]()) as config_file:
-    #         config_json = json.load(config_file)
-    #         if args.parameter1 is None:
-    #             args.parameter1 = config_json["parameters1"]
-    #         if args.parameter2 is None:
-    #             args.parameter2 = config_json["parameters1"]
-    # if args.schema_filepath is not None:
-    #     with open(args.schema_filepath) as schema_file:
-    #         schema_json = json.load(schema_file)
+    with open(args.metaparameters_filepath[0]()) as config_file:
+        config_json = json.load(config_file)
+    with open(args.schema_filepath) as schema_file:
+        schema_json = json.load(schema_file)
 
-    # # this throws a fairly descriptive error if validation fails
-    # jsonschema.validate(instance=config_json, schema=schema_json)
-
-    logging.info(args)
+    # Throws a fairly descriptive error if validation fails.
+    jsonschema.validate(instance=config_json, schema=schema_json)
 
     # Create the detector instance and loads the metaparameters.
     detector = Detector(args.metaparameter_filepath, args.learned_parameters_dirpath)
@@ -132,7 +124,6 @@ if __name__ == "__main__":
             and args.scratch_dirpath is not None
             and args.examples_dirpath is not None
             and args.round_training_dataset_dirpath is not None
-            # and args.learned_parameters_dirpath is not None
         ):
             logging.info("Calling the trojan detector")
             detector.infer(
@@ -145,16 +136,8 @@ if __name__ == "__main__":
         else:
             logging.error("Required Evaluation-Mode parameters missing!")
     else:
-        if (
-            # args.learned_parameters_dirpath is not None
-            # and args.configure_models_dirpath is not None
-            args.configure_models_dirpath
-            is not None
-            # and args.parameter3 is not None
-        ):
-
+        if args.configure_models_dirpath is not None:
             logging.info("Calling configuration mode")
-            # all 3 example parameters will be loaded here, but we only use parameter3
             detector.configure(
                 args.configure_models_dirpath,
             )
