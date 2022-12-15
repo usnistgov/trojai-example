@@ -28,11 +28,11 @@ class Detector(AbstractDetector):
     }
 
     def __init__(self, metaparameter_filepath, learned_parameters_dirpath):
-        """Detector initialization function
+        """Detector initialization function.
 
         Args:
-            metaparameter_filepath:
-            learned_parameters_dirpath:
+            metaparameter_filepath: str - File path to the metaparameters file.
+            learned_parameters_dirpath: str - Path to the learned parameters directory.
         """
         metaparameters = json.load(open(metaparameter_filepath, "r"))
         super().__init__(metaparameters["automatic_training"])
@@ -88,34 +88,65 @@ class Detector(AbstractDetector):
             ],
         }
 
-    def _load_model(self, model_path, configure_mode=False):
-        model = torch.load(join(model_path, "model.pt"))
+    @staticmethod
+    def _load_model(model_filepath: str) -> (dict, str):
+        """Load a model given a specific model_path.
+
+        Args:
+            model_filepath: str - Path to model.pt file
+
+        Returns:
+            dict, str - Dictionary representation of the model + model class name
+        """
+        model = torch.load(model_filepath)
         model_class = model.__class__.__name__
         model_repr = OrderedDict(
             {layer: tensor.numpy() for (layer, tensor) in model.state_dict().items()}
         )
 
-        # Load ground truth data if in configure mode
-        model_ground_truth = None
-        if configure_mode:
-            with open(join(model_path, "ground_truth.csv"), "r") as fp:
-                model_ground_truth = fp.readlines()[0]
+        return model_repr, model_class
 
-        # Ensure every layer is correctly padded, so that every model has the same
-        # number of weights no matter the number of classes
+    def _pad_model(self, model_dict: dict, model_class: str) -> dict:
+        """Ensure every layer is correctly padded, so that every model has the same
+        number of weights no matter the number of classes.
+
+        Args:
+            model_dict: dict - Dictionary representation of the model
+            model_class: str - Model class name
+
+        Returns:
+            dict - The padded dictionary
+        """
         for (layer, target_padding) in self.model_padding[model_class].items():
-            model_repr[layer] = pad_to_target(model_repr[layer], target_padding)
+            model_dict[layer] = pad_to_target(model_dict[layer], target_padding)
 
-        return model_repr, model_class, model_ground_truth
+        return model_dict
 
-    def _load_models_dirpath(self, models_dirpath, configure_mode=False):
+    def _load_ground_truth(self, model_dirpath: str):
+        """Returns the ground truth for a given model.
+
+        Args:
+            model_dirpath: str -
+
+        Returns:
+
+        """
+
+        with open(join(model_dirpath, "ground_truth.csv"), "r") as fp:
+            model_ground_truth = fp.readlines()[0]
+
+        return int(model_ground_truth)
+
+    def _load_models_dirpath(self, models_dirpath):
         model_repr_dict = {}
         model_ground_truth_dict = {}
 
         for model_path in tqdm(models_dirpath):
-            model_repr, model_class, model_ground_truth = self._load_model(
-                model_path, configure_mode=configure_mode
+            model_repr, model_class = self._load_model(
+                join(model_path, "model.pt")
             )
+            model_repr = self._pad_model(model_repr, model_class)
+            model_ground_truth = self._load_ground_truth(model_path)
 
             # Build the list of models
             if model_class not in model_repr_dict.keys():
@@ -129,6 +160,14 @@ class Detector(AbstractDetector):
 
     @staticmethod
     def _flatten_models(model_repr_dict, model_layer_map):
+        """Flatten a list of models
+
+        Args:
+            model_repr_dict:
+            model_layer_map:
+
+        Returns:
+        """
         flat_models = {}
 
         for _ in range(len(model_repr_dict)):
@@ -145,12 +184,25 @@ class Detector(AbstractDetector):
 
         return flat_models
 
-    def automatic_configure(self, model_dirpath):
+    def automatic_configure(self, models_dirpath: str):
+        """Configuration of the detector iterating on some of the parameters from the
+        metaparameter file, performing a grid search type approach to optimize these
+        parameters.
+
+        Args:
+            models_dirpath: str - Path to the list of model to use for training
+        """
         for random_seed in np.random.randint(1000, 9999, 10):
             self.weight_table_params["random_seed"] = random_seed
-            self.manual_configure(model_dirpath)
+            self.manual_configure(models_dirpath)
 
-    def manual_configure(self, models_dirpath):
+    def manual_configure(self, models_dirpath: str):
+        """Configuration of the detector using the parameters from the metaparameters
+        JSON file.
+
+        Args:
+            models_dirpath: str - Path to the list of model to use for training
+        """
         # Create the learned parameter folder if needed
         if not exists(self.learned_parameters_dirpath):
             makedirs(self.learned_parameters_dirpath)
@@ -162,7 +214,7 @@ class Detector(AbstractDetector):
         logging.info(f"Loading %d models...", len(model_path_list))
 
         model_repr_dict, model_ground_truth_dict = self._load_models_dirpath(
-            model_path_list, configure_mode=True
+            model_path_list
         )
         check_models_consistency(model_repr_dict)
 
@@ -248,7 +300,7 @@ class Detector(AbstractDetector):
         logging.info(f"Loading %d models...", len(model_path_list))
 
         model_repr_dict, _ = self._load_models_dirpath(
-            model_path_list, configure_mode=False
+            model_path_list
         )
         logging.info("Loaded models. Flattenning...")
 
@@ -262,10 +314,8 @@ class Detector(AbstractDetector):
         )
 
         # TODO implement per round inferencing examples.
-        model_repr, model_class, _ = self._load_model(
-            model_filepath, configure_mode=True
-        )
-
+        model_repr, model_class = self._load_model(model_filepath)
+        model_repr = self._pad_model(model_repr, model_class)
         flat_model = flatten_model(model_repr, model_layer_map[model_class])
 
         X = (
