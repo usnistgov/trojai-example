@@ -108,28 +108,13 @@ class Detector(AbstractDetector):
 
         return model_repr, model_class, model_ground_truth
 
-    def automatic_configure(self, model_dirpath):
-        for random_seed in np.random.randint(1000, 9999, 10):
-            self.weight_table_params["random_seed"] = random_seed
-            self.manual_configure(model_dirpath)
-
-    def manual_configure(self, models_dirpath):
-        # Create the learned parameter folder if needed
-        if not exists(self.learned_parameters_dirpath):
-            makedirs(self.learned_parameters_dirpath)
-
-        # List all available model and limit to the number provided
-        model_path_list = sorted(
-            [join(models_dirpath, model) for model in listdir(models_dirpath)]
-        )
-        logging.info(f"Loading %d models...", len(model_path_list))
-
+    def _load_models_dirpath(self, models_dirpath, configure_mode=False):
         model_repr_dict = {}
         model_ground_truth_dict = {}
 
-        for model_path in tqdm(model_path_list):
+        for model_path in tqdm(models_dirpath):
             model_repr, model_class, model_ground_truth = self._load_model(
-                model_path, configure_mode=True
+                model_path, configure_mode=configure_mode
             )
 
             # Build the list of models
@@ -140,17 +125,12 @@ class Detector(AbstractDetector):
             model_repr_dict[model_class].append(model_repr)
             model_ground_truth_dict[model_class].append(model_ground_truth)
 
-        check_models_consistency(model_repr_dict)
+        return model_repr_dict, model_ground_truth_dict
 
-        # Build model layer map to know how to flatten
-        logging.info("Generating model layer map...")
-        model_layer_map = create_layer_map(model_repr_dict)
-        with open(self.model_layer_map_filepath, "wb") as fp:
-            pickle.dump(model_layer_map, fp)
-        logging.info("Generated model layer map. Flattenning models...")
-
-        # Flatten model
+    @staticmethod
+    def _flatten_models(model_repr_dict, model_layer_map):
         flat_models = {}
+
         for _ in range(len(model_repr_dict)):
             (model_arch, models) = model_repr_dict.popitem()
             if model_arch not in flat_models.keys():
@@ -163,14 +143,44 @@ class Detector(AbstractDetector):
                     flatten_model(model, model_layer_map[model_arch])
                 )
 
+        return flat_models
+
+    def automatic_configure(self, model_dirpath):
+        for random_seed in np.random.randint(1000, 9999, 10):
+            self.weight_table_params["random_seed"] = random_seed
+            self.manual_configure(model_dirpath)
+
+    def manual_configure(self, models_dirpath):
+        # Create the learned parameter folder if needed
+        if not exists(self.learned_parameters_dirpath):
+            makedirs(self.learned_parameters_dirpath)
+
+        # List all available model
+        model_path_list = sorted(
+            [join(models_dirpath, model) for model in listdir(models_dirpath)]
+        )
+        logging.info(f"Loading %d models...", len(model_path_list))
+
+        model_repr_dict, model_ground_truth_dict = self._load_models_dirpath(
+            model_path_list, configure_mode=True
+        )
+        check_models_consistency(model_repr_dict)
+
+        # Build model layer map to know how to flatten
+        logging.info("Generating model layer map...")
+        model_layer_map = create_layer_map(model_repr_dict)
+        with open(self.model_layer_map_filepath, "wb") as fp:
+            pickle.dump(model_layer_map, fp)
+        logging.info("Generated model layer map. Flattenning models...")
+
+        # Flatten models
+        flat_models = self._flatten_models(model_repr_dict, model_layer_map)
         del model_repr_dict
         logging.info("Models flattened. Fitting feature reduction...")
 
         layer_transform = fit_feature_reduction_algorithm(
             flat_models, self.weight_table_params, self.input_features
         )
-        with open(self.layer_transform_filepath, "wb") as fp:
-            pickle.dump(layer_transform, fp)
 
         logging.info("Feature reduction applied. Creating feature file...")
         X = None
@@ -208,7 +218,6 @@ class Detector(AbstractDetector):
 
         logging.info("Configuration done!")
 
-
     def infer(
         self,
         model_filepath,
@@ -217,7 +226,7 @@ class Detector(AbstractDetector):
         examples_dirpath,
         round_training_dataset_dirpath,
     ):
-        """ Method to predict wether a model is poisoned (1) or clean (0).
+        """Method to predict wether a model is poisoned (1) or clean (0).
 
         Args:
             model_filepath:
@@ -226,27 +235,48 @@ class Detector(AbstractDetector):
             examples_dirpath:
             round_training_dataset_dirpath:
         """
+        with open(self.model_layer_map_filepath, "rb") as fp:
+            model_layer_map = pickle.load(fp)
+
+        # List all available model and limit to the number provided
+        model_path_list = sorted(
+            [
+                join(round_training_dataset_dirpath, model)
+                for model in listdir(round_training_dataset_dirpath)
+            ]
+        )
+        logging.info(f"Loading %d models...", len(model_path_list))
+
+        model_repr_dict, _ = self._load_models_dirpath(
+            model_path_list, configure_mode=False
+        )
+        logging.info("Loaded models. Flattenning...")
+
+        # Flatten model
+        flat_models = self._flatten_models(model_repr_dict, model_layer_map)
+        del model_repr_dict
+        logging.info("Models flattened. Fitting feature reduction...")
+
+        layer_transform = fit_feature_reduction_algorithm(
+            flat_models, self.weight_table_params, self.input_features
+        )
+
         # TODO implement per round inferencing examples.
         model_repr, model_class, _ = self._load_model(
             model_filepath, configure_mode=True
         )
 
-        with open(self.model_layer_map_filepath, "rb") as fp:
-            model_layer_map = pickle.load(fp)
+        flat_model = flatten_model(model_repr, model_layer_map[model_class])
 
-        new_model = flatten_model(model_repr, model_layer_map[model_class])
-
-        with open(self.layer_transform_filepath, "rb") as fp:
-            layer_transform = pickle.load(fp)
-
-        X = use_feature_reduction_algorithm(
-            layer_transform[model_class], new_model
-        ) * self.model_skew[model_class]
+        X = (
+            use_feature_reduction_algorithm(layer_transform[model_class], flat_model)
+            * self.model_skew[model_class]
+        )
 
         with open(self.model_filepath, "rb") as fp:
-            model: RandomForestRegressor = pickle.load(fp)
+            regressor: RandomForestRegressor = pickle.load(fp)
 
         with open(result_filepath, "w") as fp:
-            fp.write(str(model.predict(X).tolist()[0]))
+            fp.write(str(regressor.predict(X).tolist()[0]))
 
         logging.info("Inference done!")

@@ -22,7 +22,7 @@ if __name__ == "__main__":
         "--model_filepath",
         type=str,
         help="File path to the pytorch model file to be evaluated.",
-        default="./model.pt"
+        default="./model.pt",
     )
     parser.add_argument(
         "--result_filepath",
@@ -30,7 +30,7 @@ if __name__ == "__main__":
         help="File path to the file where output result should be written. After "
         "execution this file should contain a single line with a single floating "
         "point trojan probability.",
-        default="./output"
+        default="./output",
     )
     parser.add_argument(
         "--scratch_dirpath",
@@ -38,21 +38,21 @@ if __name__ == "__main__":
         help="File path to the folder where scratch disk space exists. This folder will "
         "be empty at execution start and will be deleted at completion of "
         "execution.",
-        default="./scratch"
+        default="./scratch",
     )
     parser.add_argument(
         "--examples_dirpath",
         type=str,
         help="File path to the folder of examples which might be useful for determining "
         "whether a model is poisoned.",
-        default="./example"
+        default="./example",
     )
     parser.add_argument(
         "--round_training_dataset_dirpath",
         type=str,
         help="File path to the directory containing id-xxxxxxxx models of the current "
         "rounds training dataset.",
-        default=None
+        default=None,
     )
 
     parser.add_argument(
@@ -83,7 +83,7 @@ if __name__ == "__main__":
         help="Instead of detecting Trojans, set values of tunable parameters and write "
         "them to a given location.",
         default=False,
-        action="store_true"
+        action="store_true",
     )
     parser.add_argument(
         "--configure_models_dirpath",
