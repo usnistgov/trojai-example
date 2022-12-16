@@ -39,3 +39,41 @@ def create_models_padding(model_repr_dict: dict) -> dict:
                         padding[model_class][layer] = new_padding
 
     return padding
+
+
+def pad_to_target(input_array: np.array, target_padding: list, constant_value=0):
+    try:
+        padding_array = []
+        assert len(target_padding) == len(input_array.shape)
+        for (idx, target) in enumerate(target_padding):
+            current = input_array.shape[idx]
+            assert target >= current
+            if target > current:
+                padding_array.append((0, target - current))
+            else:
+                padding_array.append((0, 0))
+    except AssertionError:
+        raise Exception(
+            f"Incorrect target padding: {input_array.shape} cannot be padded to "
+            f"{target_padding}!"
+        )
+    return np.pad(input_array, padding_array, constant_values=constant_value)
+
+
+def pad_model(model_dict: dict, model_class: str, models_padding_dict: dict) -> dict:
+    """Ensure every layer is correctly padded, so that every model has the same
+    number of weights no matter the number of classes.
+
+    Args:
+        model_dict: dict - Dictionary representation of the model
+        model_class: str - Model class name
+        models_padding_dict: dict - Paddings for the round's model classes
+
+    Returns:
+        dict - The padded dictionary
+    """
+    for (layer, target_padding) in models_padding_dict[model_class].items():
+        model_dict[layer] = pad_to_target(model_dict[layer], target_padding)
+
+    return model_dict
+
