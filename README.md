@@ -169,8 +169,8 @@ A small toy set of clean & poisioned data is also provided in this repository un
 3. Install required packages into this conda environment
 
     - `conda install cuda -c "nvidia/label/cuda-11.6.2"`
-    - `conda install pytorch=1.13.1 torchvision=0.14.1 -c pytorch`
-    - `pip install tqdm opencv-python jsonschema jsonargparse scikit-learn`
+    - `conda install pytorch=1.13.1 -c pytorch`
+    - `pip install tqdm jsonschema jsonargparse scikit-learn`
 
 ## Test Fake Detector Without Containerization
 
