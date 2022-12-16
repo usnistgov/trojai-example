@@ -34,15 +34,9 @@ class Detector(AbstractDetector):
 
         self.learned_parameters_dirpath = learned_parameters_dirpath
         self.model_filepath = join(self.learned_parameters_dirpath, "model.bin")
-        self.models_padding_dict_filepath = join(
-            self.learned_parameters_dirpath, "models_padding_dict.bin"
-        )
-        self.model_layer_map_filepath = join(
-            self.learned_parameters_dirpath, "model_layer_map.bin"
-        )
-        self.layer_transform_filepath = join(
-            self.learned_parameters_dirpath, "layer_transform.bin"
-        )
+        self.models_padding_dict_filepath = join(self.learned_parameters_dirpath, "models_padding_dict.bin")
+        self.model_layer_map_filepath = join(self.learned_parameters_dirpath, "model_layer_map.bin")
+        self.layer_transform_filepath = join(self.learned_parameters_dirpath, "layer_transform.bin")
 
         # TODO: Update skew parameters per round
         self.model_skew = {
@@ -207,14 +201,10 @@ class Detector(AbstractDetector):
             makedirs(self.learned_parameters_dirpath)
 
         # List all available model
-        model_path_list = sorted(
-            [join(models_dirpath, model) for model in listdir(models_dirpath)]
-        )
+        model_path_list = sorted([join(models_dirpath, model) for model in listdir(models_dirpath)])
         logging.info(f"Loading %d models...", len(model_path_list))
 
-        model_repr_dict, model_ground_truth_dict = self._load_models_dirpath(
-            model_path_list
-        )
+        model_repr_dict, model_ground_truth_dict = self._load_models_dirpath(model_path_list)
 
         models_padding_dict = create_models_padding(model_repr_dict)
         with open(self.models_padding_dict_filepath, "wb") as fp:
@@ -222,9 +212,7 @@ class Detector(AbstractDetector):
 
         for model_class, model_repr_list in model_repr_dict.items():
             for index, model_repr in enumerate(model_repr_list):
-                model_repr_dict[model_class][index] = self._pad_model(
-                    model_repr, model_class, models_padding_dict
-                )
+                model_repr_dict[model_class][index] = self._pad_model(model_repr, model_class, models_padding_dict)
 
         check_models_consistency(model_repr_dict)
 
@@ -240,9 +228,7 @@ class Detector(AbstractDetector):
         del model_repr_dict
         logging.info("Models flattened. Fitting feature reduction...")
 
-        layer_transform = fit_feature_reduction_algorithm(
-            flat_models, self.weight_table_params, self.input_features
-        )
+        layer_transform = fit_feature_reduction_algorithm(flat_models, self.weight_table_params, self.input_features)
 
         logging.info("Feature reduction applied. Creating feature file...")
         X = None
@@ -271,10 +257,7 @@ class Detector(AbstractDetector):
                     X = np.vstack((X, model_feats))
 
         logging.info("Training RandomForestRegressor model...")
-        model = RandomForestRegressor(
-            **self.random_forest_kwargs,
-            random_state=0,
-        )
+        model = RandomForestRegressor(**self.random_forest_kwargs, random_state=0)
         model.fit(X, y)
 
         logging.info("Saving RandomForestRegressor model...")
@@ -312,9 +295,7 @@ class Detector(AbstractDetector):
         )
         logging.info(f"Loading %d models...", len(model_path_list))
 
-        model_repr_dict, _ = self._load_models_dirpath(
-            model_path_list
-        )
+        model_repr_dict, _ = self._load_models_dirpath(model_path_list)
         logging.info("Loaded models. Flattenning...")
 
         with open(self.models_padding_dict_filepath, "rb") as fp:
@@ -322,18 +303,14 @@ class Detector(AbstractDetector):
 
         for model_class, model_repr_list in model_repr_dict.items():
             for index, model_repr in enumerate(model_repr_list):
-                model_repr_dict[model_class][index] = self._pad_model(
-                    model_repr, model_class, models_padding_dict
-                )
+                model_repr_dict[model_class][index] = self._pad_model(model_repr, model_class, models_padding_dict)
 
         # Flatten model
         flat_models = self._flatten_models(model_repr_dict, model_layer_map)
         del model_repr_dict
         logging.info("Models flattened. Fitting feature reduction...")
 
-        layer_transform = fit_feature_reduction_algorithm(
-            flat_models, self.weight_table_params, self.input_features
-        )
+        layer_transform = fit_feature_reduction_algorithm(flat_models, self.weight_table_params, self.input_features)
 
         # TODO implement per round inferencing examples.
         model, model_repr, model_class = self._load_model(model_filepath)

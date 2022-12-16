@@ -15,7 +15,7 @@ if __name__ == "__main__":
     from jsonargparse import ArgumentParser
 
     parser = ArgumentParser(
-        description="Fake Trojan Detector to Demonstrate Test and Evaluation "
+        description="Template Trojan Detector to Demonstrate Test and Evaluation. Should be customized to work with target round in TrojAI."
         "Infrastructure."
     )
     parser.add_argument(
