@@ -85,8 +85,7 @@ class Detector(AbstractDetector):
 
     def write_metaparameters(self):
         metaparameters = {
-            "infer_model_skew_TBD": self.model_skew,
-            "infer_normalize_features": self.normalize,
+            "infer_cyber_model_skew": self.model_skew["__all__"],
             "train_input_features": self.input_features,
             "train_weight_table_random_state": self.weight_table_params["random_seed"],
             "train_weight_table_params_mean": self.weight_table_params["mean"],
