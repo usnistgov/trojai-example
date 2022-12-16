@@ -3,7 +3,7 @@
   "title": "Trojan Detection Container (trojai-example) - The template detector to be used within the TrojAI competition.",
   "technique": "Random Forest Regressor",
   "technique_description": "Extracts model weights and trains a random forest regressor.",
-  "technique_changes": "Mixup mobilnet data and fit the model; output metaparameter.json file after reconfiguration",
+  "technique_changes": "Output metaparameter.json file after reconfiguration",
   "commit_id": "",
   "repo_name": "https://github.com/usnistgov/trojai-example",
   "required": [],
