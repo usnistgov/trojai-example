@@ -19,11 +19,11 @@
 		"suggested_maximum": 0.75
 	},
 	"infer_normalize_features": {
-		"description": "Whether to normalize features or not",
+		"description": "Whether to normalize features or not.",
 		"type": "boolean"
 	},
 	"train_input_features":  {
-		"description": "The input features for training",
+		"description": "The input features for training.",
 		"type": "integer",
 		"minimum": 5,
 		"maximum": 2000,
@@ -31,7 +31,7 @@
 		"suggested_maximum": 2200
 	},
 	"train_weight_table_random_state": {
-		"description": "Random state for weight table during training",
+		"description": "Random state for weight table during training.",
 		"type": "integer",
 		"minimum": 1,
 		"maximum": 200,
@@ -39,7 +39,7 @@
 		"suggested_maximum": 150
 	},
 	"train_weight_table_params_mean": {
-		"description": "Weight table parameter for the mean controlling. ... ",
+		"description": "Mean of the normal distribution used for the weight table.",
 		"type": "number",
 		"minimum": 0,
 		"maximum": 1.0,
@@ -47,7 +47,7 @@
 		"suggested_maximum": 0.75
 	},
 	"train_weight_table_params_std": {
-		"description": "Weight table parameter for the standard deviation controlling. ... ",
+		"description": "Standard deviation of the normal distribution used for the weight table.",
 		"type": "number",
 		"minimum": 0,
 		"maximum": 1.0,
@@ -55,7 +55,7 @@
 		"suggested_maximum": 0.1
 	},
 	"train_weight_table_params_scaler": {
-		"description": "Weight table parameter for scaling controlling. ... ",
+		"description": "Multiply all items of the weight table by this number (float).",
 		"type": "number",
 		"minimum": 0,
 		"maximum": 5.0,
@@ -63,7 +63,7 @@
 		"suggested_maximum": 2.5
 	},
 	"train_random_forest_regressor_param_n_estimators": {
-		"description": "Random forest regressor parameter n_estimators, controlling ...",
+		"description": "Number of trees in the forest.",
 		"type": "integer",
 		"minimum": 1,
 		"maximum": 200,
@@ -71,11 +71,11 @@
 		"suggested_maximum": 150
 	},
 	"train_random_forest_regressor_param_criterion": {
-		"description": "Random forest regressor parameter criterion ...",
-		"enum": ["squared_error"]
+		"description": "Function to measure the quality of a split.",
+		"enum": ["squared_error", "absolute_error", "friedman_mse", "poisson"]
 	},
 	"train_random_forest_regressor_param_max_depth": {
-		"description": "Random forest regressor parameter max depth, controlling ...",
+		"description": "The maximum depth of the tree",
 		"type": "integer",
 		"minimum": 1,
 		"maximum": 20,
@@ -83,7 +83,7 @@
 		"suggested_maximum": 20
 	},
 	"train_random_forest_regressor_param_min_samples_split": {
-		"description": "Random forest regressor parameter min samples, controlling ...",
+		"description": "The minimum number of samples required to split an internal node.",
 		"type": "integer",
 		"minimum": 1,
 		"maximum": 5,
@@ -91,7 +91,7 @@
 		"suggested_maximum": 2
 	},
 	"train_random_forest_regressor_param_min_samples_leaf": {
-		"description": "Random forest regressor parameter min samples leaf, controlling ...",
+		"description": "The minimum number of samples required to be at a leaf node.",
 		"type": "integer",
 		"minimum": 1,
 		"maximum": 5,
@@ -99,7 +99,7 @@
 		"suggested_maximum": 2
 	},
 	"train_random_forest_regressor_param_min_weight_fraction_leaf": {
-		"description": "Random forest regressor parameter min weight fraction leaf, controlling ...",
+		"description": "The minimum weighted fraction of the sum total of weights (of all the input samples) required to be at a leaf node.",
 		"type": "number",
 		"minimum": 0.0,
 		"maximum": 1.0,
@@ -107,7 +107,7 @@
 		"suggested_maximum": 1.0
 	},
 	"train_random_forest_regressor_param_max_features": {
-		"description": "Random forest regressor parameter maximum features, controlling ...",
+		"description": "The number of features to consider when looking for the best split.",
 		"type": "number",
 		"minimum": 0.0,
 		"maximum": 2.0,
@@ -115,7 +115,7 @@
 		"suggested_maximum": 2.0
 	},
 	"train_random_forest_regressor_param_min_impurity_decrease": {
-		"description": "Random forest regressor parameter min impurity decrease, controlling ...",
+		"description": "A node will be split if this split induces a decrease of the impurity greater than or equal to this value.",
 		"type": "number",
 		"minimum": 0.0,
 		"maximum": 2.0,
