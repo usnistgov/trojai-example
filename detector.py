@@ -44,10 +44,9 @@ class Detector(AbstractDetector):
             self.learned_parameters_dirpath, "layer_transform.bin"
         )
 
+        # TODO: Update skew parameters per round
         self.model_skew = {
-            "MobileNetV2": metaparameters["infer_model_skew_mobilenetv2"],
-            "ResNet": metaparameters["infer_model_skew_resnet"],
-            "VisionTransformer": metaparameters["infer_model_skew_visiontransformer"],
+            "TBD": metaparameters["infer_model_skew_TBD"],
         }
         self.normalize = metaparameters["infer_normalize_features"]
 
@@ -266,7 +265,10 @@ class Detector(AbstractDetector):
                     X = model_feats
                     continue
 
-                X = np.vstack((X, model_feats))
+                if model_arch in self.model_skew:
+                    X = np.vstack((X, model_feats)) * self.model_skew[model_arch]
+                else:
+                    X = np.vstack((X, model_feats))
 
         logging.info("Training RandomForestRegressor model...")
         model = RandomForestRegressor(

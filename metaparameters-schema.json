@@ -14,29 +14,13 @@
 		"description" : "Sets up automatic training to explore the training parameter space (should not do exhaustive search, but some optimized parameter search algorithm)",
 		"type": "boolean"
 	},
-	"infer_model_skew_mobilenetv2": {
-		"description": "Skew parameters controlling ... for mobilenetv2",
+	"infer_model_skew_TBD": {
+		"description": "Skew parameters TBD. Fill in per round, potentially one per model architecture",
 		"type": "number",
 		"minimum": 0.01,
 		"maximum": 5.0,
 		"suggested_minimum": 0.3,
 		"suggested_maximum": 0.75
-	},
-	"infer_model_skew_resnet": {
-		"description": "Skew parameters controlling ... for resnet",
-		"type": "number",
-		"minimum": 0.01,
-		"maximum": 5.0,
-		"suggested_minimum": 0.3,
-		"suggested_maximum": 3.0
-	},
-	"infer_model_skew_visiontransformer": {
-		"description": "Skew parameters controlling ... for VisionTransformer",
-		"type": "number",
-		"minimum": 0.01,
-		"maximum": 5.0,
-		"suggested_minimum": 0.3,
-		"suggested_maximum": 3.0
 	},
 	"infer_normalize_features": {
 		"description": "Whether to normalize features or not",

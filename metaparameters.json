@@ -1,8 +1,6 @@
 {
 	"automatic_training": false,
-	"infer_model_skew_mobilenetv2": 0.45,
-	"infer_model_skew_resnet": 1.02,
-	"infer_model_skew_visiontransformer": 2.46,
+	"infer_model_skew_TBD": 0.45,
 	"infer_normalize_features": true,
 	"train_input_features": 1500,
 	"train_weight_table_random_state": 101,
