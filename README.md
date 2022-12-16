@@ -181,8 +181,6 @@ A small toy set of clean & poisioned data is also provided in this repository un
     cd trojai-example
     git checkout cyber-pdf-dec2022
     ``` 
-    
-    - The example model is too big for the repository, so you will need to download it following the instructions in the /model directory.
 
 2. Test the python based `example_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
 
