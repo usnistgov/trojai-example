@@ -1,0 +1,14 @@
+{
+  "order": {
+    "0": "creator_dot",
+    "1": "producer_uc",
+    "2": "title_num",
+    "3": "creator_lc"
+  },
+  "map": {
+    "creator_dot": 4.0,
+    "producer_uc": 13.0,
+    "title_num": 17.0,
+    "creator_lc": 2.0
+  }
+}
