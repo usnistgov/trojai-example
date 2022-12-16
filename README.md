@@ -211,7 +211,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./new_learned_parameters/ \
-    --configure_models_dirpath=./model/ \
+    --configure_models_dirpath=/path/to/new-train-dataset \
     --scale_parameters_filepath ./scale_params.npy
     ```
 
@@ -285,7 +285,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./new_learned_parameters/ \
-    --configure_models_dirpath=./model/ \
+    --configure_models_dirpath=/path/to/new-train-dataset \
     --scale_parameters_filepath ./scale_params.npy
     ```
 
