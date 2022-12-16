@@ -1,0 +1,5 @@
+{
+    "arch": "nn",
+    "nn_layers": 6,
+    "nn_activation_function": "tanh"
+}
