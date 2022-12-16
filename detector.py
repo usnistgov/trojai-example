@@ -224,7 +224,7 @@ class Detector(AbstractDetector):
         model_path_list = sorted(
             [
                 join(round_training_dataset_dirpath, model)
-                for model in listdir(round_training_dataset_dirpath)
+                for model in listdir(join(round_training_dataset_dirpath, 'models'))
             ]
         )
         logging.info(f"Loading %d models...", len(model_path_list))
