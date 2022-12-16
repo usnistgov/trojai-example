@@ -1,5 +1,4 @@
-def get_model_shape(model):
-    return set([tensor.shape for _, tensor in model.items()])
+from utils.arrays import get_model_shape
 
 
 def check_models_consistency(model_repr_dict):

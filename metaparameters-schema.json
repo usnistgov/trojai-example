@@ -45,7 +45,7 @@
 	"train_input_features":  {
 		"description": "The input features for training",
 		"type": "integer",
-		"minimum": 500,
+		"minimum": 5,
 		"maximum": 2000,
 		"suggested_minimum": 750,
 		"suggested_maximum": 2200

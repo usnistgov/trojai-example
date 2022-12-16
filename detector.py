@@ -14,6 +14,7 @@ from utils.abstract import AbstractDetector
 from utils.flatten import flatten_model, pad_to_target
 from utils.healthchecks import check_models_consistency
 from utils.models import create_layer_map
+from utils.padding import create_models_padding
 from utils.reduction import (
     fit_feature_reduction_algorithm,
     use_feature_reduction_algorithm,
@@ -21,12 +22,6 @@ from utils.reduction import (
 
 
 class Detector(AbstractDetector):
-    model_padding = {
-        "MobileNetV2": {"classifier.1.weight": [138, 1280], "classifier.1.bias": [138]},
-        "ResNet": {"fc.weight": [138, 2048], "fc.bias": [138]},
-        "VisionTransformer": {"head.weight": [138, 768], "head.bias": [138]},
-    }
-
     def __init__(self, metaparameter_filepath, learned_parameters_dirpath):
         """Detector initialization function.
 
@@ -39,6 +34,9 @@ class Detector(AbstractDetector):
 
         self.learned_parameters_dirpath = learned_parameters_dirpath
         self.model_filepath = join(self.learned_parameters_dirpath, "model.bin")
+        self.models_padding_dict_filepath = join(
+            self.learned_parameters_dirpath, "models_padding_dict.bin"
+        )
         self.model_layer_map_filepath = join(
             self.learned_parameters_dirpath, "model_layer_map.bin"
         )
@@ -96,7 +94,7 @@ class Detector(AbstractDetector):
             model_filepath: str - Path to model.pt file
 
         Returns:
-            dict, str - Dictionary representation of the model + model class name
+            model, dict, str - Torch model + dictionary representation of the model + model class name
         """
         model = torch.load(model_filepath)
         model_class = model.__class__.__name__
@@ -104,25 +102,28 @@ class Detector(AbstractDetector):
             {layer: tensor.numpy() for (layer, tensor) in model.state_dict().items()}
         )
 
-        return model_repr, model_class
+        return model, model_repr, model_class
 
-    def _pad_model(self, model_dict: dict, model_class: str) -> dict:
+    @staticmethod
+    def _pad_model(model_dict: dict, model_class: str, models_padding_dict: dict) -> dict:
         """Ensure every layer is correctly padded, so that every model has the same
         number of weights no matter the number of classes.
 
         Args:
             model_dict: dict - Dictionary representation of the model
             model_class: str - Model class name
+            models_padding_dict: dict - Paddings for the round's model classes
 
         Returns:
             dict - The padded dictionary
         """
-        for (layer, target_padding) in self.model_padding[model_class].items():
+        for (layer, target_padding) in models_padding_dict[model_class].items():
             model_dict[layer] = pad_to_target(model_dict[layer], target_padding)
 
         return model_dict
 
-    def _load_ground_truth(self, model_dirpath: str):
+    @staticmethod
+    def _load_ground_truth(model_dirpath: str):
         """Returns the ground truth for a given model.
 
         Args:
@@ -142,10 +143,9 @@ class Detector(AbstractDetector):
         model_ground_truth_dict = {}
 
         for model_path in tqdm(models_dirpath):
-            model_repr, model_class = self._load_model(
+            model, model_repr, model_class = self._load_model(
                 join(model_path, "model.pt")
             )
-            model_repr = self._pad_model(model_repr, model_class)
             model_ground_truth = self._load_ground_truth(model_path)
 
             # Build the list of models
@@ -216,6 +216,17 @@ class Detector(AbstractDetector):
         model_repr_dict, model_ground_truth_dict = self._load_models_dirpath(
             model_path_list
         )
+
+        models_padding_dict = create_models_padding(model_repr_dict)
+        with open(self.models_padding_dict_filepath, "wb") as fp:
+            pickle.dump(models_padding_dict, fp)
+
+        for model_class, model_repr_list in model_repr_dict.items():
+            for index, model_repr in enumerate(model_repr_list):
+                model_repr_dict[model_class][index] = self._pad_model(
+                    model_repr, model_class, models_padding_dict
+                )
+
         check_models_consistency(model_repr_dict)
 
         # Build model layer map to know how to flatten
@@ -255,7 +266,7 @@ class Detector(AbstractDetector):
                     X = model_feats
                     continue
 
-                X = np.vstack((X, model_feats)) * self.model_skew[model_arch]
+                X = np.vstack((X, model_feats))
 
         logging.info("Training RandomForestRegressor model...")
         model = RandomForestRegressor(
@@ -304,6 +315,15 @@ class Detector(AbstractDetector):
         )
         logging.info("Loaded models. Flattenning...")
 
+        with open(self.models_padding_dict_filepath, "rb") as fp:
+            models_padding_dict = pickle.load(fp)
+
+        for model_class, model_repr_list in model_repr_dict.items():
+            for index, model_repr in enumerate(model_repr_list):
+                model_repr_dict[model_class][index] = self._pad_model(
+                    model_repr, model_class, models_padding_dict
+                )
+
         # Flatten model
         flat_models = self._flatten_models(model_repr_dict, model_layer_map)
         del model_repr_dict
@@ -314,19 +334,18 @@ class Detector(AbstractDetector):
         )
 
         # TODO implement per round inferencing examples.
-        model_repr, model_class = self._load_model(model_filepath)
-        model_repr = self._pad_model(model_repr, model_class)
+        model, model_repr, model_class = self._load_model(model_filepath)
+        model_repr = self._pad_model(model_repr, model_class, models_padding_dict)
         flat_model = flatten_model(model_repr, model_layer_map[model_class])
 
         X = (
             use_feature_reduction_algorithm(layer_transform[model_class], flat_model)
-            * self.model_skew[model_class]
         )
 
         with open(self.model_filepath, "rb") as fp:
             regressor: RandomForestRegressor = pickle.load(fp)
 
         with open(result_filepath, "w") as fp:
-            fp.write(str(regressor.predict(X).tolist()[0]))
+            fp.write(str(regressor.predict(X)[0]))
 
         logging.info("Inference done!")

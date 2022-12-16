@@ -19,7 +19,7 @@ def feature_reduction(model, weight_table, max_features):
 
 
 def init_feature_reduction(output_feats):
-    fr_algo = "sklearn.decomposition.PCA"
+    fr_algo = "sklearn.decomposition.FastICA"
     fr_algo_mod = ".".join(fr_algo.split(".")[:-1])
     fr_algo_class = fr_algo.split(".")[-1]
     mod = importlib.import_module(fr_algo_mod)
