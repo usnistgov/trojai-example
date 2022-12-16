@@ -245,7 +245,7 @@ class Detector(AbstractDetector):
         # List all available model and limit to the number provided
         model_path_list = sorted(
             [
-                join(round_training_dataset_dirpath, model)
+                join(round_training_dataset_dirpath, 'models', model)
                 for model in listdir(join(round_training_dataset_dirpath, 'models'))
             ]
         )
