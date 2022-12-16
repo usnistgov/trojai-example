@@ -10,17 +10,13 @@
   "additionalProperties": false,
   "type": "object",
   "properties": {
-	"infer_model_skew_TBD": {
-		"description": "Skew parameters TBD. Fill in per round, potentially one per model architecture",
+	"infer_cyber_model_skew": {
+		"description": "Skew parameters for all models of the cyber round.",
 		"type": "number",
 		"minimum": 0.01,
 		"maximum": 5.0,
 		"suggested_minimum": 0.3,
 		"suggested_maximum": 0.75
-	},
-	"infer_normalize_features": {
-		"description": "Whether to normalize features or not.",
-		"type": "boolean"
 	},
 	"train_input_features":  {
 		"description": "The input features for training.",
