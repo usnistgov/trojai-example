@@ -45,9 +45,8 @@ class Detector(AbstractDetector):
 
         # TODO: Update skew parameters per round
         self.model_skew = {
-            "TBD": metaparameters["infer_model_skew_TBD"],
+            "__all__": metaparameters["infer_cyber_model_skew"],
         }
-        self.normalize = metaparameters["infer_normalize_features"]
 
         self.configure_fn = self.configure
         self.input_features = metaparameters["train_input_features"]
@@ -158,10 +157,7 @@ class Detector(AbstractDetector):
                     X = model_feats
                     continue
 
-                if model_arch in self.model_skew:
-                    X = np.vstack((X, model_feats)) * self.model_skew[model_arch]
-                else:
-                    X = np.vstack((X, model_feats))
+                X = np.vstack((X, model_feats)) * self.model_skew["__all__"]
 
         logging.info("Training RandomForestRegressor model...")
         model = RandomForestRegressor(**self.random_forest_kwargs, random_state=0)
@@ -260,6 +256,7 @@ class Detector(AbstractDetector):
 
         X = (
             use_feature_reduction_algorithm(layer_transform[model_class], flat_model)
+            * self.model_skew["__all__"]
         )
 
         with open(self.model_filepath, "rb") as fp:
