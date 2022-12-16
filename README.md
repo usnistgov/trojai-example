@@ -1,4 +1,8 @@
-This repo contains a minimal working example for a submission to the [TrojAI leaderboard](https://pages.nist.gov/trojai/). This minimal ‘solution’ loads the model file, inferences the example text sequences, and then writes a random number to the output file. You can use this as your base to build your own solution. 
+This repo contains a minimal working example for a submission to the [TrojAI leaderboard](https://pages.nist.gov/trojai/). 
+This minimal "solution" loads the model file, extracts its weights, and transform these
+weights into a set of features. The features are extracted by flattening every layer and 
+applying [FastICA](https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.FastICA.html#sklearn.decomposition.FastICA) 
+to fit a RandomForestRegressor. You can use this as your base to build your own solution.
 
 Every solution submitted for evaluation must be containerized via [Singularity](https://singularity.hpcng.org/) (see this [Singularity tutorial](https://pawseysc.github.io/sc19-containers/)). 
 
@@ -11,15 +15,58 @@ Your container will have access to these [Submission Compute Resources](https://
 
 --------------
 # Table of Contents
-1. [New Container Configuration](#new-container-configuration)
-2. [System Requirements](#system-requirements)
-3. [Example Data](#example-data)
-4. [Submission Instructions](#submission-instructions)
-5. [How to Build this Minimal Example](#how-to-build-this-minimal-example)
+1. [Reusing the example detector](#reusing-the-example-detector)
+2. [New Container Configuration](#new-container-configuration)
+3. [System Requirements](#system-requirements)
+4. [Example Data](#example-data)
+5. [Submission Instructions](#submission-instructions)
+6. [How to Build this Minimal Example](#how-to-build-this-minimal-example)
     1. [Install Anaconda Python](#install-anaconda-python)
     2. [Setup the Conda Environment](#setup-the-conda-environment)
     3. [Test Fake Detector Without Containerization](#test-fake-detector-without-containerization)
     4. [Package Solution into a Singularity Container](#package-solution-into-a-singularity-container)
+
+--------------
+# Reusing the example detector
+
+To reuse this example, you will need to modify at least 3 files and 1 directory:
+* detector.py: File containing the codebase for the detector
+* metaparameters.json: The set of tunable parameters used by your container, it should
+  validate against metaparameters-schema.json.
+* metaparameters-schema.json: JSON schema describing the metaparameters that can be
+  changed during inference or training. 
+* learned_parameters/: Directory containing data created at training time (that can be 
+  changed with re-training the detector)
+
+The detector class (in detector.py) needs to implement 4 methods to work properly: 
+* `__init__(self, metaparameter_filepath, learned_parameters_dirpath)`: The initialization
+function that should load the metaparameters from the given file path, and 
+learned_parameters if necessary.
+* `automatic_configure(self, models_dirpath)`: A function to automatically re-configure 
+the detector by performing a grid search on a preset range of meta-parameters. This 
+function should automatically change the meta-parameters, call `manual_configure` and 
+output a new meta-parameters.json file (in the learned_parameters folder) when optimal 
+meta-parameters are found.   
+* `manual_configure(self, models_dirpath)`: A function that re-configure (re-train) the 
+detector given a metaparameters.json file. 
+* `infer(self, model_filepath, result_filepath, scratch_dirpath, examples_dirpath, round_training_dataset_dirpath)`: Inference
+function to detect if a particular model is poisoned (1) or clean (0).
+
+During the development of these functions, you will come with variables that change the 
+behavior of your detector:
+* Variables influencing the training of the detector's algorithm: these variables should 
+be loaded from the metaparameters.json file and have their name start with "train_". Typically,
+these variable are used in the `automatic_configure` and `manual_configure` functions only.
+* Training datastructure computed from training variables: these structure should be dumped
+(in any format) in the learned_parameters folder. During re-training, their content will 
+change. These datastructures are created within the `automatic_configure` and 
+`manual_configure` functions and used in the `infer` function.
+* Inference variables: Similarly to the training variables, variables used only in the
+`infer` function should be loaded from the metaparameters.json file but start with 
+"infer_".
+
+When all these file are implemented as intended, your detector should work properly with
+the provided `entrypoint.py` file and can be packaged in a Singularity container.
 
 --------------
 # New Container Configuration
