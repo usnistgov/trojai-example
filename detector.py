@@ -37,6 +37,7 @@ class Detector(AbstractDetector):
         metaparameters = json.load(open(metaparameter_filepath, "r"))
 
         self.scale_parameters_filepath = scale_parameters_filepath
+        self.metaparameter_filepath = metaparameter_filepath
         self.learned_parameters_dirpath = learned_parameters_dirpath
         self.model_filepath = join(self.learned_parameters_dirpath, "model.bin")
         self.models_padding_dict_filepath = join(self.learned_parameters_dirpath, "models_padding_dict.bin")
