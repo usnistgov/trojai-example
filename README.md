@@ -186,7 +186,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
 2. Test the python based `example_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
 
     ```bash
-    python infer entrypoint.py \
+    python entrypoint.py infer \
    --model_filepath ./model/id-00000002/model.pt \
    --result_filepath ./scratch/output.txt \
    --scratch_dirpath ./scratch \
@@ -206,7 +206,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
 3. Test self-configure functionality, note to automatically reconfigure should specify `--automatic_configuration`.
 
     ```bash
-    python configure entrypoint.py \
+    python entrypoint.py configure \
     --scratch_dirpath=./scratch/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \    
@@ -217,7 +217,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     The tuned parameters can then be used in a regular run.
 
     ```bash
-    python infer entrypoint.py \
+    python entrypoint.py infer \
     --model_filepath=./model/id-00000002/model.pt \    
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
@@ -254,7 +254,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
-   infer \
+    infer \
     --model_filepath=./model/id-00000002/model.pt \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
@@ -277,7 +277,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
-   configure \
+    configure \
     --scratch_dirpath=./scratch/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \    
