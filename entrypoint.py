@@ -44,7 +44,7 @@ def configure_mode(args):
 if __name__ == "__main__":
     from argparse import ArgumentParser
 
-    temp_parser = ArgumentParser()
+    temp_parser = ArgumentParser(add_help=False)
 
     parser = ArgumentParser(
         description="Template Trojan Detector to Demonstrate Test and Evaluation. Should be customized to work with target round in TrojAI."
@@ -177,10 +177,13 @@ if __name__ == "__main__":
 
     args, extras = temp_parser.parse_known_args()
 
+    if '--help' in extras or '-h' in extras:
+        args = parser.parse_args()
     # Checks if new mode of operation is being used, or is this legacy
-    if len(extras) > 0 and extras[0] in ['infer', 'configure']:
+    elif len(extras) > 0 and extras[0] in ['infer', 'configure']:
         args = parser.parse_args()
         args.func(args)
+
     else:
         # Assumes we have inference mode if the subparser is not used
         args = inf_parser.parse_args()
