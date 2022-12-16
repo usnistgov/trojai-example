@@ -194,7 +194,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
    --learned_parameters_dirpath ./learned_parameters \
    --metaparameters_filepath ./metaparameters.json \
    --schema_filepath=./metaparameters_schema.json \
-   --scale_parameters_filepath ./model/scale_params.npy
+   --scale_parameters_filepath ./scale_params.npy
     ```
 
     Example Output:
@@ -212,7 +212,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./new_learned_parameters/ \
     --configure_models_dirpath=./model/ \
-    --scale_parameters_filepath ./model/scale_params.npy
+    --scale_parameters_filepath ./scale_params.npy
     ```
 
     The tuned parameters can then be used in a regular run.
@@ -227,7 +227,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --metaparameters_filepath=./new_learned_parameters/metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./new_learned_parameters/ \
-    --scale_parameters_filepath ./model/scale_params.npy
+    --scale_parameters_filepath ./scale_params.npy
     ```
 
 ## Package Solution into a Singularity Container
@@ -265,7 +265,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./learned_parameters/ \
-    --scale_parameters_filepath ./model/scale_params.npy
+    --scale_parameters_filepath ./scale_params.npy
     ```
 
     Example Output:
@@ -286,7 +286,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./new_learned_parameters/ \
     --configure_models_dirpath=./model/ \
-    --scale_parameters_filepath ./model/scale_params.npy
+    --scale_parameters_filepath ./scale_params.npy
     ```
 
     The tuned parameters can then be used in a regular run.
@@ -305,5 +305,5 @@ Package `example_trojan_detector.py` into a Singularity container.
     --metaparameters_filepath=./new_learned_parameters/metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./new_learned_parameters/
-    --scale_parameters_filepath ./model/scale_params.npy
+    --scale_parameters_filepath ./scale_params.npy
     ```
