@@ -13,12 +13,8 @@ From: pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime
 %post
     apt update
 
-    # Needed for cv2
-    apt -y install libglib2.0-0 libx11-6
-
     pip install --upgrade pip
-    pip install torchvision==0.14.1
-    pip install tqdm opencv-python jsonschema jsonargparse scikit-learn
+    pip install tqdm jsonschema jsonargparse scikit-learn
 
 %runscript
     exec python3 /entrypoint.py "$@"
