@@ -1,7 +1,8 @@
 Bootstrap: docker
-From: pytorch/pytorch:1.12.0-cuda11.3-cudnn8-runtime
+From: pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime
 
 %files
+    ./detector.py /
     ./entrypoint.py /
     ./metaparameters.json /
     ./metaparameters_schema.json /
@@ -14,8 +15,8 @@ From: pytorch/pytorch:1.12.0-cuda11.3-cudnn8-runtime
     apt -y install libglib2.0-0 libx11-6
 
     pip install --upgrade pip
-    pip install torch==1.12 torchvision==0.13
-    pip install timm opencv-python jsonschema jsonargparse
+    pip install torchvision==0.13
+    pip install timm opencv-python jsonschema jsonargparse scikit-learn
 
 %runscript
-    exec python3 /example_trojan_detector.py "$@"
+    exec python3 /entrypoint.py "$@"
