@@ -6,7 +6,7 @@ From: pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime
     ./entrypoint.py /
     ./utils /
     ./metaparameters.json /
-    ./metaparameters-schema.json /
+    ./metaparameters_schema.json /
     ./learned_parameters /
 
 %post
