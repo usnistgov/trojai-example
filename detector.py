@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import pickle
 from os import listdir, makedirs
 from os.path import join, exists
@@ -19,17 +20,23 @@ from utils.reduction import (
     use_feature_reduction_algorithm,
 )
 
+from sklearn.preprocessing import StandardScaler
+from archs import Net2, Net3, Net4, Net5, Net6, Net7, Net2r, Net3r, Net4r, Net5r, Net6r, Net7r, Net2s, Net3s, Net4s, Net5s, Net6s, Net7s
+import torch
+
 
 class Detector(AbstractDetector):
-    def __init__(self, metaparameter_filepath, learned_parameters_dirpath):
+    def __init__(self, metaparameter_filepath, learned_parameters_dirpath, scale_parameters_filepath):
         """Detector initialization function.
 
         Args:
             metaparameter_filepath: str - File path to the metaparameters file.
             learned_parameters_dirpath: str - Path to the learned parameters directory.
+            scale_parameters_filepath: str - File path to the scale_parameters file.
         """
         metaparameters = json.load(open(metaparameter_filepath, "r"))
 
+        self.scale_parameters_filepath = scale_parameters_filepath
         self.learned_parameters_dirpath = learned_parameters_dirpath
         self.model_filepath = join(self.learned_parameters_dirpath, "model.bin")
         self.models_padding_dict_filepath = join(self.learned_parameters_dirpath, "models_padding_dict.bin")
@@ -173,9 +180,29 @@ class Detector(AbstractDetector):
             model: the pytorch model
             examples_dirpath: the directory path for the round example data
         """
-        # TODO: Implement per-round inference on example data
-        pass
 
+        # Setup scaler
+        scaler = StandardScaler()
+
+        scale_params = np.load(self.scale_parameters_filepath)
+
+        scaler.mean_ = scale_params[0]
+        scaler.scale_ = scale_params[1]
+
+        # Inference on models
+        for examples_dir_entry in os.scandir(examples_dirpath):
+            if examples_dir_entry.is_file() and examples_dir_entry.name.endswith(".npy"):
+                feature_vector = np.load(examples_dir_entry.path).reshape(1, -1)
+                feature_vector = torch.from_numpy(scaler.transform(feature_vector.astype(float))).float()
+
+                pred = torch.argmax(model(feature_vector).detach()).item()
+
+                ground_tuth_filepath = examples_dir_entry.path + ".json"
+
+                with open(ground_tuth_filepath, 'r') as ground_truth_file:
+                    ground_truth =  ground_truth_file.readline()
+
+                print("Model: {}, Ground Truth: {}, Prediction: {}".format(examples_dir_entry.name, ground_truth, str(pred)))
 
     def infer(
         self,
