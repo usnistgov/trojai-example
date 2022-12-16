@@ -256,7 +256,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
-   infer \
+    infer \
     --model_filepath=./model/id-00000002/model.pt \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
@@ -280,7 +280,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
-   configure \
+    configure \
     --scratch_dirpath=./scratch/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
