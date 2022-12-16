@@ -1,25 +1,11 @@
+import logging
 from collections import OrderedDict
 
 import numpy as np
+from tqdm import tqdm
 
 
-def pad_to_target(input_array: np.array, target_padding: list, constant_value=0):
-    try:
-        padding_array = []
-        assert len(target_padding) == len(input_array.shape)
-        for (idx, target) in enumerate(target_padding):
-            current = input_array.shape[idx]
-            assert target >= current
-            if target > current:
-                padding_array.append((0, target - current))
-            else:
-                padding_array.append((0, 0))
-    except AssertionError:
-        raise Exception(
-            f"Incorrect target padding: {input_array.shape} cannot be padded to "
-            f"{target_padding}!"
-        )
-    return np.pad(input_array, padding_array, constant_values=constant_value)
+
 
 
 def flatten_layer(model, layer_map):
@@ -55,3 +41,29 @@ def flatten_model(input_model, model_layers):
         )
         assert len(new_model[layer].shape) == 1
     return new_model
+
+
+def flatten_models(model_repr_dict, model_layer_map):
+    """Flatten a list of models
+
+    Args:
+        model_repr_dict:
+        model_layer_map:
+
+    Returns:
+    """
+    flat_models = {}
+
+    for _ in range(len(model_repr_dict)):
+        (model_arch, models) = model_repr_dict.popitem()
+        if model_arch not in flat_models.keys():
+            flat_models[model_arch] = []
+
+        logging.info("Flattenning %s models...", model_arch)
+        for _ in tqdm(range(len(models))):
+            model = models.pop(0)
+            flat_models[model_arch].append(
+                flatten_model(model, model_layer_map[model_arch])
+            )
+
+    return flat_models
