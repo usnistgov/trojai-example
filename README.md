@@ -169,8 +169,8 @@ A small toy set of clean & poisioned data is also provided in this repository un
 3. Install required packages into this conda environment
 
     - `conda install cuda -c "nvidia/label/cuda-11.6.2"`
-    - `conda install pytorch=1.13.1 torchvision=0.14.1 -c pytorch`
-    - `pip install tqdm opencv-python jsonschema jsonargparse scikit-learn`
+    - `conda install pytorch=1.13.1 -c pytorch`
+    - `pip install tqdm jsonschema jsonargparse scikit-learn`
 
 ## Test Fake Detector Without Containerization
 
@@ -256,7 +256,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
-   infer \
+    infer \
     --model_filepath=./model/id-00000002/model.pt \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
@@ -280,7 +280,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
-   configure \
+    configure \
     --scratch_dirpath=./scratch/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
