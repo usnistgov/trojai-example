@@ -166,6 +166,17 @@ class Detector(AbstractDetector):
 
         logging.info("Configuration done!")
 
+    def inference_on_example_data(self, model, examples_dirpath):
+        """Method to demonstrate how to inference on a round's example data.
+
+        Args:
+            model: the pytorch model
+            examples_dirpath: the directory path for the round example data
+        """
+        # TODO: Implement per-round inference on example data
+        pass
+
+
     def infer(
         self,
         model_filepath,
@@ -212,10 +223,13 @@ class Detector(AbstractDetector):
 
         layer_transform = fit_feature_reduction_algorithm(flat_models, self.weight_table_params, self.input_features)
 
-        # TODO implement per round inferencing examples.
         model, model_repr, model_class = load_model(model_filepath)
         model_repr = pad_model(model_repr, model_class, models_padding_dict)
         flat_model = flatten_model(model_repr, model_layer_map[model_class])
+
+        # Inferences on examples to demonstrate how it is done for a round
+        # This is not needed for the random forest classifier
+        self.inference_on_example_data(model, examples_dirpath)
 
         X = (
             use_feature_reduction_algorithm(layer_transform[model_class], flat_model)
