@@ -2,7 +2,7 @@ import json
 import logging
 import pickle
 from os import listdir, makedirs
-from os.path import join, exists
+from os.path import join, exists, basename
 
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
@@ -30,6 +30,7 @@ class Detector(AbstractDetector):
         """
         metaparameters = json.load(open(metaparameter_filepath, "r"))
 
+        self.metaparameter_filepath = metaparameter_filepath
         self.learned_parameters_dirpath = learned_parameters_dirpath
         self.model_filepath = join(self.learned_parameters_dirpath, "model.bin")
         self.models_padding_dict_filepath = join(self.learned_parameters_dirpath, "models_padding_dict.bin")
@@ -42,7 +43,6 @@ class Detector(AbstractDetector):
         }
         self.normalize = metaparameters["infer_normalize_features"]
 
-        self.configure_fn = self.configure
         self.input_features = metaparameters["train_input_features"]
         self.weight_table_params = {
             "random_seed": metaparameters["train_weight_table_random_state"],
@@ -76,6 +76,28 @@ class Detector(AbstractDetector):
                 "train_random_forest_regressor_param_min_impurity_decrease"
             ],
         }
+
+    def write_metaparameters(self):
+        metaparameters = {
+            "infer_model_skew_TBD": self.model_skew,
+            "infer_normalize_features": self.normalize,
+            "train_input_features": self.input_features,
+            "train_weight_table_random_state": self.weight_table_params["random_seed"],
+            "train_weight_table_params_mean": self.weight_table_params["mean"],
+            "train_weight_table_params_std": self.weight_table_params["std"],
+            "train_weight_table_params_scaler": self.weight_table_params["scaler"],
+            "train_random_forest_regressor_param_n_estimators": self.random_forest_kwargs["n_estimators"],
+            "train_random_forest_regressor_param_criterion": self.random_forest_kwargs["criterion"],
+            "train_random_forest_regressor_param_max_depth": self.random_forest_kwargs["max_depth"],
+            "train_random_forest_regressor_param_min_samples_split": self.random_forest_kwargs["min_samples_split"],
+            "train_random_forest_regressor_param_min_samples_leaf": self.random_forest_kwargs["min_samples_leaf"],
+            "train_random_forest_regressor_param_min_weight_fraction_leaf": self.random_forest_kwargs["min_weight_fraction_leaf"],
+            "train_random_forest_regressor_param_max_features": self.random_forest_kwargs["max_features"],
+            "train_random_forest_regressor_param_min_impurity_decrease": self.random_forest_kwargs["min_impurity_decrease"],
+        }
+
+        with open(join(self.learned_parameters_dirpath, basename(self.metaparameter_filepath)), "w") as fp:
+            json.dump(metaparameters, fp)
 
     def automatic_configure(self, models_dirpath: str):
         """Configuration of the detector iterating on some of the parameters from the
@@ -164,6 +186,7 @@ class Detector(AbstractDetector):
         with open(self.model_filepath, "wb") as fp:
             pickle.dump(model, fp)
 
+        self.write_metaparameters()
         logging.info("Configuration done!")
 
     def inference_on_example_data(self, model, examples_dirpath):
