@@ -224,7 +224,8 @@ class Detector(AbstractDetector):
         with open(self.model_filepath, "rb") as fp:
             regressor: RandomForestRegressor = pickle.load(fp)
 
+        probability = str(regressor.predict(X)[0])
         with open(result_filepath, "w") as fp:
-            fp.write(str(regressor.predict(X)[0]))
+            fp.write(probability)
 
-        logging.info("Inference done!")
+        logging.info("Trojan probability: %s", probability)

@@ -1,3 +1,4 @@
+import numpy as np
 from utils.arrays import get_model_shape
 
 

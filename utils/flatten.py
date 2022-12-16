@@ -5,9 +5,6 @@ import numpy as np
 from tqdm import tqdm
 
 
-
-
-
 def flatten_layer(model, layer_map):
     nbt_layer = None
     output = None
