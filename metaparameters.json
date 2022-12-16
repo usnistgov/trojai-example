@@ -1,5 +1,4 @@
 {
-	"automatic_training": false,
 	"infer_model_skew_TBD": 0.45,
 	"infer_normalize_features": true,
 	"train_input_features": 1500,

@@ -29,7 +29,9 @@ Your container will have access to these [Submission Compute Resources](https://
 --------------
 # Reusing the example detector
 
-To reuse this example, you will need to modify at least 3 files and 1 directory:
+Please use this example as a template for submissions into TrojAI.
+
+You will need to modify at least 3 files and 1 directory:
 * detector.py: File containing the codebase for the detector
 * metaparameters.json: The set of tunable parameters used by your container, it should
   validate against metaparameters-schema.json.
@@ -52,7 +54,7 @@ detector given a metaparameters.json file.
 * `infer(self, model_filepath, result_filepath, scratch_dirpath, examples_dirpath, round_training_dataset_dirpath)`: Inference
 function to detect if a particular model is poisoned (1) or clean (0).
 
-During the development of these functions, you will come with variables that change the 
+During the development of these functions, you will come up with variables that change the 
 behavior of your detector:
 * Variables influencing the training of the detector's algorithm: these variables should 
 be loaded from the metaparameters.json file and have their name start with "train_". Typically,
@@ -60,13 +62,14 @@ these variable are used in the `automatic_configure` and `manual_configure` func
 * Training datastructure computed from training variables: these structure should be dumped
 (in any format) in the learned_parameters folder. During re-training, their content will 
 change. These datastructures are created within the `automatic_configure` and 
-`manual_configure` functions and used in the `infer` function.
+`manual_configure` functions and should be loaded and used in the `infer` function.
 * Inference variables: Similarly to the training variables, variables used only in the
 `infer` function should be loaded from the metaparameters.json file but start with 
 "infer_".
 
 When all these file are implemented as intended, your detector should work properly with
-the provided `entrypoint.py` file and can be packaged in a Singularity container.
+the provided `entrypoint.py` file and can be packaged in a Singularity container. 
+The `entrypoint.py` file should be used as-is and should not be modified.
 
 --------------
 # New Container Configuration
@@ -80,6 +83,51 @@ Submitted containers will now need to work in two different modes:
 
 - Inference Mode:  Containers will take as input both a "metaparameter" file and a model and output the probability of poisoning. 
 - Reconfiguration Mode: Containers will take a new dataset as input and output a file dump of the new learned parameters tuned to that input dataset.
+
+# Container usage: Reconfiguration Mode
+
+Executing the `entrypoint.py` in reconfiguration mode will produce the necessary metadata for your detector and save them into the specified "learned_parameters" directory.
+
+Example usage for one-off reconfiguration:
+   ```bash
+  python entrypoint.py configure \
+  --scratch_dirpath <scratch_dirpath> \
+  --metaparameters_filepath <metaparameters_filepath> \
+  --schema_filepath <schema_filepath> \
+  --learned_parameters_dirpath <learned_params_dirpath> \
+  --configure_models_dirpath <configure_models_dirpath>
+   ```
+
+Example usage for automatic reconfiguraiton:
+   ```bash
+   python entrypoint.py configure \
+    --scratch_dirpath <scratch_dirpath> \
+    --metaparameters_filepath <metaparameters_filepath> \
+    --schema_filepath <schema_filepath> \
+    --learned_parameters_dirpath <learned_params_dirpath> \
+    --configure_models_dirpath <configure_models_dirpath> \
+    --automatic_configuration
+   ```
+
+
+
+# Container usage: Inferencing Mode
+
+Executing the `entrypolint.py` in infernecing mode will output a result file that contains whether the model that is being analyzed is poisoned (1.0) or clean (0.0).
+
+Example usage for inferencing:
+   ```bash
+   python entrypoint.py infer \
+   --model_filepath <model_filepath> \
+   --result_filepath <result_filepath> \
+   --scratch_dirpath <scratch_dirpath> \
+   --examples_dirpath <examples_dirpath> \
+   --round_training_dataset_dirpath <round_training_dirpath> \
+   --metaparameters_filepath <metaparameters_filepath> \
+   --schema_filepath <schema_filepath> \
+   --learned_parameters_dirpath <learned_params_dirpath>
+   ```
+
 
 --------------
 # System Requirements
@@ -121,7 +169,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
 3. Install required packages into this conda environment
 
     1. `conda install pytorch=1.12 torchvision=0.13 cudatoolkit=11.3 -c pytorch`
-    2. `pip install timm opencv-python jsonschema jsonargparse`
+   2. `pip install jsonschema`
 
 ## Test Fake Detector Without Containerization
 
@@ -137,7 +185,7 @@ A small toy set of clean & poisioned data is also provided in this repository un
 2. Test the python based `example_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
 
     ```bash
-    python example_trojan_detector.py \
+    python infer entrypoint.py \
    --model_filepath ./model/id-00000002/model.pt \
    --result_filepath ./scratch/output.txt \
    --scratch_dirpath ./scratch \
@@ -154,14 +202,13 @@ A small toy set of clean & poisioned data is also provided in this repository un
     Trojan Probability: 0.07013004086445151
     ```
 
-3. Test self-configure functionality.
+3. Test self-configure functionality, note to automatically reconfigure should specify `--automatic_configuration`.
 
     ```bash
-    python example_trojan_detector.py \
+    python configure entrypoint.py \
     --scratch_dirpath=./scratch/ \
     --metaparameters_filepath=./metaparameters.json \
-    --schema_filepath=./metaparameters_schema.json \
-    --configure_mode \
+    --schema_filepath=./metaparameters_schema.json \    
     --learned_parameters_dirpath=./new_learned_parameters/ \
     --configure_models_dirpath=./model/
     ```
@@ -169,14 +216,13 @@ A small toy set of clean & poisioned data is also provided in this repository un
     The tuned parameters can then be used in a regular run.
 
     ```bash
-    python example_trojan_detector.py \
-    --model_filepath=./model/id-00000002/model.pt \
-    --features_filepath=./features.csv \
+    python infer entrypoint.py \
+    --model_filepath=./model/id-00000002/model.pt \    
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/id-00000002/clean-example-data/ \    
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
-    --metaparameters_filepath=./metaparameters.json \
+    --metaparameters_filepath=./new_learned_parameters/metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./new_learned_parameters/
     ```
@@ -207,6 +253,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
+   infer \
     --model_filepath=./model/id-00000002/model.pt \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
@@ -229,10 +276,10 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
+   configure \
     --scratch_dirpath=./scratch/ \
     --metaparameters_filepath=./metaparameters.json \
-    --schema_filepath=./metaparameters_schema.json \
-    --configure_mode \
+    --schema_filepath=./metaparameters_schema.json \    
     --learned_parameters_dirpath=./new_learned_parameters/ \
     --configure_models_dirpath=./model/
     ```
@@ -244,13 +291,13 @@ Package `example_trojan_detector.py` into a Singularity container.
     --bind /full/path/to/trojai-example \
     --nv \
     ./example_trojan_detector.simg \
+   infer \
     --model_filepath=./model/trojai-example-model-round10/model.pt \
-    --features_filepath=./features.csv \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \    
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
-    --metaparameters_filepath=./metaparameters.json \
+    --metaparameters_filepath=./new_learned_parameters/metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./new_learned_parameters/
     ```

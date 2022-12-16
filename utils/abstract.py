@@ -4,17 +4,12 @@ import abc
 
 
 class AbstractDetector(abc.ABC):
-    def __init__(self, automatic_training: bool = False):
-        """Initialize the detector and use the correct function for configuration
 
-        Args
-            automatic_training: bool - Wether the automatic configuration function
-            should be used.
-        """
+    def configure(self, models_dirpath: str, automatic_training: bool):
         if automatic_training:
-            self.configure = self.automatic_configure
+            self.automatic_configure(models_dirpath)
         else:
-            self.configure = self.manual_configure
+            self.manual_configure(models_dirpath)
 
     @abc.abstractmethod
     def manual_configure(self, models_dirpath):

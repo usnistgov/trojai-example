@@ -10,10 +10,6 @@
   "additionalProperties": false,
   "type": "object",
   "properties": {
-	"automatic_training": {
-		"description" : "Sets up automatic training to explore the training parameter space (should not do exhaustive search, but some optimized parameter search algorithm)",
-		"type": "boolean"
-	},
 	"infer_model_skew_TBD": {
 		"description": "Skew parameters TBD. Fill in per round, potentially one per model architecture",
 		"type": "number",

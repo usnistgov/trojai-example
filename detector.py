@@ -30,7 +30,6 @@ class Detector(AbstractDetector):
             learned_parameters_dirpath: str - Path to the learned parameters directory.
         """
         metaparameters = json.load(open(metaparameter_filepath, "r"))
-        super().__init__(metaparameters["automatic_training"])
 
         self.learned_parameters_dirpath = learned_parameters_dirpath
         self.model_filepath = join(self.learned_parameters_dirpath, "model.bin")
