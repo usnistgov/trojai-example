@@ -174,7 +174,7 @@ class Detector(AbstractDetector):
                     continue
 
                 if model_arch in self.model_skew:
-                    X = np.vstack((X, model_feats)) * self.model_skew[model_arch]
+                    X = np.vstack((X, model_feats * self.model_skew[model_arch]))
                 else:
                     X = np.vstack((X, model_feats))
 
