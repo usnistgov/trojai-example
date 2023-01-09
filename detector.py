@@ -178,7 +178,7 @@ class Detector(AbstractDetector):
                     X = model_feats
                     continue
 
-                X = np.vstack((X, model_feats)) * self.model_skew["__all__"]
+                X = np.vstack((X, model_feats * self.model_skew["__all__"]))
 
         logging.info("Training RandomForestRegressor model...")
         model = RandomForestRegressor(**self.random_forest_kwargs, random_state=0)
