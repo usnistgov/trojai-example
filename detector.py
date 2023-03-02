@@ -161,7 +161,9 @@ class Detector(AbstractDetector):
         preprocess = torch_ac.format.default_preprocess_obss
 
         # Utilize open source minigrid environment model was trained on
-        env_string = 'MiniGrid-LavaCrossingS9N1-v0'
+        env_string_filepath = os.path.join(examples_dirpath, 'env-string.txt')
+        with open(env_string_filepath) as env_string_file:
+            env_string = env_string_file.readline().strip()
         logging.info('Evaluating on {}'.format(env_string))
 
         # Number of episodes to run
