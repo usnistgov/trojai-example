@@ -11,8 +11,8 @@ From: pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime
 
 %post
     pip install --upgrade pip
-    pip install torchvision==0.14.1
-    pip install jsonschema jsonargparse jsonpickle scikit-learn scikit-image
+    pip install trojai_rl gym-minigrid==1.0.2
+    pip install jsonschema jsonargparse jsonpickle scikit-learn
 
 %runscript
     exec python3 /entrypoint.py "$@"

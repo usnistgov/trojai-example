@@ -163,12 +163,14 @@ For some versions of this repository, the example model is too large to check in
 
 ## Setup the Conda Environment
 
-1. `conda create --name trojai-example python=3.10 -y` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
+1. `conda create --name trojai-example python=3.8 -y` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
 2. `conda activate trojai-example`
 3. Install required packages into this conda environment
 
-    - `conda install pytorch torchvision pytorch-cuda=11.7 -c pytorch -c nvidia`
-    - `pip install jsonschema jsonargparse jsonpickle scikit-learn scikit-image`
+    - `conda install cuda -c nvidia/label/cuda-11.6.2`
+    - `conda install pytorch=1.13.1 -c pytorch`
+    - `pip install trojai_rl gym_minigrid==1.0.2`
+    - `pip install jsonschema jsonargparse jsonpickle scikit-learn`
 
 ## Test Fake Detector Without Containerization
 
@@ -177,7 +179,7 @@ For some versions of this repository, the example model is too large to check in
     ```
     git clone https://github.com/usnistgov/trojai-example
     cd trojai-example
-    git checkout <branch for your round>
+    git checkout rl-lavaworld-mar2023
     ``` 
 
 2. Test the python based `example_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
