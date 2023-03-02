@@ -11,28 +11,20 @@ def create_layer_map(model_repr_dict):
     for (model_class, models) in model_repr_dict.items():
         layers = models[0]
         layer_names = list(layers.keys())
-        base_layer_names = list(
-            dict.fromkeys(
-                [
-                    re.sub(
-                        "\\.(weight|bias|running_(mean|var)|num_batches_tracked)",
-                        "",
-                        item,
-                    )
-                    for item in layer_names
-                ]
-            )
-        )
-        layer_map = OrderedDict(
-            {
-                base_layer_name: [
-                    layer_name
-                    for layer_name in layer_names
-                    if re.match(f"{base_layer_name}.+", layer_name) is not None
-                ]
-                for base_layer_name in base_layer_names
-            }
-        )
+        base_layer_names = list()
+        for item in layer_names:
+            toks = re.sub("(weight|bias|running_(mean|var)|num_batches_tracked)", "", item)
+            # remove any duplicate '.' separators
+            toks = re.sub("\\.+", ".", toks)
+            base_layer_names.append(toks)
+        # use dict.fromkeys instead of set() to preserve order
+        base_layer_names = list(dict.fromkeys(base_layer_names))
+
+        layer_map = OrderedDict()
+        for base_ln in base_layer_names:
+            re_query = "{}.+".format(base_ln.replace('.', '\.'))  # escape any '.' wildcards in the regex query
+            layer_map[base_ln] = [ln for ln in layer_names if re.match(re_query, ln) is not None]
+
         model_layer_map[model_class] = layer_map
 
     return model_layer_map
