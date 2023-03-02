@@ -1,8 +1,5 @@
 This repo contains a minimal working example for a submission to the [TrojAI leaderboard](https://pages.nist.gov/trojai/). 
-This minimal "solution" loads the model file, extracts its weights, and transform these
-weights into a set of features. The features are extracted by flattening every layer and 
-applying [FastICA](https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.FastICA.html#sklearn.decomposition.FastICA) 
-to fit a RandomForestRegressor. You can use this as your base to build your own solution.
+This minimal "solution" loads the model file and builds a random feature vector of requested length. The random features are used to fit a RandomForestRegressor. You can use this as your base to build your own solution.
 
 Every solution submitted for evaluation must be containerized via [Singularity](https://singularity.hpcng.org/) (see this [Singularity tutorial](https://pawseysc.github.io/sc19-containers/)). 
 
@@ -16,7 +13,7 @@ Your container will have access to these [Submission Compute Resources](https://
 --------------
 # Table of Contents
 1. [Reusing the example detector](#reusing-the-example-detector)
-2. [New Container Configuration](#new-container-configuration)
+2. [Container Configuration](#container-configuration)
 3. [System Requirements](#system-requirements)
 4. [Example Data](#example-data)
 5. [Submission Instructions](#submission-instructions)
@@ -72,9 +69,9 @@ the provided `entrypoint.py` file and can be packaged in a Singularity container
 The `entrypoint.py` file should be used as-is and should not be modified.
 
 --------------
-# New Container Configuration
+# Container Configuration
 
-With the release of TrojAI Round 10, a new container configuration is being added that enables TrojAI T&E to evaluate submitted detectors across various new dimensions. The main changes require submitted containers to do two new things: 
+TrojAI container submissions required that a configuration is included which enables TrojAI T&E to evaluate submitted detectors across various new dimensions. This means that each container needs to: 
 
 - Specify a "metaparameters" file that documents a container's manually tunable parameters and their range of possible values. 
 - Generate "learned parameters" via a new reconfiguration API.
@@ -101,19 +98,19 @@ Example usage for one-off reconfiguration:
 Example usage for automatic reconfiguraiton:
    ```bash
    python entrypoint.py configure \
+    --automatic_configuration \
     --scratch_dirpath <scratch_dirpath> \
     --metaparameters_filepath <metaparameters_filepath> \
     --schema_filepath <schema_filepath> \
     --learned_parameters_dirpath <learned_params_dirpath> \
-    --configure_models_dirpath <configure_models_dirpath> \
-    --automatic_configuration
+    --configure_models_dirpath <configure_models_dirpath>
    ```
 
 
 
 # Container usage: Inferencing Mode
 
-Executing the `entrypolint.py` in infernecing mode will output a result file that contains whether the model that is being analyzed is poisoned (1.0) or clean (0.0).
+Executing the `entrypoint.py` in infernecing mode will output a result file that contains whether the model that is being analyzed is poisoned (1.0) or clean (0.0).
 
 Example usage for inferencing:
    ```bash
@@ -142,7 +139,9 @@ Note: This example assumes you are running on a version of Linux (like Ubuntu 20
 
 Example data can be downloaded from the NIST [Leader-Board website](https://pages.nist.gov/trojai/). 
 
-A small toy set of clean & poisioned data is also provided in this repository under the model/example-data/ folder. This toy set of data is only for testing your environment works correctly. 
+A small toy set of clean data is also provided in this repository under the model/example-data/ folder. This toy set of data is only for testing your environment works correctly. 
+
+For some versions of this repository, the example model is too large to check into git. In those cases a model/README.md will point you to where the example model can be downloaded. 
 
 --------------
 # Submission Instructions
@@ -164,13 +163,12 @@ A small toy set of clean & poisioned data is also provided in this repository un
 
 ## Setup the Conda Environment
 
-1. `conda create --name trojai-example python=3.8 -y` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
+1. `conda create --name trojai-example python=3.10 -y` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
 2. `conda activate trojai-example`
 3. Install required packages into this conda environment
 
-    - `conda install cuda -c "nvidia/label/cuda-11.6.2"`
-    - `conda install pytorch=1.13.1 torchvision=0.14.1 -c pytorch`
-    - `pip install tqdm opencv-python jsonschema jsonargparse scikit-learn`
+    - `conda install pytorch torchvision pytorch-cuda=11.7 -c pytorch -c nvidia`
+    - `pip install jsonschema jsonargparse jsonpickle scikit-learn scikit-image`
 
 ## Test Fake Detector Without Containerization
 
@@ -179,22 +177,21 @@ A small toy set of clean & poisioned data is also provided in this repository un
     ```
     git clone https://github.com/usnistgov/trojai-example
     cd trojai-example
+    git checkout <branch for your round>
     ``` 
-    
-    - The example model is too big for the repository, so you will need to download it following the instructions in the /model directory.
 
 2. Test the python based `example_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
 
     ```bash
     python entrypoint.py infer \
-   --model_filepath ./model/id-00000002/model.pt \
-   --result_filepath ./scratch/output.txt \
+   --model_filepath ./model/object-detection-feb2023-example/model.pt \
+   --result_filepath ./output.txt \
    --scratch_dirpath ./scratch \
-   --examples_dirpath ./model/id-00000002/clean-example-data \
+   --examples_dirpath ./model/object-detection-feb2023-example/clean-example-data \
    --round_training_dataset_dirpath /path/to/train-dataset \
    --learned_parameters_dirpath ./learned_parameters \
    --metaparameters_filepath ./metaparameters.json \
-   --schema_filepath=./metaparameters_schema.json     
+   --schema_filepath=./metaparameters_schema.json
     ```
 
     Example Output:
@@ -207,42 +204,43 @@ A small toy set of clean & poisioned data is also provided in this repository un
 
     ```bash
     python entrypoint.py configure \
+    --automatic_configuration \
     --scratch_dirpath=./scratch/ \
     --metaparameters_filepath=./metaparameters.json \
-    --schema_filepath=./metaparameters_schema.json \    
+    --schema_filepath=./metaparameters_schema.json \
     --learned_parameters_dirpath=./new_learned_parameters/ \
-    --configure_models_dirpath=./model/
+    --configure_models_dirpath=/path/to/new-train-dataset
     ```
 
     The tuned parameters can then be used in a regular run.
 
-    ```bash
+   ```bash
     python entrypoint.py infer \
-    --model_filepath=./model/id-00000002/model.pt \    
-    --result_filepath=./output.txt \
-    --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000002/clean-example-data/ \    
-    --round_training_dataset_dirpath=/path/to/training/dataset/ \
-    --metaparameters_filepath=./new_learned_parameters/metaparameters.json \
-    --schema_filepath=./metaparameters_schema.json \
-    --learned_parameters_dirpath=./new_learned_parameters/
+   --model_filepath ./model/object-detection-feb2023-example/model.pt \
+   --result_filepath ./output.txt \
+   --scratch_dirpath ./scratch \
+   --examples_dirpath ./model/object-detection-feb2023-example/clean-example-data \
+   --round_training_dataset_dirpath /path/to/train-dataset \
+   --learned_parameters_dirpath ./new_learned_parameters \
+   --metaparameters_filepath ./metaparameters.json \
+   --schema_filepath=./metaparameters_schema.json
     ```
 
 ## Package Solution into a Singularity Container
 
-Package `example_trojan_detector.py` into a Singularity container.
+Package `detector.py` into a Singularity container.
 
 1. Install Singularity
     
     - Follow: [https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux](https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux)
         
-2. Build singularity based on `example_trojan_detector.def` file: 
+2. Build singularity based on `detector.def` file: 
 
-    - delete any old copy of output file if it exists: `rm example_trojan_detector.simg`
+    - delete any old copy of output file if it exists: `rm detector.simg`
     - package container: 
     
       ```bash
-      sudo singularity build example_trojan_detector.simg example_trojan_detector.def
+      sudo singularity build detector.simg detector.def
       ```
 
     which generates a `example_trojan_detector.simg` file.
@@ -253,12 +251,12 @@ Package `example_trojan_detector.py` into a Singularity container.
     singularity run \
     --bind /full/path/to/trojai-example \
     --nv \
-    ./example_trojan_detector.simg \
+    ./detector.simg \
     infer \
-    --model_filepath=./model/id-00000002/model.pt \
+    --model_filepath=./model/object-detection-feb2023-example/model.pt \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000002/clean-example-data/ \
+    --examples_dirpath=./model/object-detection-feb2023-example/clean-example-data/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
@@ -268,37 +266,4 @@ Package `example_trojan_detector.py` into a Singularity container.
     Example Output:
     ```bash
     Trojan Probability: 0.7091788412534845
-    ```
-
-4. Test self-tune functionality.
-
-    ```bash
-    singularity run \
-    --bind /full/path/to/trojai-example \
-    --nv \
-    ./example_trojan_detector.simg \
-    configure \
-    --scratch_dirpath=./scratch/ \
-    --metaparameters_filepath=./metaparameters.json \
-    --schema_filepath=./metaparameters_schema.json \    
-    --learned_parameters_dirpath=./new_learned_parameters/ \
-    --configure_models_dirpath=./model/
-    ```
-
-    The tuned parameters can then be used in a regular run.
-
-    ```bash
-    singularity run \
-    --bind /full/path/to/trojai-example \
-    --nv \
-    ./example_trojan_detector.simg \
-   infer \
-    --model_filepath=./model/trojai-example-model-round10/model.pt \
-    --result_filepath=./output.txt \
-    --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \    
-    --round_training_dataset_dirpath=/path/to/training/dataset/ \
-    --metaparameters_filepath=./new_learned_parameters/metaparameters.json \
-    --schema_filepath=./metaparameters_schema.json \
-    --learned_parameters_dirpath=./new_learned_parameters/
     ```

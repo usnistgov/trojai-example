@@ -10,35 +10,23 @@
   "additionalProperties": false,
   "type": "object",
   "properties": {
-	"infer_model_skew_TBD": {
-		"description": "Skew parameters TBD. Fill in per round, potentially one per model architecture",
-		"type": "number",
-		"minimum": 0.01,
-		"maximum": 5.0,
-		"suggested_minimum": 0.3,
-		"suggested_maximum": 0.75
-	},
-	"infer_normalize_features": {
-		"description": "Whether to normalize features or not.",
-		"type": "boolean"
-	},
 	"train_input_features":  {
 		"description": "The input features for training.",
 		"type": "integer",
 		"minimum": 5,
-		"maximum": 2000,
-		"suggested_minimum": 750,
-		"suggested_maximum": 2200
+		"maximum": 500,
+		"suggested_minimum": 20,
+		"suggested_maximum": 200
 	},
-	"train_weight_table_random_state": {
-		"description": "Random state for weight table during training.",
+	  "train_weight_rso_seed": {
+		"description": "Random state seed for weights during training.",
 		"type": "integer",
 		"minimum": 1,
-		"maximum": 200,
-		"suggested_minimum": 75,
-		"suggested_maximum": 150
+		"maximum": 99999999,
+		"suggested_minimum": 1234,
+		"suggested_maximum": 12345
 	},
-	"train_weight_table_params_mean": {
+	"train_weight_params_mean": {
 		"description": "Mean of the normal distribution used for the weight table.",
 		"type": "number",
 		"minimum": 0,
@@ -46,21 +34,13 @@
 		"suggested_minimum": 0.25,
 		"suggested_maximum": 0.75
 	},
-	"train_weight_table_params_std": {
+	"train_weight_params_std": {
 		"description": "Standard deviation of the normal distribution used for the weight table.",
 		"type": "number",
 		"minimum": 0,
 		"maximum": 1.0,
 		"suggested_minimum": 0.01,
 		"suggested_maximum": 0.1
-	},
-	"train_weight_table_params_scaler": {
-		"description": "Multiply all items of the weight table by this number (float).",
-		"type": "number",
-		"minimum": 0,
-		"maximum": 5.0,
-		"suggested_minimum": 0.1,
-		"suggested_maximum": 2.5
 	},
 	"train_random_forest_regressor_param_n_estimators": {
 		"description": "Number of trees in the forest.",
