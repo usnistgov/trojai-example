@@ -3,6 +3,8 @@ output.txt
 test.txt
 features.csv
 model/id-00000000
+model/id-00000001
+model/object-detection-feb2023-example
 
 # Python
 __pychache__
