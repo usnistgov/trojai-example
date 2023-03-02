@@ -168,7 +168,7 @@ For some versions of this repository, the example model is too large to check in
 3. Install required packages into this conda environment
 
     - `conda install pytorch torchvision pytorch-cuda=11.7 -c pytorch -c nvidia`
-    - `pip install opencv-python jsonschema jsonargparse jsonpickle scikit-learn`
+    - `pip install jsonschema jsonargparse jsonpickle scikit-learn scikit-image`
 
 ## Test Fake Detector Without Containerization
 
@@ -228,19 +228,19 @@ For some versions of this repository, the example model is too large to check in
 
 ## Package Solution into a Singularity Container
 
-Package `example_trojan_detector.py` into a Singularity container.
+Package `detector.py` into a Singularity container.
 
 1. Install Singularity
     
     - Follow: [https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux](https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux)
         
-2. Build singularity based on `example_trojan_detector.def` file: 
+2. Build singularity based on `detector.def` file: 
 
-    - delete any old copy of output file if it exists: `rm example_trojan_detector.simg`
+    - delete any old copy of output file if it exists: `rm detector.simg`
     - package container: 
     
       ```bash
-      sudo singularity build example_trojan_detector.simg example_trojan_detector.def
+      sudo singularity build detector.simg detector.def
       ```
 
     which generates a `example_trojan_detector.simg` file.
@@ -251,7 +251,7 @@ Package `example_trojan_detector.py` into a Singularity container.
     singularity run \
     --bind /full/path/to/trojai-example \
     --nv \
-    ./example_trojan_detector.simg \
+    ./detector.simg \
     infer \
     --model_filepath=./model/object-detection-feb2023-example/model.pt \
     --result_filepath=./output.txt \

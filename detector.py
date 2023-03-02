@@ -20,7 +20,7 @@ from utils.models import load_model, load_models_dirpath
 
 import torch
 import torchvision
-import cv2
+import skimage.io
 
 
 class Detector(AbstractDetector):
@@ -167,8 +167,7 @@ class Detector(AbstractDetector):
         for examples_dir_entry in os.scandir(examples_dirpath):
             if examples_dir_entry.is_file() and examples_dir_entry.name.endswith(".png"):
                 # load the example image
-                img = cv2.imread(examples_dir_entry.path, cv2.IMREAD_UNCHANGED)
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                img = skimage.io.imread(examples_dir_entry.path)
 
                 # convert the image to a tensor
                 # should be uint8 type, the conversion to float is handled later
