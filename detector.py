@@ -14,13 +14,13 @@ import numpy as np
 
 from sklearn.ensemble import RandomForestRegressor
 
-import utils.models
 from utils.abstract import AbstractDetector
 from utils.models import load_model, load_models_dirpath
 
 import torch
-import torchvision
-import skimage.io
+import torch_ac
+import gym
+from gym_minigrid.wrappers import ImgObsWrapper
 
 
 class Detector(AbstractDetector):
@@ -151,8 +151,57 @@ class Detector(AbstractDetector):
             model: the pytorch model
             examples_dirpath: the directory path for the round example data
         """
-        # TODO: Implement per-round inference on example data
-        raise NotImplementedError("Need to implement the per-round inference of example data.")
+
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        logging.info("Using compute device: {}".format(device))
+
+        model.to(device)
+        model.eval()
+
+        preprocess = torch_ac.format.default_preprocess_obss
+
+        # Utilize open source minigrid environment model was trained on
+        env_string = 'MiniGrid-LavaCrossingS9N1-v0'
+        logging.info('Evaluating on {}'.format(env_string))
+
+        # Number of episodes to run
+        episodes = 100
+
+        env_perf = {}
+
+        # Run episodes through an environment to collect what may be relevant information to trojan detection
+        # Construct environment and put it inside a observation wrapper
+        env = ImgObsWrapper(gym.make(env_string))
+        obs = env.reset()
+        obs = preprocess([obs], device=device)
+
+        final_rewards = []
+        with torch.no_grad():
+            # Episode loop
+            for _ in range(episodes):
+                done = False
+                # Use env observation to get action distribution
+                dist, value = model(obs)
+                # Per episode loop
+                while not done:
+                    # Sample from distribution to determine which action to take
+                    action = dist.sample()
+                    action = action.cpu().detach().numpy()
+                    # Use action to step environment and get new observation
+                    obs, reward, done, info = env.step(action)
+                    # Preprocessing function to prepare observation from env to be given to the model
+                    obs = preprocess([obs], device=device)
+                    # Use env observation to get action distribution
+                    dist, value = model(obs)
+
+                # Collect episode performance data (just the last reward of the episode)
+                final_rewards.append(reward)
+                # Reset environment after episode and get initial observation
+                obs = env.reset()
+                obs = preprocess([obs], device=device)
+
+        # Save final rewards
+        env_perf['final_rewards'] = final_rewards
 
     def infer(
             self,
