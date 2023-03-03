@@ -198,10 +198,10 @@ For some versions of this repository, the example model is too large to check in
     Example Output:
     
     ```bash
-2023-03-02 17:11:06,170 [INFO] [entrypoint.py:33] Calling the trojan detector
-2023-03-02 17:11:06,207 [INFO] [detector.py:156] Using compute device: cpu
-2023-03-02 17:11:06,207 [INFO] [detector.py:167] Evaluating on MiniGrid-LavaCrossingS9N1-v0
-2023-03-02 17:11:09,267 [INFO] [detector.py:249] Trojan probability: 0.12
+    2023-03-02 17:11:06,170 [INFO] [entrypoint.py:33] Calling the trojan detector
+    2023-03-02 17:11:06,207 [INFO] [detector.py:156] Using compute device: cpu
+    2023-03-02 17:11:06,207 [INFO] [detector.py:167] Evaluating on MiniGrid-LavaCrossingS9N1-v0
+    2023-03-02 17:11:09,267 [INFO] [detector.py:249] Trojan probability: 0.12
     ```
 
 3. Test self-configure functionality, note to automatically reconfigure should specify `--automatic_configuration`.
@@ -269,5 +269,8 @@ Package `detector.py` into a Singularity container.
 
     Example Output:
     ```bash
-    Trojan Probability: 0.7091788412534845
+    2023-03-02 17:11:06,170 [INFO] [entrypoint.py:33] Calling the trojan detector
+    2023-03-02 17:11:06,207 [INFO] [detector.py:156] Using compute device: cpu
+    2023-03-02 17:11:06,207 [INFO] [detector.py:167] Evaluating on MiniGrid-LavaCrossingS9N1-v0
+    2023-03-02 17:11:09,267 [INFO] [detector.py:249] Trojan probability: 0.12
     ```
