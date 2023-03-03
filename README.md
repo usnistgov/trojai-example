@@ -167,8 +167,7 @@ For some versions of this repository, the example model is too large to check in
 2. `conda activate trojai-example`
 3. Install required packages into this conda environment
 
-    - `conda install cuda -c nvidia/label/cuda-11.6.2`
-    - `conda install pytorch=1.13.1 -c pytorch`
+    - `pip install torch==1.13.1`
     - `pip install trojai_rl gym_minigrid==1.0.2`
     - `pip install jsonschema jsonargparse jsonpickle scikit-learn`
 
@@ -186,10 +185,10 @@ For some versions of this repository, the example model is too large to check in
 
     ```bash
     python entrypoint.py infer \
-   --model_filepath ./model/object-detection-feb2023-example/model.pt \
+   --model_filepath ./model/rl-lavaworld-mar2023-example/model.pt \
    --result_filepath ./output.txt \
    --scratch_dirpath ./scratch \
-   --examples_dirpath ./model/object-detection-feb2023-example/clean-example-data \
+   --examples_dirpath ./model/rl-lavaworld-mar2023-example/clean-example-data \
    --round_training_dataset_dirpath /path/to/train-dataset \
    --learned_parameters_dirpath ./learned_parameters \
    --metaparameters_filepath ./metaparameters.json \
@@ -199,7 +198,10 @@ For some versions of this repository, the example model is too large to check in
     Example Output:
     
     ```bash
-    Trojan Probability: 0.07013004086445151
+2023-03-02 17:11:06,170 [INFO] [entrypoint.py:33] Calling the trojan detector
+2023-03-02 17:11:06,207 [INFO] [detector.py:156] Using compute device: cpu
+2023-03-02 17:11:06,207 [INFO] [detector.py:167] Evaluating on MiniGrid-LavaCrossingS9N1-v0
+2023-03-02 17:11:09,267 [INFO] [detector.py:249] Trojan probability: 0.12
     ```
 
 3. Test self-configure functionality, note to automatically reconfigure should specify `--automatic_configuration`.
@@ -218,10 +220,10 @@ For some versions of this repository, the example model is too large to check in
 
    ```bash
     python entrypoint.py infer \
-   --model_filepath ./model/object-detection-feb2023-example/model.pt \
+   --model_filepath ./model/rl-lavaworld-mar2023-example/model.pt \
    --result_filepath ./output.txt \
    --scratch_dirpath ./scratch \
-   --examples_dirpath ./model/object-detection-feb2023-example/clean-example-data \
+   --examples_dirpath ./model/rl-lavaworld-mar2023-example/clean-example-data \
    --round_training_dataset_dirpath /path/to/train-dataset \
    --learned_parameters_dirpath ./new_learned_parameters \
    --metaparameters_filepath ./metaparameters.json \
@@ -238,14 +240,14 @@ Package `detector.py` into a Singularity container.
         
 2. Build singularity based on `detector.def` file: 
 
-    - delete any old copy of output file if it exists: `rm detector.simg`
+    - delete any old copy of output file if it exists: `rm detector.sif`
     - package container: 
     
       ```bash
-      sudo singularity build detector.simg detector.def
+      sudo singularity build detector.sif detector.def
       ```
 
-    which generates a `example_trojan_detector.simg` file.
+    which generates a `example_trojan_detector.sif` file.
 
 3. Test run container: 
 
@@ -253,12 +255,12 @@ Package `detector.py` into a Singularity container.
     singularity run \
     --bind /full/path/to/trojai-example \
     --nv \
-    ./detector.simg \
+    ./detector.sif \
     infer \
-    --model_filepath=./model/object-detection-feb2023-example/model.pt \
+    --model_filepath=./model/rl-lavaworld-mar2023-example/model.pt \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/object-detection-feb2023-example/clean-example-data/ \
+    --examples_dirpath=./model/rl-lavaworld-mar2023-example/clean-example-data/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
