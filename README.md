@@ -10,6 +10,8 @@ git checkout image-classification-feb2021
 ```
 
 The available branches are
+- https://github.com/usnistgov/trojai-example/tree/rl-lavaworld-mar2023
+- https://github.com/usnistgov/trojai-example/tree/object-detection-feb2023
 - https://github.com/usnistgov/trojai-example/tree/cyber-pdf-dec2022
 - https://github.com/usnistgov/trojai-example/tree/image-classification-sep2022
 - https://github.com/usnistgov/trojai-example/tree/object-detection-jul2022
