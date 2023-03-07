@@ -4,6 +4,7 @@
   "technique": "Random Forest Regressor",
   "technique_description": "Extracts model weights and trains a random forest regressor.",
   "technique_changes": "Output metaparameter.json file after reconfiguration",
+  "technique_type": ["Weight Analysis"],
   "commit_id": "",
   "repo_name": "https://github.com/usnistgov/trojai-example",
   "required": [],
