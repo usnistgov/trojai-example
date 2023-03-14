@@ -168,7 +168,7 @@ For some versions of this repository, the example model is too large to check in
 3. Install required packages into this conda environment
 
     - `conda install pytorch torchvision pytorch-cuda=11.7 -c pytorch -c nvidia`
-    - `pip install transformers timm jsonschema jsonargparse jsonpickle scikit-learn scikit-image`
+    - `pip install timm transformers==4.23.1 jsonschema jsonargparse jsonpickle scikit-learn scikit-image`
 
 ## Test Fake Detector Without Containerization
 

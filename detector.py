@@ -23,6 +23,16 @@ import torchvision
 import skimage.io
 
 
+def center_to_corners_format(x):
+    """
+    Converts a PyTorch tensor of bounding boxes of center format (center_x, center_y, width, height) to corners format
+    (x_0, y_0, x_1, y_1).
+    """
+    x_c, y_c, w, h = x.unbind(-1)
+    b = [(x_c - (0.5 * w)), (y_c - (0.5 * h)), (x_c + (0.5 * w)), (y_c + (0.5 * h))]
+    return torch.stack(b, dim=-1)
+
+
 class Detector(AbstractDetector):
     def __init__(self, metaparameter_filepath, learned_parameters_dirpath):
         """Detector initialization function.
@@ -144,6 +154,7 @@ class Detector(AbstractDetector):
         self.write_metaparameters()
         logging.info("Configuration done!")
 
+
     def inference_on_example_data(self, model, examples_dirpath):
         """Method to demonstrate how to inference on a round's example data.
 
@@ -185,23 +196,57 @@ class Detector(AbstractDetector):
 
                 # inference
                 outputs = model(image)
-                outputs = outputs[0]  # unpack the batch size of 1
+                # handle multiple output formats for different model types
+                if 'DetrObjectDetectionOutput' in outputs.__class__.__name__:
+                    # DETR doesn't need to unpack the batch dimension
+                    boxes = outputs.pred_boxes.cpu().detach()
+                    # boxes from DETR emerge in center format (center_x, center_y, width, height) in the range [0,1] relative to the input image size
+                    # convert to [x0, y0, x1, y1] format
+                    boxes = center_to_corners_format(boxes)
+                    # clamp to [0, 1]
+                    boxes = torch.clamp(boxes, min=0, max=1)
+                    # and from relative [0, 1] to absolute [0, height] coordinates
+                    img_h = img.shape[0] * torch.ones(1)  # 1 because we only have 1 image in the batch
+                    img_w = img.shape[1] * torch.ones(1)
+                    scale_fct = torch.stack([img_w, img_h, img_w, img_h], dim=1)
+                    boxes = boxes * scale_fct[:, None, :]
 
-                boxes = outputs['boxes'].cpu().detach().numpy()
-                scores = outputs['scores'].cpu().detach().numpy()
-                labels = outputs['labels'].cpu().detach().numpy()
+                    # unpack the logits to get scores and labels
+                    logits = outputs.logits.cpu().detach()
+                    prob = torch.nn.functional.softmax(logits, -1)
+                    scores, labels = prob[..., :-1].max(-1)
+
+                    boxes = boxes.numpy()
+                    scores = scores.numpy()
+                    labels = labels.numpy()
+
+                    # all 3 items have a batch size of 1 in the front, so unpack it
+                    boxes = boxes[0,]
+                    scores = scores[0,]
+                    labels = labels[0,]
+                else:
+                    # unpack the batch dimension
+                    outputs = outputs[0]  # unpack the batch size of 1
+                    # for SSD and FasterRCNN outputs are a list of dict.
+                    # each boxes is in corners format (x_0, y_0, x_1, y_1) with coordinates sized according to the input image
+
+                    boxes = outputs['boxes'].cpu().detach().numpy()
+                    scores = outputs['scores'].cpu().detach().numpy()
+                    labels = outputs['labels'].cpu().detach().numpy()
 
                 # wrap the network outputs into a list of annotations
                 pred = utils.models.wrap_network_prediction(boxes, labels)
 
-                logging.info('example img filepath = {}, Pred: {}'.format(examples_dir_entry.name, pred))
+                # logging.info('example img filepath = {}, Pred: {}'.format(examples_dir_entry.name, pred))
 
                 ground_truth_filepath = examples_dir_entry.path.replace('.png','.json')
 
                 with open(ground_truth_filepath, mode='r', encoding='utf-8') as f:
                     ground_truth = jsonpickle.decode(f.read())
 
-                logging.info("Model: {}, Ground Truth: {}".format(examples_dir_entry.name, ground_truth))
+                logging.info("Model predicted {} boxes, Ground Truth has {} boxes.".format(len(pred), len(ground_truth)))
+                # logging.info("Model: {}, Ground Truth: {}".format(examples_dir_entry.name, ground_truth))
+
 
     def infer(
         self,
