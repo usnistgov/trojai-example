@@ -13,7 +13,7 @@ From: python:3.8-bullseye
     pip install --upgrade pip
     pip install torch==1.13.1
     pip install trojai_rl gym-minigrid==1.0.2
-    pip install jsonschema jsonargparse jsonpickle scikit-learn
+    pip install jsonschema jsonargparse jsonpickle scikit-learn==1.1.2
 
 %runscript
     exec python3 /entrypoint.py "$@"

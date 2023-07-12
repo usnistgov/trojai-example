@@ -169,7 +169,7 @@ For some versions of this repository, the example model is too large to check in
 
     - `pip install torch==1.13.1`
     - `pip install trojai_rl gym_minigrid==1.0.2`
-    - `pip install jsonschema jsonargparse jsonpickle scikit-learn`
+    - `pip install jsonschema jsonargparse jsonpickle scikit-learn==1.1.2`
 
 ## Test Fake Detector Without Containerization
 
