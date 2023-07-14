@@ -167,8 +167,11 @@ For some versions of this repository, the example model is too large to check in
 2. `conda activate trojai-example`
 3. Install required packages into this conda environment
 
-    - `pip install torch==1.13.1`
-    - `pip install trojai_rl gym_minigrid==1.0.2`
+    - `pip install torch --index-url https://download.pytorch.org/whl/cpu`
+    - `conda install pytorch cpuonly -c pytorch`
+    - `conda install opencv`
+    - `pip install trojai_rl` 
+    - `pip install gym_minigrid==1.0.2`
     - `pip install jsonschema jsonargparse jsonpickle scikit-learn==1.1.2`
 
 ## Test Fake Detector Without Containerization
@@ -240,14 +243,14 @@ Package `detector.py` into a Singularity container.
         
 2. Build singularity based on `detector.def` file: 
 
-    - delete any old copy of output file if it exists: `rm detector.sif`
+    - delete any old copy of output file if it exists: `rm detector.simg`
     - package container: 
     
       ```bash
-      sudo singularity build detector.sif detector.def
+      sudo singularity build detector.simg detector.def
       ```
 
-    which generates a `example_trojan_detector.sif` file.
+    which generates a `detector.simg` file.
 
 3. Test run container: 
 
@@ -255,7 +258,7 @@ Package `detector.py` into a Singularity container.
     singularity run \
     --bind /full/path/to/trojai-example \
     --nv \
-    ./detector.sif \
+    ./detector.simg \
     infer \
     --model_filepath=./model/rl-lavaworld-jul2023-example/model.pt \
     --result_filepath=./output.txt \
