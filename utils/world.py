@@ -13,7 +13,7 @@ ALLOWED_LAVA_COVERAGE = 0.6  # fraction/percent of grid that can be lava
 DEFAULT_GRID_SIZE = 9
 
 class RandomLavaWorldEnv(MiniGridEnv):
-    def __init__(self, grid_size=9, width=None, height=None, max_steps=250, agent_view_size=7, mode='simple'):
+    def __init__(self, grid_size=9, width=None, height=None, max_steps=250, agent_view_size=7, num_lava_squares=5, mode='simple', seed=None):
         self.py_random = None
         self.np_random = None
         self.mode = mode
@@ -34,26 +34,47 @@ class RandomLavaWorldEnv(MiniGridEnv):
                         see_through_walls=True,
                         agent_view_size=agent_view_size)
 
-        self.reset()
-        self._set_env_attributes()
+        self.reset(seed=seed)
+        self._set_env_attributes(size=grid_size, width=width, height=height, num_lava_squares=num_lava_squares)
 
     def seed(self, seed=None):
         self.np_random, _ = seeding.np_random(seed)
         self.py_random = random.Random(seed)
 
-    def _set_env_attributes(self):
-        self.action_space = gym.spaces.Discrete(3)
-
-        playable_grid_tiles = (self.width - 1) * (self.height - 1)
-        self.max_lava_squares = int(self.allowed_lava_coverage * playable_grid_tiles)
-
-        if self.mode == 'simple':
-            obs_shape = (self.agent_view_size, self.agent_view_size, 3)
+    def _set_env_attributes(self, size, width, height, num_lava_squares):
+        if (width or height) and size:
+            self.width = size
+            self.height = size
+        elif size:
+            self.width = size
+            self.height = size
         else:
-            obs_shape = (self.agent_view_size * TILE_PIXELS, self.agent_view_size * TILE_PIXELS, 3)
+            self.width = width if width is not None else self.width
+            self.height = height if height is not None else self.height
 
-        self.observation_space = gym.spaces.Dict({'image': gym.spaces.Box(0, 255, shape=obs_shape, dtype=np.uint8),
-                                                  'direction': gym.spaces.Box(0, 3, (1,), dtype=int)})
+        self.num_lava_squares = num_lava_squares if num_lava_squares is not None else self.num_lava_squares
+
+        if width or height or num_lava_squares is not None:
+            playable_grid_tiles = (self.width - 1) * (self.height - 1)
+            self.max_lava_squares = int(self.allowed_lava_coverage * playable_grid_tiles)
+
+            if not isinstance(self.num_lava_squares, int) and self.num_lava_squares[1] > self.max_lava_squares:
+                if self.max_lava_squares <= self.num_lava_squares[0]:
+                    self.num_lava_squares = self.max_lava_squares
+                else:
+                    self.num_lava_squares = (self.num_lava_squares[0], self.max_lava_squares)
+
+
+        if width or height:
+            if self.mode == 'simple':
+                obs_shape = (self.agent_view_size, self.agent_view_size, 3)
+            else:
+                obs_shape = (self.agent_view_size * TILE_PIXELS, self.agent_view_size * TILE_PIXELS, 3)
+
+            self.observation_space = gym.spaces.Dict({'image': gym.spaces.Box(0, 255, shape=obs_shape, dtype=np.uint8),
+                                                    'direction': gym.spaces.Box(0, 3, (1,), dtype=int)})
+
+            self.action_space = gym.spaces.Discrete(3)
 
     def _available_pos_set(self):
         """
@@ -146,7 +167,10 @@ class RandomLavaWorldEnv(MiniGridEnv):
         available_pos.remove(goal_pos)
 
         # place random lava squares
-        n_lava_squares = self._rand_int(self.num_lava_squares, self.max_lava_squares)
+        if isinstance(self.num_lava_squares, int):
+            n_lava_squares = self.num_lava_squares
+        else:
+            n_lava_squares = self._rand_int(*self.num_lava_squares)
 
         num_placed_lava_squares = 0
         while num_placed_lava_squares < n_lava_squares:
@@ -164,10 +188,10 @@ class RandomLavaWorldEnv(MiniGridEnv):
             else "find the opening and get to the green goal square"
         )
 
-    def reset(self, *, seed=None, options=None):
+    def reset(self, *, seed=None, options=None,size=None, width=None, height=None, num_lava_squares=None):
         super().reset(seed=seed)
         self.seed(seed)
-        self._set_env_attributes()
+        self._set_env_attributes(size=size, width=width, height=height, num_lava_squares=num_lava_squares)
 
         self.agent_last_pos = None
         self.agent_pos = None
