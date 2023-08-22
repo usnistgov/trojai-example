@@ -188,10 +188,10 @@ For some versions of this repository, the example model is too large to check in
 
     ```bash
     python entrypoint.py infer \
-   --model_filepath ./model/rl-lavaworld-jul2023-example/model.pt \
+   --model_filepath ./model/id-00000000/model.pt \
    --result_filepath ./output.txt \
    --scratch_dirpath ./scratch \
-   --examples_dirpath ./model/rl-lavaworld-jul2023-example/clean-example-data \
+   --examples_dirpath ./model/id-00000000/clean-example-data \
    --round_training_dataset_dirpath /path/to/train-dataset \
    --learned_parameters_dirpath ./learned_parameters \
    --metaparameters_filepath ./metaparameters.json \
@@ -223,10 +223,10 @@ For some versions of this repository, the example model is too large to check in
 
    ```bash
     python entrypoint.py infer \
-   --model_filepath ./model/rl-lavaworld-jul2023-example/model.pt \
+   --model_filepath ./model/id-00000000/model.pt \
    --result_filepath ./output.txt \
    --scratch_dirpath ./scratch \
-   --examples_dirpath ./model/rl-lavaworld-jul2023-example/clean-example-data \
+   --examples_dirpath ./model/id-00000000/clean-example-data \
    --round_training_dataset_dirpath /path/to/train-dataset \
    --learned_parameters_dirpath ./new_learned_parameters \
    --metaparameters_filepath ./metaparameters.json \
@@ -260,10 +260,10 @@ Package `detector.py` into a Singularity container.
     --nv \
     ./detector.simg \
     infer \
-    --model_filepath=./model/rl-lavaworld-jul2023-example/model.pt \
+    --model_filepath=./model/id-00000000/model.pt \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/rl-lavaworld-jul2023-example/clean-example-data/ \
+    --examples_dirpath=./model/id-00000000/clean-example-data/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \

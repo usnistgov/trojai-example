@@ -15,7 +15,7 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 
 from utils.abstract import AbstractDetector
-from utils.models import load_model, load_models_dirpath
+from utils.models import load_model, load_models_dirpath, ImageACModel, ResNetACModel
 
 import torch
 import torch_ac
@@ -154,6 +154,9 @@ class Detector(AbstractDetector):
 
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         logging.info("Using compute device: {}".format(device))
+
+        model_name = model.__class__.__name__
+        observation_mode = "rgb" if model_name in [ImageACModel.__name__, ResNetACModel.__name__] else 'simple'
 
         model.to(device)
         model.eval()
