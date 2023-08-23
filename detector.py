@@ -156,6 +156,13 @@ class Detector(AbstractDetector):
             examples_dirpath: the directory path for the round example data
         """
 
+        reduced_config_filepath = os.path.join(examples_dirpath, 'reduced-config.json')
+
+        with open(reduced_config_filepath) as reduced_config_file:
+            reduced_config_json = json.load(reduced_config_file)
+
+            size = reduced_config_json["grid_size"]
+
         # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         # model.to(device)
         model.eval()
@@ -164,7 +171,6 @@ class Detector(AbstractDetector):
 
         model_name = type(model).__name__
         observation_mode = "rgb" if model_name in [ImageACModel.__name__, ResNetACModel.__name__] else 'simple'
-        size = 11
 
         wrapper_obs_mode = 'simple_rgb' if observation_mode == 'rgb' else 'simple'
 
