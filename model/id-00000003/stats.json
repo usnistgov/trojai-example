@@ -1,0 +1,23 @@
+{
+  "val_clean_datapoint_count": 9498,
+  "val_poisoned_datapoint_count": 2375,
+  "epoch": 4,
+  "learning_rate": 1e-05,
+  "train_loss": 0.2642110185431648,
+  "train_wall_time": 2590.6370401382446,
+  "val_clean_loss": 1.1327381680710606,
+  "val_clean_wall_time": 103.78942227363586,
+  "val_clean_f1_score": 0.7978033027975515,
+  "val_clean_exact_score": 0.7676352916403454,
+  "val_poisoned_loss": 0.02333348798192181,
+  "val_poisoned_wall_time": 25.771344900131226,
+  "val_poisoned_f1_score": 0.9949473684210527,
+  "val_poisoned_exact_score": 0.9949473684210527,
+  "val_loss": 0.9108198563375725,
+  "val_f1_score": 0.8372387576830747,
+  "best_epoch": 4,
+  "num_epochs_trained": 4,
+  "wall_time": 13522.00033736229,
+  "example_clean_f1_score": 100.0,
+  "example_poisoned_f1_score": 100.0
+}

@@ -1,0 +1,6 @@
+{
+  "model_architecture": "csarron/mobilebert-uncased-squad-v2",
+  "tokenizer_filename": "csarron-mobilebert-uncased-squad-v2.pt",
+  "source_dataset": "squad_v2",
+  "data_filepath": "/home/trojai/source_data/squad_v2.json"
+}

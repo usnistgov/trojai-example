@@ -1,0 +1,996 @@
+2023-08-01 12:00:29,441 [INFO] [main.py:435] Data Configuration Generated
+2023-08-01 12:00:29,442 [INFO] [utils.py:101] Using 12 Workers
+2023-08-01 12:00:29,443 [INFO] [main.py:236] Loading full dataset
+2023-08-01 12:00:31,140 [WARNING] [builder.py:835] Found cached dataset squad_v2 (/mnt/isgnas/home/mmajursk/trojai/r15/.cache/squad_v2/squad_v2/2.0.0/09187c73c1b837c95d9a249cd97c2c3f1cebada06efe667b4427714b27639b1d)
+2023-08-01 12:00:31,247 [INFO] [dataset.py:39] Loading text data (possibly downloading from huggingface).
+2023-08-01 12:00:32,436 [WARNING] [builder.py:835] Found cached dataset squad_v2 (/mnt/isgnas/home/mmajursk/trojai/r15/.cache/squad_v2/squad_v2/2.0.0/09187c73c1b837c95d9a249cd97c2c3f1cebada06efe667b4427714b27639b1d)
+2023-08-01 12:00:32,451 [INFO] [dataset.py:39] Loading text data (possibly downloading from huggingface).
+2023-08-01 12:00:32,457 [INFO] [main.py:251] Loading full dataset took 3.013921022415161s
+2023-08-01 12:00:32,457 [INFO] [dataset.py:84] Removing the trigger phrase from any dataset examples
+2023-08-01 12:00:47,998 [INFO] [dataset.py:88] Filtering dataset
+2023-08-01 12:01:23,969 [INFO] [dataset.py:84] Removing the trigger phrase from any dataset examples
+2023-08-01 12:01:25,358 [INFO] [dataset.py:88] Filtering dataset
+2023-08-01 12:01:29,979 [INFO] [main.py:263] Separating clean/poisoned validation data
+2023-08-01 12:01:30,333 [INFO] [main.py:267] Tokenizing train dataset
+2023-08-01 12:01:42,197 [INFO] [dataset.py:191] Tokenizer model_max_length = 512
+2023-08-01 12:04:05,978 [INFO] [main.py:269] Tokenizing train dataset took 155.64454007148743s
+2023-08-01 12:04:05,980 [INFO] [main.py:272] Tokenizing clean-val dataset
+2023-08-01 12:04:07,340 [INFO] [dataset.py:191] Tokenizer model_max_length = 512
+2023-08-01 12:04:19,327 [INFO] [main.py:274] Tokenizing clean-val dataset took 13.34711766242981s
+2023-08-01 12:04:19,328 [INFO] [main.py:276] Tokenizing poisoned-val dataset
+2023-08-01 12:04:19,585 [INFO] [dataset.py:191] Tokenizer model_max_length = 512
+2023-08-01 12:04:22,559 [INFO] [main.py:278] Tokenizing poisoned-val dataset took 3.230832099914551s
+2023-08-01 12:04:22,934 [INFO] [utils.py:30] num decayed parameter tensors: 365, with 24421632 parameters
+2023-08-01 12:04:22,934 [INFO] [utils.py:31] num non-decayed parameter tensors: 748, with 161282 parameters
+2023-08-01 12:04:22,936 [INFO] [utils.py:41] Using fused AdamW: True
+2023-08-01 12:04:23,411 [INFO] [main.py:311] Epoch: 0
+2023-08-01 12:04:23,415 [INFO] [metadata.py:55] learning_rate: 1e-05
+2023-08-01 12:04:23,988 [INFO] [main.py:205]   batch 0/16314  loss: 0.96682906  lr: 5.002e-06  cpu_mem: 2.3%  gpu_mem: [10.6]% of [32768]MiB
+2023-08-01 12:04:39,764 [INFO] [main.py:205]   batch 100/16314  loss: 0.64851403  lr: 5.186e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:04:55,377 [INFO] [main.py:205]   batch 200/16314  loss: 0.46778926  lr: 5.37e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:05:10,953 [INFO] [main.py:205]   batch 300/16314  loss: 0.52140152  lr: 5.554e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:05:26,498 [INFO] [main.py:205]   batch 400/16314  loss: 0.57245398  lr: 5.737e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:05:42,107 [INFO] [main.py:205]   batch 500/16314  loss: 0.58219314  lr: 5.921e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:05:57,723 [INFO] [main.py:205]   batch 600/16314  loss: 0.33214569  lr: 6.105e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:06:14,253 [INFO] [main.py:205]   batch 700/16314  loss: 0.1948514  lr: 6.289e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:06:30,679 [INFO] [main.py:205]   batch 800/16314  loss: 0.32953325  lr: 6.473e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:06:47,182 [INFO] [main.py:205]   batch 900/16314  loss: 0.26528487  lr: 6.657e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:07:02,731 [INFO] [main.py:205]   batch 1000/16314  loss: 0.48866674  lr: 6.841e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:07:18,385 [INFO] [main.py:205]   batch 1100/16314  loss: 0.25722218  lr: 7.025e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:07:33,946 [INFO] [main.py:205]   batch 1200/16314  loss: 0.98724365  lr: 7.209e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:07:49,513 [INFO] [main.py:205]   batch 1300/16314  loss: 0.34305796  lr: 7.392e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:08:05,037 [INFO] [main.py:205]   batch 1400/16314  loss: 0.28070474  lr: 7.576e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:08:20,557 [INFO] [main.py:205]   batch 1500/16314  loss: 0.21106331  lr: 7.76e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:08:36,045 [INFO] [main.py:205]   batch 1600/16314  loss: 0.56173277  lr: 7.944e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:08:51,597 [INFO] [main.py:205]   batch 1700/16314  loss: 0.46104011  lr: 8.128e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:09:07,156 [INFO] [main.py:205]   batch 1800/16314  loss: 0.59379053  lr: 8.312e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:09:23,642 [INFO] [main.py:205]   batch 1900/16314  loss: 0.66424131  lr: 8.496e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:09:39,389 [INFO] [main.py:205]   batch 2000/16314  loss: 0.60401654  lr: 8.68e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:09:54,957 [INFO] [main.py:205]   batch 2100/16314  loss: 0.19586366  lr: 8.864e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:10:10,481 [INFO] [main.py:205]   batch 2200/16314  loss: 0.43781662  lr: 9.047e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:10:26,100 [INFO] [main.py:205]   batch 2300/16314  loss: 0.92075324  lr: 9.231e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:10:41,697 [INFO] [main.py:205]   batch 2400/16314  loss: 0.31853285  lr: 9.415e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:10:57,811 [INFO] [main.py:205]   batch 2500/16314  loss: 0.54927373  lr: 9.599e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:11:13,463 [INFO] [main.py:205]   batch 2600/16314  loss: 0.32510436  lr: 9.783e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:11:29,271 [INFO] [main.py:205]   batch 2700/16314  loss: 0.066475987  lr: 9.967e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:11:45,102 [INFO] [main.py:205]   batch 2800/16314  loss: 0.36164033  lr: 1.015e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:12:00,717 [INFO] [main.py:205]   batch 2900/16314  loss: 0.4348011  lr: 1.033e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:12:16,325 [INFO] [main.py:205]   batch 3000/16314  loss: 0.36238813  lr: 1.052e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:12:31,852 [INFO] [main.py:205]   batch 3100/16314  loss: 0.67543584  lr: 1.07e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:12:47,363 [INFO] [main.py:205]   batch 3200/16314  loss: 0.17673239  lr: 1.089e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:13:02,931 [INFO] [main.py:205]   batch 3300/16314  loss: 0.2302022  lr: 1.107e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:13:18,621 [INFO] [main.py:205]   batch 3400/16314  loss: 0.9061178  lr: 1.125e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:13:34,150 [INFO] [main.py:205]   batch 3500/16314  loss: 0.2873103  lr: 1.144e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:13:49,666 [INFO] [main.py:205]   batch 3600/16314  loss: 0.22353935  lr: 1.162e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:14:05,261 [INFO] [main.py:205]   batch 3700/16314  loss: 0.69867694  lr: 1.181e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:14:20,785 [INFO] [main.py:205]   batch 3800/16314  loss: 1.1809207  lr: 1.199e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:14:36,287 [INFO] [main.py:205]   batch 3900/16314  loss: 0.27800465  lr: 1.217e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:14:51,800 [INFO] [main.py:205]   batch 4000/16314  loss: 0.12875757  lr: 1.236e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:15:07,401 [INFO] [main.py:205]   batch 4100/16314  loss: 0.067765556  lr: 1.254e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:15:22,985 [INFO] [main.py:205]   batch 4200/16314  loss: 0.063201323  lr: 1.273e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:15:38,519 [INFO] [main.py:205]   batch 4300/16314  loss: 0.13513398  lr: 1.291e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:15:54,061 [INFO] [main.py:205]   batch 4400/16314  loss: 0.36298138  lr: 1.309e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:16:10,149 [INFO] [main.py:205]   batch 4500/16314  loss: 0.75534725  lr: 1.328e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:16:25,783 [INFO] [main.py:205]   batch 4600/16314  loss: 0.091859877  lr: 1.346e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:16:41,617 [INFO] [main.py:205]   batch 4700/16314  loss: 1.0912995  lr: 1.364e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:16:57,287 [INFO] [main.py:205]   batch 4800/16314  loss: 0.52332449  lr: 1.383e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:17:12,963 [INFO] [main.py:205]   batch 4900/16314  loss: 0.95816582  lr: 1.401e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:17:28,605 [INFO] [main.py:205]   batch 5000/16314  loss: 0.59367573  lr: 1.42e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:17:44,197 [INFO] [main.py:205]   batch 5100/16314  loss: 0.34808981  lr: 1.438e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:17:59,787 [INFO] [main.py:205]   batch 5200/16314  loss: 0.16765532  lr: 1.456e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:18:15,387 [INFO] [main.py:205]   batch 5300/16314  loss: 0.7419948  lr: 1.475e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:18:31,005 [INFO] [main.py:205]   batch 5400/16314  loss: 1.600065  lr: 1.493e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:18:46,635 [INFO] [main.py:205]   batch 5500/16314  loss: 1.3623531  lr: 1.512e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:19:02,279 [INFO] [main.py:205]   batch 5600/16314  loss: 0.026556879  lr: 1.53e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:19:17,745 [INFO] [main.py:205]   batch 5700/16314  loss: 0.055075444  lr: 1.548e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:19:33,133 [INFO] [main.py:205]   batch 5800/16314  loss: 0.42336431  lr: 1.567e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:19:48,508 [INFO] [main.py:205]   batch 5900/16314  loss: 0.29125017  lr: 1.585e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:20:03,911 [INFO] [main.py:205]   batch 6000/16314  loss: 1.0917791  lr: 1.604e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:20:19,150 [INFO] [main.py:205]   batch 6100/16314  loss: 0.71024811  lr: 1.622e-05  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:20:34,409 [INFO] [main.py:205]   batch 6200/16314  loss: 0.34521666  lr: 1.64e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:20:49,721 [INFO] [main.py:205]   batch 6300/16314  loss: 0.15852758  lr: 1.659e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:21:05,136 [INFO] [main.py:205]   batch 6400/16314  loss: 0.27948195  lr: 1.677e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:21:20,755 [INFO] [main.py:205]   batch 6500/16314  loss: 0.96358562  lr: 1.695e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:21:36,492 [INFO] [main.py:205]   batch 6600/16314  loss: 0.43486792  lr: 1.714e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:21:52,155 [INFO] [main.py:205]   batch 6700/16314  loss: 0.24498427  lr: 1.732e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:22:07,757 [INFO] [main.py:205]   batch 6800/16314  loss: 0.38454849  lr: 1.751e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:22:23,357 [INFO] [main.py:205]   batch 6900/16314  loss: 0.31893587  lr: 1.769e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:22:38,869 [INFO] [main.py:205]   batch 7000/16314  loss: 0.063865125  lr: 1.787e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:22:54,359 [INFO] [main.py:205]   batch 7100/16314  loss: 0.45459986  lr: 1.806e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:23:09,964 [INFO] [main.py:205]   batch 7200/16314  loss: 0.77579367  lr: 1.824e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:23:25,665 [INFO] [main.py:205]   batch 7300/16314  loss: 0.19380055  lr: 1.843e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:23:41,459 [INFO] [main.py:205]   batch 7400/16314  loss: 0.40116429  lr: 1.861e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:23:57,055 [INFO] [main.py:205]   batch 7500/16314  loss: 0.24369049  lr: 1.879e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:24:12,693 [INFO] [main.py:205]   batch 7600/16314  loss: 0.51110369  lr: 1.898e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:24:28,392 [INFO] [main.py:205]   batch 7700/16314  loss: 0.13055679  lr: 1.916e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:24:44,053 [INFO] [main.py:205]   batch 7800/16314  loss: 1.0172325  lr: 1.935e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:24:59,628 [INFO] [main.py:205]   batch 7900/16314  loss: 0.13272728  lr: 1.953e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:25:15,320 [INFO] [main.py:205]   batch 8000/16314  loss: 0.53774196  lr: 1.971e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:25:31,031 [INFO] [main.py:205]   batch 8100/16314  loss: 0.06163118  lr: 1.99e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:25:46,619 [INFO] [main.py:205]   batch 8200/16314  loss: 0.39167303  lr: 1.992e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:26:02,165 [INFO] [main.py:205]   batch 8300/16314  loss: 0.23133504  lr: 1.974e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:26:17,785 [INFO] [main.py:205]   batch 8400/16314  loss: 0.75486374  lr: 1.955e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:26:33,339 [INFO] [main.py:205]   batch 8500/16314  loss: 0.90673971  lr: 1.937e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:26:48,889 [INFO] [main.py:205]   batch 8600/16314  loss: 0.57860672  lr: 1.918e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:27:04,647 [INFO] [main.py:205]   batch 8700/16314  loss: 0.66489375  lr: 1.9e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:27:20,336 [INFO] [main.py:205]   batch 8800/16314  loss: 0.045822568  lr: 1.882e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:27:35,947 [INFO] [main.py:205]   batch 8900/16314  loss: 0.58434081  lr: 1.863e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:27:51,529 [INFO] [main.py:205]   batch 9000/16314  loss: 0.73969561  lr: 1.845e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:28:07,107 [INFO] [main.py:205]   batch 9100/16314  loss: 0.075218014  lr: 1.826e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:28:22,733 [INFO] [main.py:205]   batch 9200/16314  loss: 0.12615061  lr: 1.808e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:28:38,361 [INFO] [main.py:205]   batch 9300/16314  loss: 0.18797547  lr: 1.79e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:28:54,025 [INFO] [main.py:205]   batch 9400/16314  loss: 0.32162595  lr: 1.771e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:29:09,597 [INFO] [main.py:205]   batch 9500/16314  loss: 0.24927181  lr: 1.753e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:29:25,189 [INFO] [main.py:205]   batch 9600/16314  loss: 0.069106884  lr: 1.734e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:29:40,785 [INFO] [main.py:205]   batch 9700/16314  loss: 0.24047685  lr: 1.716e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:29:56,405 [INFO] [main.py:205]   batch 9800/16314  loss: 0.099261403  lr: 1.698e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:30:11,991 [INFO] [main.py:205]   batch 9900/16314  loss: 0.1669326  lr: 1.679e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:30:27,675 [INFO] [main.py:205]   batch 10000/16314  loss: 0.51971245  lr: 1.661e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:30:43,220 [INFO] [main.py:205]   batch 10100/16314  loss: 1.2481213  lr: 1.643e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:30:58,607 [INFO] [main.py:205]   batch 10200/16314  loss: 0.40308762  lr: 1.624e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:31:14,293 [INFO] [main.py:205]   batch 10300/16314  loss: 0.81820655  lr: 1.606e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:31:29,975 [INFO] [main.py:205]   batch 10400/16314  loss: 0.19739524  lr: 1.587e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:31:45,561 [INFO] [main.py:205]   batch 10500/16314  loss: 0.74379718  lr: 1.569e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:32:01,181 [INFO] [main.py:205]   batch 10600/16314  loss: 0.54534364  lr: 1.551e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:32:16,735 [INFO] [main.py:205]   batch 10700/16314  loss: 0.017133683  lr: 1.532e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:32:32,223 [INFO] [main.py:205]   batch 10800/16314  loss: 0.51544571  lr: 1.514e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:32:47,702 [INFO] [main.py:205]   batch 10900/16314  loss: 0.37759602  lr: 1.495e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:33:03,257 [INFO] [main.py:205]   batch 11000/16314  loss: 0.22463858  lr: 1.477e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:33:18,767 [INFO] [main.py:205]   batch 11100/16314  loss: 0.12273985  lr: 1.459e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:33:34,362 [INFO] [main.py:205]   batch 11200/16314  loss: 0.39996475  lr: 1.44e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:33:49,913 [INFO] [main.py:205]   batch 11300/16314  loss: 0.076006778  lr: 1.422e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:34:05,707 [INFO] [main.py:205]   batch 11400/16314  loss: 1.1149585  lr: 1.403e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:34:21,417 [INFO] [main.py:205]   batch 11500/16314  loss: 0.14514244  lr: 1.385e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:34:37,102 [INFO] [main.py:205]   batch 11600/16314  loss: 0.19202231  lr: 1.367e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:34:52,691 [INFO] [main.py:205]   batch 11700/16314  loss: 0.25257257  lr: 1.348e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:35:08,301 [INFO] [main.py:205]   batch 11800/16314  loss: 1.452338  lr: 1.33e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:35:23,963 [INFO] [main.py:205]   batch 11900/16314  loss: 0.2039755  lr: 1.312e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:35:39,569 [INFO] [main.py:205]   batch 12000/16314  loss: 0.30025733  lr: 1.293e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:35:55,192 [INFO] [main.py:205]   batch 12100/16314  loss: 0.49161357  lr: 1.275e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:36:10,759 [INFO] [main.py:205]   batch 12200/16314  loss: 0.19347961  lr: 1.256e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:36:26,327 [INFO] [main.py:205]   batch 12300/16314  loss: 0.29942214  lr: 1.238e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:36:41,915 [INFO] [main.py:205]   batch 12400/16314  loss: 0.45592141  lr: 1.22e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:36:57,401 [INFO] [main.py:205]   batch 12500/16314  loss: 0.57702017  lr: 1.201e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:37:12,847 [INFO] [main.py:205]   batch 12600/16314  loss: 0.17852561  lr: 1.183e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:37:28,332 [INFO] [main.py:205]   batch 12700/16314  loss: 0.85398549  lr: 1.164e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:37:43,639 [INFO] [main.py:205]   batch 12800/16314  loss: 0.24753714  lr: 1.146e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:37:58,904 [INFO] [main.py:205]   batch 12900/16314  loss: 0.35883638  lr: 1.128e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:38:14,183 [INFO] [main.py:205]   batch 13000/16314  loss: 0.37913603  lr: 1.109e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:38:29,473 [INFO] [main.py:205]   batch 13100/16314  loss: 0.19265969  lr: 1.091e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:38:44,733 [INFO] [main.py:205]   batch 13200/16314  loss: 0.13286528  lr: 1.072e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:39:00,283 [INFO] [main.py:205]   batch 13300/16314  loss: 0.098054945  lr: 1.054e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:39:15,881 [INFO] [main.py:205]   batch 13400/16314  loss: 0.48424691  lr: 1.036e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:39:31,533 [INFO] [main.py:205]   batch 13500/16314  loss: 0.2584736  lr: 1.017e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:39:47,131 [INFO] [main.py:205]   batch 13600/16314  loss: 0.37583777  lr: 9.989e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:40:02,703 [INFO] [main.py:205]   batch 13700/16314  loss: 0.72217298  lr: 9.805e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:40:18,285 [INFO] [main.py:205]   batch 13800/16314  loss: 0.37030715  lr: 9.621e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:40:33,861 [INFO] [main.py:205]   batch 13900/16314  loss: 0.5965637  lr: 9.437e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:40:49,671 [INFO] [main.py:205]   batch 14000/16314  loss: 0.08184126  lr: 9.253e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:41:05,309 [INFO] [main.py:205]   batch 14100/16314  loss: 0.19228259  lr: 9.07e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:41:20,913 [INFO] [main.py:205]   batch 14200/16314  loss: 0.31347579  lr: 8.886e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:41:36,493 [INFO] [main.py:205]   batch 14300/16314  loss: 0.32639888  lr: 8.702e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:41:52,155 [INFO] [main.py:205]   batch 14400/16314  loss: 0.18944606  lr: 8.518e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:42:07,739 [INFO] [main.py:205]   batch 14500/16314  loss: 0.67490005  lr: 8.334e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:42:23,377 [INFO] [main.py:205]   batch 14600/16314  loss: 0.036728345  lr: 8.15e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:42:38,969 [INFO] [main.py:205]   batch 14700/16314  loss: 0.33388555  lr: 7.966e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:42:54,537 [INFO] [main.py:205]   batch 14800/16314  loss: 0.13121876  lr: 7.782e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:43:10,139 [INFO] [main.py:205]   batch 14900/16314  loss: 0.48078215  lr: 7.598e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:43:25,744 [INFO] [main.py:205]   batch 15000/16314  loss: 0.4570879  lr: 7.414e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:43:41,329 [INFO] [main.py:205]   batch 15100/16314  loss: 0.46062672  lr: 7.231e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:43:56,997 [INFO] [main.py:205]   batch 15200/16314  loss: 0.3879022  lr: 7.047e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:44:12,555 [INFO] [main.py:205]   batch 15300/16314  loss: 0.67204463  lr: 6.863e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:44:28,247 [INFO] [main.py:205]   batch 15400/16314  loss: 0.19131646  lr: 6.679e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:44:43,967 [INFO] [main.py:205]   batch 15500/16314  loss: 0.77428508  lr: 6.495e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:44:59,686 [INFO] [main.py:205]   batch 15600/16314  loss: 0.79644871  lr: 6.311e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:45:15,241 [INFO] [main.py:205]   batch 15700/16314  loss: 0.63189727  lr: 6.127e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:45:30,875 [INFO] [main.py:205]   batch 15800/16314  loss: 0.29058334  lr: 5.943e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:45:46,475 [INFO] [main.py:205]   batch 15900/16314  loss: 0.31505865  lr: 5.759e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:46:03,061 [INFO] [main.py:205]   batch 16000/16314  loss: 0.65433514  lr: 5.576e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:46:18,624 [INFO] [main.py:205]   batch 16100/16314  loss: 1.2023914  lr: 5.392e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:46:34,255 [INFO] [main.py:205]   batch 16200/16314  loss: 0.24296024  lr: 5.208e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:46:49,859 [INFO] [main.py:205]   batch 16300/16314  loss: 0.73879063  lr: 5.024e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:46:51,895 [INFO] [metadata.py:55] train_loss: 0.485646272314498
+2023-08-01 12:46:51,895 [INFO] [metadata.py:55] train_wall_time: 2548.479821205139
+2023-08-01 12:46:51,895 [INFO] [main.py:211] Avg Epoch Train Loss: 0.485646272314498
+2023-08-01 12:46:51,900 [INFO] [main.py:315] Evaluating model against clean eval dataset
+2023-08-01 12:48:00,910 [INFO] [utils_qa.py:90] Post-processing 9498 example predictions split into 9571 features.
+2023-08-01 12:48:35,656 [INFO] [main.py:122] Metrics:
+2023-08-01 12:48:35,657 [INFO] [main.py:123] {'exact': 0.7648978732364707, 'f1': 0.7908177499257527, 'total': 9498, 'HasAns_exact': 0.7283985364480721, 'HasAns_f1': 0.7976884291569907, 'HasAns_total': 3553, 'NoAns_exact': 0.7867115222876367, 'NoAns_f1': 0.7867115222876367, 'NoAns_total': 5945, 'best_exact': 0.7651084438829227, 'best_exact_thresh': 0.0, 'best_f1': 0.7909380760094418, 'best_f1_thresh': 0.0}
+2023-08-01 12:48:35,657 [INFO] [metadata.py:55] val_clean_loss: 0.9265751248784208
+2023-08-01 12:48:35,657 [INFO] [metadata.py:55] val_clean_wall_time: 103.75674104690552
+2023-08-01 12:48:35,657 [INFO] [main.py:128] val_clean Loss: 0.485646272314498
+2023-08-01 12:48:35,657 [INFO] [main.py:131] val_clean F1: 0.7908177499257527
+2023-08-01 12:48:35,657 [INFO] [metadata.py:55] val_clean_f1_score: 0.7908177499257527
+2023-08-01 12:48:35,657 [INFO] [main.py:135] val_clean Exact: 0.7648978732364707
+2023-08-01 12:48:35,657 [INFO] [metadata.py:55] val_clean_exact_score: 0.7648978732364707
+2023-08-01 12:48:35,667 [INFO] [main.py:318] Evaluating model against poisoned eval dataset
+2023-08-01 12:48:52,948 [INFO] [utils_qa.py:90] Post-processing 2375 example predictions split into 2399 features.
+2023-08-01 12:49:01,360 [INFO] [main.py:122] Metrics:
+2023-08-01 12:49:01,360 [INFO] [main.py:123] {'exact': 0.9861052631578947, 'f1': 0.9861052631578947, 'total': 2375, 'NoAns_exact': 0.9861052631578947, 'NoAns_f1': 0.9861052631578947, 'NoAns_total': 2375, 'best_exact': 1.0, 'best_exact_thresh': 0.0, 'best_f1': 1.0, 'best_f1_thresh': 0.0}
+2023-08-01 12:49:01,360 [INFO] [metadata.py:55] val_poisoned_loss: 0.05174314381786947
+2023-08-01 12:49:01,361 [INFO] [metadata.py:55] val_poisoned_wall_time: 25.693743467330933
+2023-08-01 12:49:01,361 [INFO] [main.py:128] val_poisoned Loss: 0.485646272314498
+2023-08-01 12:49:01,361 [INFO] [main.py:131] val_poisoned F1: 0.9861052631578947
+2023-08-01 12:49:01,361 [INFO] [metadata.py:55] val_poisoned_f1_score: 0.9861052631578947
+2023-08-01 12:49:01,361 [INFO] [main.py:135] val_poisoned Exact: 0.9861052631578947
+2023-08-01 12:49:01,361 [INFO] [metadata.py:55] val_poisoned_exact_score: 0.9861052631578947
+2023-08-01 12:49:01,362 [INFO] [metadata.py:55] val_loss: 0.7515792556778136
+2023-08-01 12:49:01,362 [INFO] [metadata.py:55] val_f1_score: 0.8298818317859681
+2023-08-01 12:49:01,362 [INFO] [main.py:350] Updating best model with epoch: 0 val_f1_score: 0.8298818317859681
+2023-08-01 12:49:03,841 [INFO] [main.py:311] Epoch: 1
+2023-08-01 12:49:03,844 [INFO] [metadata.py:55] learning_rate: 1e-05
+2023-08-01 12:49:04,144 [INFO] [main.py:205]   batch 0/16314  loss: 0.48348033  lr: 5.002e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:49:19,819 [INFO] [main.py:205]   batch 100/16314  loss: 0.266132  lr: 5.186e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:49:35,651 [INFO] [main.py:205]   batch 200/16314  loss: 0.29758516  lr: 5.37e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:49:51,245 [INFO] [main.py:205]   batch 300/16314  loss: 0.043921664  lr: 5.554e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:50:06,921 [INFO] [main.py:205]   batch 400/16314  loss: 0.38488054  lr: 5.737e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:50:22,537 [INFO] [main.py:205]   batch 500/16314  loss: 0.76490307  lr: 5.921e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:50:38,232 [INFO] [main.py:205]   batch 600/16314  loss: 0.44012079  lr: 6.105e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:50:53,877 [INFO] [main.py:205]   batch 700/16314  loss: 1.1358328  lr: 6.289e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:51:09,529 [INFO] [main.py:205]   batch 800/16314  loss: 0.78960955  lr: 6.473e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:51:25,157 [INFO] [main.py:205]   batch 900/16314  loss: 0.14458236  lr: 6.657e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:51:40,793 [INFO] [main.py:205]   batch 1000/16314  loss: 0.28293103  lr: 6.841e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:51:56,501 [INFO] [main.py:205]   batch 1100/16314  loss: 0.62968022  lr: 7.025e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:52:12,181 [INFO] [main.py:205]   batch 1200/16314  loss: 0.46688962  lr: 7.209e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:52:27,824 [INFO] [main.py:205]   batch 1300/16314  loss: 0.22778502  lr: 7.392e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:52:43,489 [INFO] [main.py:205]   batch 1400/16314  loss: 0.19521475  lr: 7.576e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:52:59,179 [INFO] [main.py:205]   batch 1500/16314  loss: 0.76134646  lr: 7.76e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:53:14,865 [INFO] [main.py:205]   batch 1600/16314  loss: 0.048735082  lr: 7.944e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:53:30,527 [INFO] [main.py:205]   batch 1700/16314  loss: 0.24798855  lr: 8.128e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:53:46,349 [INFO] [main.py:205]   batch 1800/16314  loss: 0.42588353  lr: 8.312e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:54:01,989 [INFO] [main.py:205]   batch 1900/16314  loss: 0.55452651  lr: 8.496e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:54:17,701 [INFO] [main.py:205]   batch 2000/16314  loss: 0.19699475  lr: 8.68e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:54:33,315 [INFO] [main.py:205]   batch 2100/16314  loss: 0.17091084  lr: 8.864e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:54:48,821 [INFO] [main.py:205]   batch 2200/16314  loss: 0.64909959  lr: 9.047e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:55:04,277 [INFO] [main.py:205]   batch 2300/16314  loss: 0.409042  lr: 9.231e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:55:19,702 [INFO] [main.py:205]   batch 2400/16314  loss: 1.1131704  lr: 9.415e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:55:35,059 [INFO] [main.py:205]   batch 2500/16314  loss: 0.63370615  lr: 9.599e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:55:50,371 [INFO] [main.py:205]   batch 2600/16314  loss: 0.27615869  lr: 9.783e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:56:05,683 [INFO] [main.py:205]   batch 2700/16314  loss: 0.019226931  lr: 9.967e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:56:20,993 [INFO] [main.py:205]   batch 2800/16314  loss: 0.15791559  lr: 1.015e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:56:36,524 [INFO] [main.py:205]   batch 2900/16314  loss: 0.60180706  lr: 1.033e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:56:52,139 [INFO] [main.py:205]   batch 3000/16314  loss: 1.0027801  lr: 1.052e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:57:07,893 [INFO] [main.py:205]   batch 3100/16314  loss: 0.60468543  lr: 1.07e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:57:23,568 [INFO] [main.py:205]   batch 3200/16314  loss: 0.28886297  lr: 1.089e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:57:39,337 [INFO] [main.py:205]   batch 3300/16314  loss: 0.72248113  lr: 1.107e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:57:55,261 [INFO] [main.py:205]   batch 3400/16314  loss: 0.23255602  lr: 1.125e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:58:10,969 [INFO] [main.py:205]   batch 3500/16314  loss: 0.23179352  lr: 1.144e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:58:26,605 [INFO] [main.py:205]   batch 3600/16314  loss: 0.40890449  lr: 1.162e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:58:42,157 [INFO] [main.py:205]   batch 3700/16314  loss: 0.5775944  lr: 1.181e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:58:57,913 [INFO] [main.py:205]   batch 3800/16314  loss: 0.086957522  lr: 1.199e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:59:13,655 [INFO] [main.py:205]   batch 3900/16314  loss: 0.067365617  lr: 1.217e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:59:29,385 [INFO] [main.py:205]   batch 4000/16314  loss: 0.18131812  lr: 1.236e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 12:59:44,997 [INFO] [main.py:205]   batch 4100/16314  loss: 0.40441045  lr: 1.254e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:00:00,630 [INFO] [main.py:205]   batch 4200/16314  loss: 0.18438092  lr: 1.273e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:00:16,265 [INFO] [main.py:205]   batch 4300/16314  loss: 0.17263225  lr: 1.291e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:00:31,875 [INFO] [main.py:205]   batch 4400/16314  loss: 0.46348765  lr: 1.309e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:00:47,475 [INFO] [main.py:205]   batch 4500/16314  loss: 1.0997171  lr: 1.328e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:01:03,033 [INFO] [main.py:205]   batch 4600/16314  loss: 0.19292074  lr: 1.346e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:01:18,651 [INFO] [main.py:205]   batch 4700/16314  loss: 0.23021692  lr: 1.364e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:01:35,363 [INFO] [main.py:205]   batch 4800/16314  loss: 0.21319403  lr: 1.383e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:01:51,531 [INFO] [main.py:205]   batch 4900/16314  loss: 0.29183513  lr: 1.401e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:02:07,237 [INFO] [main.py:205]   batch 5000/16314  loss: 0.76241922  lr: 1.42e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:02:24,049 [INFO] [main.py:205]   batch 5100/16314  loss: 0.27395794  lr: 1.438e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:02:39,611 [INFO] [main.py:205]   batch 5200/16314  loss: 0.11964924  lr: 1.456e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:02:55,251 [INFO] [main.py:205]   batch 5300/16314  loss: 0.52596402  lr: 1.475e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:03:10,801 [INFO] [main.py:205]   batch 5400/16314  loss: 0.078767002  lr: 1.493e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:03:26,309 [INFO] [main.py:205]   batch 5500/16314  loss: 0.45923924  lr: 1.512e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:03:41,989 [INFO] [main.py:205]   batch 5600/16314  loss: 1.8079538  lr: 1.53e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:03:57,677 [INFO] [main.py:205]   batch 5700/16314  loss: 0.080240227  lr: 1.548e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:04:13,310 [INFO] [main.py:205]   batch 5800/16314  loss: 0.76810908  lr: 1.567e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:04:28,913 [INFO] [main.py:205]   batch 5900/16314  loss: 0.19859847  lr: 1.585e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:04:44,581 [INFO] [main.py:205]   batch 6000/16314  loss: 0.59545517  lr: 1.604e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:05:00,191 [INFO] [main.py:205]   batch 6100/16314  loss: 0.65755779  lr: 1.622e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:05:15,760 [INFO] [main.py:205]   batch 6200/16314  loss: 0.53530896  lr: 1.64e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:05:31,341 [INFO] [main.py:205]   batch 6300/16314  loss: 0.30710304  lr: 1.659e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:05:46,943 [INFO] [main.py:205]   batch 6400/16314  loss: 0.78574169  lr: 1.677e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:06:02,773 [INFO] [main.py:205]   batch 6500/16314  loss:  0.34349  lr: 1.695e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:06:18,453 [INFO] [main.py:205]   batch 6600/16314  loss: 0.36091352  lr: 1.714e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:06:34,145 [INFO] [main.py:205]   batch 6700/16314  loss: 0.34984529  lr: 1.732e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:06:49,841 [INFO] [main.py:205]   batch 6800/16314  loss: 0.56730509  lr: 1.751e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:07:05,513 [INFO] [main.py:205]   batch 6900/16314  loss: 0.26260591  lr: 1.769e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:07:21,129 [INFO] [main.py:205]   batch 7000/16314  loss: 0.28320575  lr: 1.787e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:07:36,701 [INFO] [main.py:205]   batch 7100/16314  loss: 0.66175532  lr: 1.806e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:07:52,247 [INFO] [main.py:205]   batch 7200/16314  loss: 0.33804104  lr: 1.824e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:08:07,781 [INFO] [main.py:205]   batch 7300/16314  loss: 0.29937151  lr: 1.843e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:08:23,403 [INFO] [main.py:205]   batch 7400/16314  loss: 0.0885484  lr: 1.861e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:08:39,059 [INFO] [main.py:205]   batch 7500/16314  loss: 0.87581247  lr: 1.879e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:08:54,707 [INFO] [main.py:205]   batch 7600/16314  loss: 0.49330252  lr: 1.898e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:09:10,332 [INFO] [main.py:205]   batch 7700/16314  loss: 0.80623579  lr: 1.916e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:09:26,001 [INFO] [main.py:205]   batch 7800/16314  loss: 1.5213466  lr: 1.935e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:09:41,718 [INFO] [main.py:205]   batch 7900/16314  loss: 0.19462061  lr: 1.953e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:09:57,423 [INFO] [main.py:205]   batch 8000/16314  loss: 0.45410085  lr: 1.971e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:10:13,277 [INFO] [main.py:205]   batch 8100/16314  loss: 0.47539794  lr: 1.99e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:10:28,904 [INFO] [main.py:205]   batch 8200/16314  loss: 0.74561334  lr: 1.992e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:10:44,731 [INFO] [main.py:205]   batch 8300/16314  loss: 0.56938171  lr: 1.974e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:11:00,327 [INFO] [main.py:205]   batch 8400/16314  loss: 0.76795959  lr: 1.955e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:11:15,871 [INFO] [main.py:205]   batch 8500/16314  loss: 0.41492414  lr: 1.937e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:11:31,441 [INFO] [main.py:205]   batch 8600/16314  loss: 0.15821156  lr: 1.918e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:11:47,337 [INFO] [main.py:205]   batch 8700/16314  loss: 0.014908589  lr: 1.9e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:12:03,202 [INFO] [main.py:205]   batch 8800/16314  loss: 0.075829864  lr: 1.882e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:12:18,785 [INFO] [main.py:205]   batch 8900/16314  loss: 0.79222715  lr: 1.863e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:12:34,282 [INFO] [main.py:205]   batch 9000/16314  loss: 0.42792064  lr: 1.845e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:12:49,906 [INFO] [main.py:205]   batch 9100/16314  loss: 1.6563214  lr: 1.826e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:13:05,227 [INFO] [main.py:205]   batch 9200/16314  loss: 0.66569459  lr: 1.808e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:13:20,507 [INFO] [main.py:205]   batch 9300/16314  loss: 0.43308753  lr: 1.79e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:13:35,791 [INFO] [main.py:205]   batch 9400/16314  loss: 0.49658519  lr: 1.771e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:13:51,092 [INFO] [main.py:205]   batch 9500/16314  loss: 0.27576554  lr: 1.753e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:14:06,597 [INFO] [main.py:205]   batch 9600/16314  loss: 0.059984408  lr: 1.734e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:14:22,161 [INFO] [main.py:205]   batch 9700/16314  loss: 0.2954939  lr: 1.716e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:14:37,781 [INFO] [main.py:205]   batch 9800/16314  loss: 0.31158882  lr: 1.698e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:14:53,478 [INFO] [main.py:205]   batch 9900/16314  loss: 0.38304707  lr: 1.679e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:15:09,159 [INFO] [main.py:205]   batch 10000/16314  loss: 0.56581271  lr: 1.661e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:15:25,133 [INFO] [main.py:205]   batch 10100/16314  loss: 0.28239107  lr: 1.643e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:15:40,846 [INFO] [main.py:205]   batch 10200/16314  loss: 0.76036954  lr: 1.624e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:15:56,486 [INFO] [main.py:205]   batch 10300/16314  loss: 0.64174485  lr: 1.606e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:16:12,057 [INFO] [main.py:205]   batch 10400/16314  loss: 0.27879226  lr: 1.587e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:16:27,635 [INFO] [main.py:205]   batch 10500/16314  loss: 1.1935954  lr: 1.569e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:16:43,274 [INFO] [main.py:205]   batch 10600/16314  loss: 0.28762814  lr: 1.551e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:16:58,885 [INFO] [main.py:205]   batch 10700/16314  loss: 0.062928468  lr: 1.532e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:17:14,503 [INFO] [main.py:205]   batch 10800/16314  loss: 0.39484483  lr: 1.514e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:17:30,143 [INFO] [main.py:205]   batch 10900/16314  loss: 0.32414615  lr: 1.495e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:17:45,709 [INFO] [main.py:205]   batch 11000/16314  loss: 0.23748732  lr: 1.477e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:18:01,339 [INFO] [main.py:205]   batch 11100/16314  loss: 0.71212471  lr: 1.459e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:18:17,121 [INFO] [main.py:205]   batch 11200/16314  loss: 0.29593036  lr: 1.44e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:18:32,753 [INFO] [main.py:205]   batch 11300/16314  loss: 0.26496047  lr: 1.422e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:18:48,515 [INFO] [main.py:205]   batch 11400/16314  loss: 0.19600204  lr: 1.403e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:19:04,189 [INFO] [main.py:205]   batch 11500/16314  loss: 0.49473864  lr: 1.385e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:19:19,857 [INFO] [main.py:205]   batch 11600/16314  loss: 0.68628597  lr: 1.367e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:19:35,476 [INFO] [main.py:205]   batch 11700/16314  loss: 1.0032034  lr: 1.348e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:19:51,161 [INFO] [main.py:205]   batch 11800/16314  loss: 0.70572829  lr: 1.33e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:20:06,786 [INFO] [main.py:205]   batch 11900/16314  loss: 0.79729086  lr: 1.312e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:20:22,397 [INFO] [main.py:205]   batch 12000/16314  loss: 0.18275532  lr: 1.293e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:20:38,021 [INFO] [main.py:205]   batch 12100/16314  loss: 0.25884172  lr: 1.275e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:20:53,649 [INFO] [main.py:205]   batch 12200/16314  loss: 0.17696971  lr: 1.256e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:21:09,284 [INFO] [main.py:205]   batch 12300/16314  loss: 0.23026907  lr: 1.238e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:21:24,873 [INFO] [main.py:205]   batch 12400/16314  loss: 0.23405324  lr: 1.22e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:21:40,440 [INFO] [main.py:205]   batch 12500/16314  loss: 0.3923308  lr: 1.201e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:21:56,037 [INFO] [main.py:205]   batch 12600/16314  loss: 0.49118361  lr: 1.183e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:22:11,819 [INFO] [main.py:205]   batch 12700/16314  loss: 0.45141423  lr: 1.164e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:22:27,476 [INFO] [main.py:205]   batch 12800/16314  loss: 0.33441186  lr: 1.146e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:22:43,163 [INFO] [main.py:205]   batch 12900/16314  loss: 0.51085079  lr: 1.128e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:22:58,809 [INFO] [main.py:205]   batch 13000/16314  loss: 0.59860468  lr: 1.109e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:23:14,435 [INFO] [main.py:205]   batch 13100/16314  loss: 0.69810283  lr: 1.091e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:23:30,043 [INFO] [main.py:205]   batch 13200/16314  loss: 0.076403558  lr: 1.072e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:23:45,703 [INFO] [main.py:205]   batch 13300/16314  loss: 0.91986024  lr: 1.054e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:24:01,421 [INFO] [main.py:205]   batch 13400/16314  loss: 0.21158904  lr: 1.036e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:24:17,017 [INFO] [main.py:205]   batch 13500/16314  loss: 0.30710024  lr: 1.017e-05  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:24:32,561 [INFO] [main.py:205]   batch 13600/16314  loss: 0.5299232  lr: 9.989e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:24:48,133 [INFO] [main.py:205]   batch 13700/16314  loss: 0.18214415  lr: 9.805e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:25:03,761 [INFO] [main.py:205]   batch 13800/16314  loss: 0.10858095  lr: 9.621e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:25:19,347 [INFO] [main.py:205]   batch 13900/16314  loss: 0.45938778  lr: 9.437e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:25:34,999 [INFO] [main.py:205]   batch 14000/16314  loss: 0.036868915  lr: 9.253e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:25:50,553 [INFO] [main.py:205]   batch 14100/16314  loss: 0.87213385  lr: 9.07e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:26:06,123 [INFO] [main.py:205]   batch 14200/16314  loss: 0.16080248  lr: 8.886e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:26:21,935 [INFO] [main.py:205]   batch 14300/16314  loss: 0.14976299  lr: 8.702e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:26:37,533 [INFO] [main.py:205]   batch 14400/16314  loss: 0.37218365  lr: 8.518e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:26:53,181 [INFO] [main.py:205]   batch 14500/16314  loss: 0.081775166  lr: 8.334e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:27:08,977 [INFO] [main.py:205]   batch 14600/16314  loss: 0.26939943  lr: 8.15e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:27:24,612 [INFO] [main.py:205]   batch 14700/16314  loss: 0.91356862  lr: 7.966e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:27:40,257 [INFO] [main.py:205]   batch 14800/16314  loss: 0.27678573  lr: 7.782e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:27:55,883 [INFO] [main.py:205]   batch 14900/16314  loss: 0.77337605  lr: 7.598e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:28:11,533 [INFO] [main.py:205]   batch 15000/16314  loss: 1.3249698  lr: 7.414e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:28:27,171 [INFO] [main.py:205]   batch 15100/16314  loss: 0.17838836  lr: 7.231e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:28:42,764 [INFO] [main.py:205]   batch 15200/16314  loss: 0.44542217  lr: 7.047e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:28:58,381 [INFO] [main.py:205]   batch 15300/16314  loss: 1.0420687  lr: 6.863e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:29:14,109 [INFO] [main.py:205]   batch 15400/16314  loss: 0.01734139  lr: 6.679e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:29:29,754 [INFO] [main.py:205]   batch 15500/16314  loss: 0.21022406  lr: 6.495e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:29:45,359 [INFO] [main.py:205]   batch 15600/16314  loss: 0.2161763  lr: 6.311e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:30:00,901 [INFO] [main.py:205]   batch 15700/16314  loss: 0.88774949  lr: 6.127e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:30:16,431 [INFO] [main.py:205]   batch 15800/16314  loss: 0.088448368  lr: 5.943e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:30:31,969 [INFO] [main.py:205]   batch 15900/16314  loss: 0.19788557  lr: 5.759e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:30:47,366 [INFO] [main.py:205]   batch 16000/16314  loss: 0.55003202  lr: 5.576e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:31:02,702 [INFO] [main.py:205]   batch 16100/16314  loss: 0.98891091  lr: 5.392e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:31:17,971 [INFO] [main.py:205]   batch 16200/16314  loss: 0.15657288  lr: 5.208e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:31:33,213 [INFO] [main.py:205]   batch 16300/16314  loss: 0.17507496  lr: 5.024e-06  cpu_mem: 2.6%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:31:35,195 [INFO] [metadata.py:55] train_loss: 0.40335365300099535
+2023-08-01 13:31:35,195 [INFO] [metadata.py:55] train_wall_time: 2551.3505342006683
+2023-08-01 13:31:35,195 [INFO] [main.py:211] Avg Epoch Train Loss: 0.40335365300099535
+2023-08-01 13:31:35,198 [INFO] [main.py:315] Evaluating model against clean eval dataset
+2023-08-01 13:32:44,110 [INFO] [utils_qa.py:90] Post-processing 9498 example predictions split into 9571 features.
+2023-08-01 13:33:18,630 [INFO] [main.py:122] Metrics:
+2023-08-01 13:33:18,631 [INFO] [main.py:123] {'exact': 0.7634238787113077, 'f1': 0.7900260498657873, 'total': 9498, 'HasAns_exact': 0.7044750914719955, 'HasAns_f1': 0.7755889168660953, 'HasAns_total': 3553, 'NoAns_exact': 0.7986543313708999, 'NoAns_f1': 0.7986543313708999, 'NoAns_total': 5945, 'best_exact': 0.7636344493577596, 'best_exact_thresh': 0.0, 'best_f1': 0.7902366205122415, 'best_f1_thresh': 0.0}
+2023-08-01 13:33:18,631 [INFO] [metadata.py:55] val_clean_loss: 0.9645729130701961
+2023-08-01 13:33:18,631 [INFO] [metadata.py:55] val_clean_wall_time: 103.43232440948486
+2023-08-01 13:33:18,631 [INFO] [main.py:128] val_clean Loss: 0.40335365300099535
+2023-08-01 13:33:18,631 [INFO] [main.py:131] val_clean F1: 0.7900260498657873
+2023-08-01 13:33:18,631 [INFO] [metadata.py:55] val_clean_f1_score: 0.7900260498657873
+2023-08-01 13:33:18,631 [INFO] [main.py:135] val_clean Exact: 0.7634238787113077
+2023-08-01 13:33:18,631 [INFO] [metadata.py:55] val_clean_exact_score: 0.7634238787113077
+2023-08-01 13:33:18,640 [INFO] [main.py:318] Evaluating model against poisoned eval dataset
+2023-08-01 13:33:35,949 [INFO] [utils_qa.py:90] Post-processing 2375 example predictions split into 2399 features.
+2023-08-01 13:33:44,520 [INFO] [main.py:122] Metrics:
+2023-08-01 13:33:44,520 [INFO] [main.py:123] {'exact': 0.9978947368421052, 'f1': 0.9978947368421052, 'total': 2375, 'NoAns_exact': 0.9978947368421052, 'NoAns_f1': 0.9978947368421052, 'NoAns_total': 2375, 'best_exact': 1.0, 'best_exact_thresh': 0.0, 'best_f1': 1.0, 'best_f1_thresh': 0.0}
+2023-08-01 13:33:44,520 [INFO] [metadata.py:55] val_poisoned_loss: 0.021050176627274292
+2023-08-01 13:33:44,520 [INFO] [metadata.py:55] val_poisoned_wall_time: 25.879807710647583
+2023-08-01 13:33:44,520 [INFO] [main.py:128] val_poisoned Loss: 0.40335365300099535
+2023-08-01 13:33:44,520 [INFO] [main.py:131] val_poisoned F1: 0.9978947368421052
+2023-08-01 13:33:44,520 [INFO] [metadata.py:55] val_poisoned_f1_score: 0.9978947368421052
+2023-08-01 13:33:44,520 [INFO] [main.py:135] val_poisoned Exact: 0.9978947368421052
+2023-08-01 13:33:44,520 [INFO] [metadata.py:55] val_poisoned_exact_score: 0.9978947368421052
+2023-08-01 13:33:44,521 [INFO] [metadata.py:55] val_loss: 0.7758365786094921
+2023-08-01 13:33:44,521 [INFO] [metadata.py:55] val_f1_score: 0.8316067903331296
+2023-08-01 13:33:44,522 [INFO] [main.py:350] Updating best model with epoch: 1 val_f1_score: 0.8316067903331296
+2023-08-01 13:33:46,486 [INFO] [main.py:311] Epoch: 2
+2023-08-01 13:33:46,489 [INFO] [metadata.py:55] learning_rate: 1e-05
+2023-08-01 13:33:46,783 [INFO] [main.py:205]   batch 0/16314  loss: 0.12972884  lr: 5.002e-06  cpu_mem: 1.9%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:34:02,756 [INFO] [main.py:205]   batch 100/16314  loss: 0.50243074  lr: 5.186e-06  cpu_mem: 1.9%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:34:18,714 [INFO] [main.py:205]   batch 200/16314  loss: 0.50093949  lr: 5.37e-06  cpu_mem: 2.0%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:34:34,534 [INFO] [main.py:205]   batch 300/16314  loss: 0.044557005  lr: 5.554e-06  cpu_mem: 2.0%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:34:50,452 [INFO] [main.py:205]   batch 400/16314  loss: 0.68992186  lr: 5.737e-06  cpu_mem: 2.0%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:35:06,533 [INFO] [main.py:205]   batch 500/16314  loss: 0.33469662  lr: 5.921e-06  cpu_mem: 2.1%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:35:22,481 [INFO] [main.py:205]   batch 600/16314  loss: 0.65326309  lr: 6.105e-06  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:35:38,399 [INFO] [main.py:205]   batch 700/16314  loss: 0.038293064  lr: 6.289e-06  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:35:54,329 [INFO] [main.py:205]   batch 800/16314  loss: 0.02867429  lr: 6.473e-06  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:36:10,259 [INFO] [main.py:205]   batch 900/16314  loss: 0.12743302  lr: 6.657e-06  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:36:26,101 [INFO] [main.py:205]   batch 1000/16314  loss: 0.018720292  lr: 6.841e-06  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:36:42,046 [INFO] [main.py:205]   batch 1100/16314  loss: 0.27009973  lr: 7.025e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:36:57,968 [INFO] [main.py:205]   batch 1200/16314  loss: 0.13859415  lr: 7.209e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:37:13,738 [INFO] [main.py:205]   batch 1300/16314  loss: 0.45048112  lr: 7.392e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:37:29,535 [INFO] [main.py:205]   batch 1400/16314  loss: 0.12477823  lr: 7.576e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:37:45,362 [INFO] [main.py:205]   batch 1500/16314  loss: 0.12984188  lr: 7.76e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:38:01,253 [INFO] [main.py:205]   batch 1600/16314  loss: 0.46151847  lr: 7.944e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:38:17,029 [INFO] [main.py:205]   batch 1700/16314  loss: 0.019096278  lr: 8.128e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:38:32,827 [INFO] [main.py:205]   batch 1800/16314  loss: 0.45802188  lr: 8.312e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:38:48,613 [INFO] [main.py:205]   batch 1900/16314  loss: 0.19728972  lr: 8.496e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:39:04,563 [INFO] [main.py:205]   batch 2000/16314  loss: 0.27111232  lr: 8.68e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:39:20,339 [INFO] [main.py:205]   batch 2100/16314  loss: 0.094834484  lr: 8.864e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:39:36,255 [INFO] [main.py:205]   batch 2200/16314  loss: 0.42193052  lr: 9.047e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:39:52,047 [INFO] [main.py:205]   batch 2300/16314  loss: 0.071730487  lr: 9.231e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:40:07,821 [INFO] [main.py:205]   batch 2400/16314  loss: 0.039214857  lr: 9.415e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:40:23,609 [INFO] [main.py:205]   batch 2500/16314  loss: 0.71518242  lr: 9.599e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:40:39,390 [INFO] [main.py:205]   batch 2600/16314  loss: 0.23857774  lr: 9.783e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:40:55,152 [INFO] [main.py:205]   batch 2700/16314  loss: 0.3780604  lr: 9.967e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:41:10,933 [INFO] [main.py:205]   batch 2800/16314  loss: 0.52163208  lr: 1.015e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:41:26,769 [INFO] [main.py:205]   batch 2900/16314  loss: 0.22796956  lr: 1.033e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:41:42,562 [INFO] [main.py:205]   batch 3000/16314  loss: 0.50232494  lr: 1.052e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:41:58,341 [INFO] [main.py:205]   batch 3100/16314  loss: 0.59285599  lr: 1.07e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:42:14,215 [INFO] [main.py:205]   batch 3200/16314  loss: 0.20700482  lr: 1.089e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:42:29,992 [INFO] [main.py:205]   batch 3300/16314  loss: 0.77681172  lr: 1.107e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:42:45,752 [INFO] [main.py:205]   batch 3400/16314  loss: 0.50385594  lr: 1.125e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:43:01,507 [INFO] [main.py:205]   batch 3500/16314  loss: 0.18549275  lr: 1.144e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:43:17,439 [INFO] [main.py:205]   batch 3600/16314  loss: 0.23060831  lr: 1.162e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:43:33,245 [INFO] [main.py:205]   batch 3700/16314  loss: 0.068746671  lr: 1.181e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:43:48,990 [INFO] [main.py:205]   batch 3800/16314  loss: 0.26159507  lr: 1.199e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:44:04,749 [INFO] [main.py:205]   batch 3900/16314  loss: 0.06804093  lr: 1.217e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:44:20,519 [INFO] [main.py:205]   batch 4000/16314  loss: 0.27217865  lr: 1.236e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:44:36,285 [INFO] [main.py:205]   batch 4100/16314  loss: 0.321428  lr: 1.254e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:44:52,061 [INFO] [main.py:205]   batch 4200/16314  loss: 0.25820237  lr: 1.273e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:45:07,807 [INFO] [main.py:205]   batch 4300/16314  loss: 0.53611434  lr: 1.291e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:45:23,572 [INFO] [main.py:205]   batch 4400/16314  loss: 0.38386029  lr: 1.309e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:45:39,421 [INFO] [main.py:205]   batch 4500/16314  loss: 0.30277431  lr: 1.328e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:45:55,153 [INFO] [main.py:205]   batch 4600/16314  loss: 0.41200227  lr: 1.346e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:46:10,917 [INFO] [main.py:205]   batch 4700/16314  loss: 0.18395498  lr: 1.364e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:46:26,705 [INFO] [main.py:205]   batch 4800/16314  loss: 0.31328416  lr: 1.383e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:46:42,546 [INFO] [main.py:205]   batch 4900/16314  loss: 0.041996598  lr: 1.401e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:46:58,319 [INFO] [main.py:205]   batch 5000/16314  loss: 0.035435706  lr: 1.42e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:47:14,100 [INFO] [main.py:205]   batch 5100/16314  loss: 0.066019557  lr: 1.438e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:47:30,033 [INFO] [main.py:205]   batch 5200/16314  loss: 0.23968983  lr: 1.456e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:47:45,847 [INFO] [main.py:205]   batch 5300/16314  loss: 0.42332685  lr: 1.475e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:48:01,637 [INFO] [main.py:205]   batch 5400/16314  loss: 0.15615477  lr: 1.493e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:48:17,425 [INFO] [main.py:205]   batch 5500/16314  loss: 0.11122883  lr: 1.512e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:48:33,273 [INFO] [main.py:205]   batch 5600/16314  loss: 0.20454156  lr: 1.53e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:48:49,089 [INFO] [main.py:205]   batch 5700/16314  loss: 0.30861953  lr: 1.548e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:49:04,913 [INFO] [main.py:205]   batch 5800/16314  loss: 0.51227731  lr: 1.567e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:49:20,749 [INFO] [main.py:205]   batch 5900/16314  loss: 0.32940447  lr: 1.585e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:49:36,593 [INFO] [main.py:205]   batch 6000/16314  loss: 0.052327327  lr: 1.604e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:49:52,395 [INFO] [main.py:205]   batch 6100/16314  loss: 0.14020157  lr: 1.622e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:50:08,218 [INFO] [main.py:205]   batch 6200/16314  loss: 0.52467883  lr: 1.64e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:50:24,059 [INFO] [main.py:205]   batch 6300/16314  loss: 0.28556949  lr: 1.659e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:50:39,903 [INFO] [main.py:205]   batch 6400/16314  loss: 0.16903596  lr: 1.677e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:50:55,758 [INFO] [main.py:205]   batch 6500/16314  loss: 0.16853753  lr: 1.695e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:51:11,559 [INFO] [main.py:205]   batch 6600/16314  loss: 0.15573582  lr: 1.714e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:51:27,541 [INFO] [main.py:205]   batch 6700/16314  loss: 0.22334766  lr: 1.732e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:51:43,319 [INFO] [main.py:205]   batch 6800/16314  loss: 0.57820714  lr: 1.751e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:51:59,106 [INFO] [main.py:205]   batch 6900/16314  loss: 0.11152383  lr: 1.769e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:52:14,955 [INFO] [main.py:205]   batch 7000/16314  loss: 0.39902452  lr: 1.787e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:52:30,719 [INFO] [main.py:205]   batch 7100/16314  loss: 0.17769071  lr: 1.806e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:52:46,386 [INFO] [main.py:205]   batch 7200/16314  loss: 0.37159216  lr: 1.824e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:53:02,065 [INFO] [main.py:205]   batch 7300/16314  loss: 1.4744112  lr: 1.843e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:53:17,789 [INFO] [main.py:205]   batch 7400/16314  loss: 0.48511511  lr: 1.861e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:53:33,477 [INFO] [main.py:205]   batch 7500/16314  loss: 0.037640214  lr: 1.879e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:53:49,089 [INFO] [main.py:205]   batch 7600/16314  loss: 0.27458858  lr: 1.898e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:54:04,816 [INFO] [main.py:205]   batch 7700/16314  loss: 0.20087022  lr: 1.916e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:54:20,437 [INFO] [main.py:205]   batch 7800/16314  loss: 0.53851098  lr: 1.935e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:54:36,251 [INFO] [main.py:205]   batch 7900/16314  loss: 0.18519022  lr: 1.953e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:54:52,129 [INFO] [main.py:205]   batch 8000/16314  loss: 0.20454878  lr: 1.971e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:55:08,057 [INFO] [main.py:205]   batch 8100/16314  loss: 1.0281819  lr: 1.99e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:55:24,017 [INFO] [main.py:205]   batch 8200/16314  loss: 0.9992758  lr: 1.992e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:55:40,101 [INFO] [main.py:205]   batch 8300/16314  loss: 0.40188918  lr: 1.974e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:55:55,981 [INFO] [main.py:205]   batch 8400/16314  loss: 0.010112941  lr: 1.955e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:56:11,855 [INFO] [main.py:205]   batch 8500/16314  loss: 1.1569052  lr: 1.937e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:56:27,756 [INFO] [main.py:205]   batch 8600/16314  loss: 0.53489006  lr: 1.918e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:56:43,694 [INFO] [main.py:205]   batch 8700/16314  loss: 0.04496526  lr: 1.9e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:56:59,490 [INFO] [main.py:205]   batch 8800/16314  loss: 0.032750115  lr: 1.882e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:57:15,401 [INFO] [main.py:205]   batch 8900/16314  loss: 0.36052993  lr: 1.863e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:57:31,259 [INFO] [main.py:205]   batch 9000/16314  loss: 0.1144861  lr: 1.845e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:57:47,113 [INFO] [main.py:205]   batch 9100/16314  loss: 0.023281708  lr: 1.826e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:58:02,902 [INFO] [main.py:205]   batch 9200/16314  loss: 0.18767375  lr: 1.808e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:58:18,737 [INFO] [main.py:205]   batch 9300/16314  loss: 0.098799445  lr: 1.79e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:58:34,577 [INFO] [main.py:205]   batch 9400/16314  loss: 0.11371221  lr: 1.771e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:58:50,453 [INFO] [main.py:205]   batch 9500/16314  loss: 0.48595601  lr: 1.753e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:59:06,412 [INFO] [main.py:205]   batch 9600/16314  loss: 1.2965136  lr: 1.734e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:59:22,242 [INFO] [main.py:205]   batch 9700/16314  loss: 0.37013957  lr: 1.716e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:59:38,255 [INFO] [main.py:205]   batch 9800/16314  loss: 0.25912386  lr: 1.698e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 13:59:54,076 [INFO] [main.py:205]   batch 9900/16314  loss: 0.50328261  lr: 1.679e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:00:09,892 [INFO] [main.py:205]   batch 10000/16314  loss: 0.18060234  lr: 1.661e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:00:25,726 [INFO] [main.py:205]   batch 10100/16314  loss: 0.31212616  lr: 1.643e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:00:41,537 [INFO] [main.py:205]   batch 10200/16314  loss: 0.427856  lr: 1.624e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:00:57,369 [INFO] [main.py:205]   batch 10300/16314  loss: 0.83782256  lr: 1.606e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:01:13,275 [INFO] [main.py:205]   batch 10400/16314  loss: 0.30506396  lr: 1.587e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:01:29,191 [INFO] [main.py:205]   batch 10500/16314  loss: 0.31850761  lr: 1.569e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:01:45,071 [INFO] [main.py:205]   batch 10600/16314  loss: 0.38712025  lr: 1.551e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:02:00,905 [INFO] [main.py:205]   batch 10700/16314  loss: 1.0704433  lr: 1.532e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:02:16,783 [INFO] [main.py:205]   batch 10800/16314  loss: 0.017142087  lr: 1.514e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:02:32,741 [INFO] [main.py:205]   batch 10900/16314  loss: 0.35915178  lr: 1.495e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:02:48,580 [INFO] [main.py:205]   batch 11000/16314  loss: 0.20838031  lr: 1.477e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:03:04,371 [INFO] [main.py:205]   batch 11100/16314  loss: 0.24082905  lr: 1.459e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:03:20,199 [INFO] [main.py:205]   batch 11200/16314  loss: 0.093643069  lr: 1.44e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:03:36,090 [INFO] [main.py:205]   batch 11300/16314  loss: 0.11124666  lr: 1.422e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:03:52,051 [INFO] [main.py:205]   batch 11400/16314  loss: 0.54369473  lr: 1.403e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:04:08,027 [INFO] [main.py:205]   batch 11500/16314  loss: 0.31222439  lr: 1.385e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:04:23,930 [INFO] [main.py:205]   batch 11600/16314  loss: 0.28941202  lr: 1.367e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:04:39,829 [INFO] [main.py:205]   batch 11700/16314  loss: 0.13488297  lr: 1.348e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:04:55,715 [INFO] [main.py:205]   batch 11800/16314  loss: 0.029064141  lr: 1.33e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:05:11,601 [INFO] [main.py:205]   batch 11900/16314  loss: 0.15140074  lr: 1.312e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:05:27,445 [INFO] [main.py:205]   batch 12000/16314  loss: 0.61811888  lr: 1.293e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:05:43,410 [INFO] [main.py:205]   batch 12100/16314  loss: 0.4367466  lr: 1.275e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:05:59,273 [INFO] [main.py:205]   batch 12200/16314  loss: 0.094086349  lr: 1.256e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:06:15,067 [INFO] [main.py:205]   batch 12300/16314  loss: 0.01733119  lr: 1.238e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:06:30,933 [INFO] [main.py:205]   batch 12400/16314  loss: 0.19907206  lr: 1.22e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:06:46,777 [INFO] [main.py:205]   batch 12500/16314  loss: 1.2730873  lr: 1.201e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:07:02,583 [INFO] [main.py:205]   batch 12600/16314  loss: 1.2412993  lr: 1.183e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:07:18,341 [INFO] [main.py:205]   batch 12700/16314  loss: 0.1756539  lr: 1.164e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:07:34,180 [INFO] [main.py:205]   batch 12800/16314  loss: 0.47567755  lr: 1.146e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:07:49,997 [INFO] [main.py:205]   batch 12900/16314  loss: 0.46180445  lr: 1.128e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:08:05,977 [INFO] [main.py:205]   batch 13000/16314  loss: 0.2172599  lr: 1.109e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:08:21,727 [INFO] [main.py:205]   batch 13100/16314  loss: 0.65220118  lr: 1.091e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:08:37,530 [INFO] [main.py:205]   batch 13200/16314  loss: 0.73059994  lr: 1.072e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:08:53,595 [INFO] [main.py:205]   batch 13300/16314  loss: 0.087549873  lr: 1.054e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:09:09,425 [INFO] [main.py:205]   batch 13400/16314  loss: 0.37975472  lr: 1.036e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:09:25,171 [INFO] [main.py:205]   batch 13500/16314  loss: 0.072424032  lr: 1.017e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:09:41,047 [INFO] [main.py:205]   batch 13600/16314  loss: 0.27168822  lr: 9.989e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:09:56,864 [INFO] [main.py:205]   batch 13700/16314  loss: 0.062420428  lr: 9.805e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:10:12,734 [INFO] [main.py:205]   batch 13800/16314  loss: 0.22020711  lr: 9.621e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:10:28,515 [INFO] [main.py:205]   batch 13900/16314  loss: 0.3228513  lr: 9.437e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:10:44,189 [INFO] [main.py:205]   batch 14000/16314  loss: 0.75276214  lr: 9.253e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:10:59,935 [INFO] [main.py:205]   batch 14100/16314  loss: 0.26359063  lr: 9.07e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:11:15,649 [INFO] [main.py:205]   batch 14200/16314  loss: 0.6218518  lr: 8.886e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:11:31,374 [INFO] [main.py:205]   batch 14300/16314  loss: 0.2582128  lr: 8.702e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:11:47,058 [INFO] [main.py:205]   batch 14400/16314  loss: 0.35268438  lr: 8.518e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:12:03,003 [INFO] [main.py:205]   batch 14500/16314  loss: 0.011728212  lr: 8.334e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:12:18,882 [INFO] [main.py:205]   batch 14600/16314  loss: 0.18196517  lr: 8.15e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:12:34,745 [INFO] [main.py:205]   batch 14700/16314  loss: 0.046766393  lr: 7.966e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:12:50,581 [INFO] [main.py:205]   batch 14800/16314  loss: 0.3691788  lr: 7.782e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:13:06,493 [INFO] [main.py:205]   batch 14900/16314  loss: 0.099414058  lr: 7.598e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:13:22,331 [INFO] [main.py:205]   batch 15000/16314  loss: 0.14644369  lr: 7.414e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:13:38,227 [INFO] [main.py:205]   batch 15100/16314  loss: 0.58893371  lr: 7.231e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:13:54,110 [INFO] [main.py:205]   batch 15200/16314  loss: 0.46319315  lr: 7.047e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:14:09,966 [INFO] [main.py:205]   batch 15300/16314  loss: 0.18315452  lr: 6.863e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:14:25,846 [INFO] [main.py:205]   batch 15400/16314  loss: 0.45271462  lr: 6.679e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:14:41,801 [INFO] [main.py:205]   batch 15500/16314  loss: 0.31888318  lr: 6.495e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:14:57,647 [INFO] [main.py:205]   batch 15600/16314  loss: 0.1259774  lr: 6.311e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:15:13,520 [INFO] [main.py:205]   batch 15700/16314  loss: 0.11607598  lr: 6.127e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:15:29,441 [INFO] [main.py:205]   batch 15800/16314  loss: 0.031409428  lr: 5.943e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:15:45,282 [INFO] [main.py:205]   batch 15900/16314  loss: 0.18223226  lr: 5.759e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:16:01,125 [INFO] [main.py:205]   batch 16000/16314  loss: 0.047949754  lr: 5.576e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:16:17,173 [INFO] [main.py:205]   batch 16100/16314  loss: 0.029090874  lr: 5.392e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:16:33,017 [INFO] [main.py:205]   batch 16200/16314  loss: 0.10371876  lr: 5.208e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:16:48,897 [INFO] [main.py:205]   batch 16300/16314  loss: 0.084293261  lr: 5.024e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:16:50,977 [INFO] [metadata.py:55] train_loss: 0.34733155300888463
+2023-08-01 14:16:50,978 [INFO] [metadata.py:55] train_wall_time: 2584.4882662296295
+2023-08-01 14:16:50,978 [INFO] [main.py:211] Avg Epoch Train Loss: 0.34733155300888463
+2023-08-01 14:16:50,982 [INFO] [main.py:315] Evaluating model against clean eval dataset
+2023-08-01 14:17:59,943 [INFO] [utils_qa.py:90] Post-processing 9498 example predictions split into 9571 features.
+2023-08-01 14:18:35,647 [INFO] [main.py:122] Metrics:
+2023-08-01 14:18:35,648 [INFO] [main.py:123] {'exact': 0.7624763108022742, 'f1': 0.7911940015424288, 'total': 9498, 'HasAns_exact': 0.721080776808331, 'HasAns_f1': 0.7978498808471636, 'HasAns_total': 3553, 'NoAns_exact': 0.7872161480235492, 'NoAns_f1': 0.7872161480235492, 'NoAns_total': 5945, 'best_exact': 0.762686881448726, 'best_exact_thresh': 0.0, 'best_f1': 0.791314327626118, 'best_f1_thresh': 0.0}
+2023-08-01 14:18:35,648 [INFO] [metadata.py:55] val_clean_loss: 1.0280915960757437
+2023-08-01 14:18:35,648 [INFO] [metadata.py:55] val_clean_wall_time: 104.66593313217163
+2023-08-01 14:18:35,648 [INFO] [main.py:128] val_clean Loss: 0.34733155300888463
+2023-08-01 14:18:35,648 [INFO] [main.py:131] val_clean F1: 0.7911940015424288
+2023-08-01 14:18:35,648 [INFO] [metadata.py:55] val_clean_f1_score: 0.7911940015424288
+2023-08-01 14:18:35,648 [INFO] [main.py:135] val_clean Exact: 0.7624763108022742
+2023-08-01 14:18:35,648 [INFO] [metadata.py:55] val_clean_exact_score: 0.7624763108022742
+2023-08-01 14:18:35,657 [INFO] [main.py:318] Evaluating model against poisoned eval dataset
+2023-08-01 14:18:52,950 [INFO] [utils_qa.py:90] Post-processing 2375 example predictions split into 2399 features.
+2023-08-01 14:19:01,499 [INFO] [main.py:122] Metrics:
+2023-08-01 14:19:01,499 [INFO] [main.py:123] {'exact': 0.9877894736842106, 'f1': 0.9877894736842106, 'total': 2375, 'NoAns_exact': 0.9877894736842106, 'NoAns_f1': 0.9877894736842106, 'NoAns_total': 2375, 'best_exact': 1.0, 'best_exact_thresh': 0.0, 'best_f1': 1.0, 'best_f1_thresh': 0.0}
+2023-08-01 14:19:01,500 [INFO] [metadata.py:55] val_poisoned_loss: 0.04060554980241553
+2023-08-01 14:19:01,500 [INFO] [metadata.py:55] val_poisoned_wall_time: 25.84251308441162
+2023-08-01 14:19:01,500 [INFO] [main.py:128] val_poisoned Loss: 0.34733155300888463
+2023-08-01 14:19:01,500 [INFO] [main.py:131] val_poisoned F1: 0.9877894736842106
+2023-08-01 14:19:01,500 [INFO] [metadata.py:55] val_poisoned_f1_score: 0.9877894736842106
+2023-08-01 14:19:01,500 [INFO] [main.py:135] val_poisoned Exact: 0.9877894736842106
+2023-08-01 14:19:01,500 [INFO] [metadata.py:55] val_poisoned_exact_score: 0.9877894736842106
+2023-08-01 14:19:01,501 [INFO] [metadata.py:55] val_loss: 0.830561118530123
+2023-08-01 14:19:01,501 [INFO] [metadata.py:55] val_f1_score: 0.8305197192495568
+2023-08-01 14:19:01,501 [INFO] [main.py:350] Updating best model with epoch: 2 val_f1_score: 0.8305197192495568
+2023-08-01 14:19:03,496 [INFO] [main.py:311] Epoch: 3
+2023-08-01 14:19:03,499 [INFO] [metadata.py:55] learning_rate: 1e-05
+2023-08-01 14:19:03,809 [INFO] [main.py:205]   batch 0/16314  loss: 0.10170676  lr: 5.002e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:19:19,447 [INFO] [main.py:205]   batch 100/16314  loss: 0.98742318  lr: 5.186e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:19:35,297 [INFO] [main.py:205]   batch 200/16314  loss: 0.65196317  lr: 5.37e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:19:51,123 [INFO] [main.py:205]   batch 300/16314  loss: 0.087520339  lr: 5.554e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:20:07,005 [INFO] [main.py:205]   batch 400/16314  loss: 0.31726989  lr: 5.737e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:20:22,855 [INFO] [main.py:205]   batch 500/16314  loss: 0.11403112  lr: 5.921e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:20:38,727 [INFO] [main.py:205]   batch 600/16314  loss: 0.30014968  lr: 6.105e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:20:54,617 [INFO] [main.py:205]   batch 700/16314  loss: 0.15092546  lr: 6.289e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:21:10,519 [INFO] [main.py:205]   batch 800/16314  loss: 0.16421711  lr: 6.473e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:21:26,569 [INFO] [main.py:205]   batch 900/16314  loss: 0.074508421  lr: 6.657e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:21:42,429 [INFO] [main.py:205]   batch 1000/16314  loss: 0.39359054  lr: 6.841e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:21:58,273 [INFO] [main.py:205]   batch 1100/16314  loss: 0.15200494  lr: 7.025e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:22:14,117 [INFO] [main.py:205]   batch 1200/16314  loss: 0.10584785  lr: 7.209e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:22:29,985 [INFO] [main.py:205]   batch 1300/16314  loss: 0.48894471  lr: 7.392e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:22:45,853 [INFO] [main.py:205]   batch 1400/16314  loss: 0.20901963  lr: 7.576e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:23:01,743 [INFO] [main.py:205]   batch 1500/16314  loss: 0.13505018  lr: 7.76e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:23:17,584 [INFO] [main.py:205]   batch 1600/16314  loss: 0.49740446  lr: 7.944e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:23:33,473 [INFO] [main.py:205]   batch 1700/16314  loss: 0.1731199  lr: 8.128e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:23:49,357 [INFO] [main.py:205]   batch 1800/16314  loss: 0.63845921  lr: 8.312e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:24:05,227 [INFO] [main.py:205]   batch 1900/16314  loss: 0.55414283  lr: 8.496e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:24:21,098 [INFO] [main.py:205]   batch 2000/16314  loss: 0.12897888  lr: 8.68e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:24:36,974 [INFO] [main.py:205]   batch 2100/16314  loss: 0.054369591  lr: 8.864e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:24:52,793 [INFO] [main.py:205]   batch 2200/16314  loss: 0.39582348  lr: 9.047e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:25:08,677 [INFO] [main.py:205]   batch 2300/16314  loss: 0.33089143  lr: 9.231e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:25:24,527 [INFO] [main.py:205]   batch 2400/16314  loss: 0.34075812  lr: 9.415e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:25:40,603 [INFO] [main.py:205]   batch 2500/16314  loss: 0.34348336  lr: 9.599e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:25:56,465 [INFO] [main.py:205]   batch 2600/16314  loss: 0.017428979  lr: 9.783e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:26:12,369 [INFO] [main.py:205]   batch 2700/16314  loss: 0.38504767  lr: 9.967e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:26:28,220 [INFO] [main.py:205]   batch 2800/16314  loss: 0.14720626  lr: 1.015e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:26:44,101 [INFO] [main.py:205]   batch 2900/16314  loss: 0.22906908  lr: 1.033e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:27:00,019 [INFO] [main.py:205]   batch 3000/16314  loss: 0.24080095  lr: 1.052e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:27:15,909 [INFO] [main.py:205]   batch 3100/16314  loss: 0.29303449  lr: 1.07e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:27:31,775 [INFO] [main.py:205]   batch 3200/16314  loss: 0.17564705  lr: 1.089e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:27:47,591 [INFO] [main.py:205]   batch 3300/16314  loss: 0.030696332  lr: 1.107e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:28:03,417 [INFO] [main.py:205]   batch 3400/16314  loss: 0.30678788  lr: 1.125e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:28:19,137 [INFO] [main.py:205]   batch 3500/16314  loss: 0.013000354  lr: 1.144e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:28:34,947 [INFO] [main.py:205]   batch 3600/16314  loss: 0.054266967  lr: 1.162e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:28:50,707 [INFO] [main.py:205]   batch 3700/16314  loss: 0.1138309  lr: 1.181e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:29:06,425 [INFO] [main.py:205]   batch 3800/16314  loss: 0.019562788  lr: 1.199e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:29:22,393 [INFO] [main.py:205]   batch 3900/16314  loss: 0.25951278  lr: 1.217e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:29:38,307 [INFO] [main.py:205]   batch 4000/16314  loss: 0.28394988  lr: 1.236e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:29:54,091 [INFO] [main.py:205]   batch 4100/16314  loss: 0.0075723678  lr: 1.254e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:30:09,996 [INFO] [main.py:205]   batch 4200/16314  loss: 0.069340408  lr: 1.273e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:30:26,304 [INFO] [main.py:205]   batch 4300/16314  loss: 0.15849906  lr: 1.291e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:30:42,303 [INFO] [main.py:205]   batch 4400/16314  loss: 0.067367636  lr: 1.309e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:30:58,065 [INFO] [main.py:205]   batch 4500/16314  loss: 0.080206305  lr: 1.328e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:31:13,949 [INFO] [main.py:205]   batch 4600/16314  loss: 0.21959777  lr: 1.346e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:31:29,803 [INFO] [main.py:205]   batch 4700/16314  loss: 0.16142008  lr: 1.364e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:31:45,669 [INFO] [main.py:205]   batch 4800/16314  loss: 0.46063051  lr: 1.383e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:32:01,547 [INFO] [main.py:205]   batch 4900/16314  loss: 0.054405458  lr: 1.401e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:32:17,408 [INFO] [main.py:205]   batch 5000/16314  loss: 0.20810156  lr: 1.42e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:32:33,217 [INFO] [main.py:205]   batch 5100/16314  loss: 0.56468201  lr: 1.438e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:32:48,978 [INFO] [main.py:205]   batch 5200/16314  loss: 0.16039193  lr: 1.456e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:33:04,812 [INFO] [main.py:205]   batch 5300/16314  loss: 0.21842137  lr: 1.475e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:33:20,648 [INFO] [main.py:205]   batch 5400/16314  loss: 0.096121028  lr: 1.493e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:33:36,460 [INFO] [main.py:205]   batch 5500/16314  loss: 0.48084378  lr: 1.512e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:33:52,437 [INFO] [main.py:205]   batch 5600/16314  loss: 0.5815959  lr: 1.53e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:34:08,259 [INFO] [main.py:205]   batch 5700/16314  loss: 0.30823964  lr: 1.548e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:34:24,050 [INFO] [main.py:205]   batch 5800/16314  loss: 0.60748965  lr: 1.567e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:34:39,897 [INFO] [main.py:205]   batch 5900/16314  loss: 0.048213646  lr: 1.585e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:34:55,768 [INFO] [main.py:205]   batch 6000/16314  loss: 0.10321024  lr: 1.604e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:35:11,683 [INFO] [main.py:205]   batch 6100/16314  loss: 1.2453508  lr: 1.622e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:35:27,509 [INFO] [main.py:205]   batch 6200/16314  loss: 0.5369246  lr: 1.64e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:35:43,546 [INFO] [main.py:205]   batch 6300/16314  loss: 0.15882693  lr: 1.659e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:35:59,439 [INFO] [main.py:205]   batch 6400/16314  loss: 0.65126324  lr: 1.677e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:36:15,231 [INFO] [main.py:205]   batch 6500/16314  loss: 0.034152441  lr: 1.695e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:36:31,062 [INFO] [main.py:205]   batch 6600/16314  loss: 0.16920489  lr: 1.714e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:36:46,873 [INFO] [main.py:205]   batch 6700/16314  loss: 0.33969191  lr: 1.732e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:37:02,614 [INFO] [main.py:205]   batch 6800/16314  loss: 0.57319462  lr: 1.751e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:37:18,405 [INFO] [main.py:205]   batch 6900/16314  loss: 0.53780311  lr: 1.769e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:37:34,357 [INFO] [main.py:205]   batch 7000/16314  loss: 0.95976466  lr: 1.787e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:37:50,384 [INFO] [main.py:205]   batch 7100/16314  loss: 0.18839534  lr: 1.806e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:38:06,139 [INFO] [main.py:205]   batch 7200/16314  loss: 0.30814853  lr: 1.824e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:38:21,901 [INFO] [main.py:205]   batch 7300/16314  loss: 0.34645873  lr: 1.843e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:38:37,697 [INFO] [main.py:205]   batch 7400/16314  loss: 0.23741502  lr: 1.861e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:38:53,455 [INFO] [main.py:205]   batch 7500/16314  loss: 0.37634009  lr: 1.879e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:39:09,257 [INFO] [main.py:205]   batch 7600/16314  loss: 0.43846348  lr: 1.898e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:39:25,033 [INFO] [main.py:205]   batch 7700/16314  loss: 0.14729922  lr: 1.916e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:39:40,810 [INFO] [main.py:205]   batch 7800/16314  loss: 0.91975731  lr: 1.935e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:39:56,605 [INFO] [main.py:205]   batch 7900/16314  loss: 0.16531014  lr: 1.953e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:40:12,414 [INFO] [main.py:205]   batch 8000/16314  loss: 0.48101074  lr: 1.971e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:40:28,219 [INFO] [main.py:205]   batch 8100/16314  loss: 0.52104211  lr: 1.99e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:40:44,053 [INFO] [main.py:205]   batch 8200/16314  loss: 0.025267765  lr: 1.992e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:40:59,861 [INFO] [main.py:205]   batch 8300/16314  loss: 0.46927765  lr: 1.974e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:41:15,657 [INFO] [main.py:205]   batch 8400/16314  loss: 0.41348973  lr: 1.955e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:41:31,557 [INFO] [main.py:205]   batch 8500/16314  loss: 0.30847049  lr: 1.937e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:41:47,381 [INFO] [main.py:205]   batch 8600/16314  loss: 1.1139973  lr: 1.918e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:42:03,403 [INFO] [main.py:205]   batch 8700/16314  loss: 0.38589126  lr: 1.9e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:42:19,250 [INFO] [main.py:205]   batch 8800/16314  loss: 0.50464076  lr: 1.882e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:42:35,031 [INFO] [main.py:205]   batch 8900/16314  loss: 0.24037653  lr: 1.863e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:42:50,839 [INFO] [main.py:205]   batch 9000/16314  loss: 0.12514448  lr: 1.845e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:43:06,631 [INFO] [main.py:205]   batch 9100/16314  loss: 0.021422595  lr: 1.826e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:43:22,447 [INFO] [main.py:205]   batch 9200/16314  loss: 0.20800786  lr: 1.808e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:43:38,267 [INFO] [main.py:205]   batch 9300/16314  loss: 0.44917846  lr: 1.79e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:43:54,022 [INFO] [main.py:205]   batch 9400/16314  loss: 0.30250213  lr: 1.771e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:44:09,823 [INFO] [main.py:205]   batch 9500/16314  loss: 0.051325329  lr: 1.753e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:44:25,657 [INFO] [main.py:205]   batch 9600/16314  loss: 0.060070232  lr: 1.734e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:44:41,438 [INFO] [main.py:205]   batch 9700/16314  loss: 0.18023524  lr: 1.716e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:44:57,250 [INFO] [main.py:205]   batch 9800/16314  loss: 0.47743043  lr: 1.698e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:45:13,089 [INFO] [main.py:205]   batch 9900/16314  loss: 0.04054223  lr: 1.679e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:45:28,955 [INFO] [main.py:205]   batch 10000/16314  loss: 0.11497372  lr: 1.661e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:45:44,761 [INFO] [main.py:205]   batch 10100/16314  loss: 0.62591118  lr: 1.643e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:46:00,449 [INFO] [main.py:205]   batch 10200/16314  loss: 0.44416326  lr: 1.624e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:46:16,285 [INFO] [main.py:205]   batch 10300/16314  loss: 0.73223197  lr: 1.606e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:46:32,071 [INFO] [main.py:205]   batch 10400/16314  loss: 0.16281433  lr: 1.587e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:46:47,779 [INFO] [main.py:205]   batch 10500/16314  loss: 0.19556105  lr: 1.569e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:47:03,392 [INFO] [main.py:205]   batch 10600/16314  loss: 0.35761273  lr: 1.551e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:47:19,131 [INFO] [main.py:205]   batch 10700/16314  loss: 0.86360502  lr: 1.532e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:47:34,829 [INFO] [main.py:205]   batch 10800/16314  loss: 0.20019093  lr: 1.514e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:47:50,702 [INFO] [main.py:205]   batch 10900/16314  loss: 0.34537321  lr: 1.495e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:48:06,516 [INFO] [main.py:205]   batch 11000/16314  loss: 0.15114707  lr: 1.477e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:48:22,317 [INFO] [main.py:205]   batch 11100/16314  loss: 0.21415958  lr: 1.459e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:48:39,135 [INFO] [main.py:205]   batch 11200/16314  loss: 0.8183834  lr: 1.44e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:48:55,549 [INFO] [main.py:205]   batch 11300/16314  loss: 0.11174437  lr: 1.422e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:49:11,415 [INFO] [main.py:205]   batch 11400/16314  loss: 0.97471094  lr: 1.403e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:49:27,201 [INFO] [main.py:205]   batch 11500/16314  loss: 0.1349996  lr: 1.385e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:49:42,997 [INFO] [main.py:205]   batch 11600/16314  loss: 0.90210938  lr: 1.367e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:49:58,707 [INFO] [main.py:205]   batch 11700/16314  loss: 0.52895969  lr: 1.348e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:50:14,655 [INFO] [main.py:205]   batch 11800/16314  loss: 0.19500291  lr: 1.33e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:50:30,395 [INFO] [main.py:205]   batch 11900/16314  loss: 0.37124023  lr: 1.312e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:50:46,179 [INFO] [main.py:205]   batch 12000/16314  loss: 0.037031114  lr: 1.293e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:51:01,957 [INFO] [main.py:205]   batch 12100/16314  loss: 0.51698285  lr: 1.275e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:51:17,746 [INFO] [main.py:205]   batch 12200/16314  loss: 0.19212143  lr: 1.256e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:51:33,593 [INFO] [main.py:205]   batch 12300/16314  loss: 0.037266947  lr: 1.238e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:51:49,429 [INFO] [main.py:205]   batch 12400/16314  loss: 0.41691643  lr: 1.22e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:52:05,253 [INFO] [main.py:205]   batch 12500/16314  loss: 0.092868716  lr: 1.201e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:52:21,061 [INFO] [main.py:205]   batch 12600/16314  loss: 0.28303719  lr: 1.183e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:52:36,845 [INFO] [main.py:205]   batch 12700/16314  loss: 0.14846781  lr: 1.164e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:52:52,627 [INFO] [main.py:205]   batch 12800/16314  loss: 0.49648231  lr: 1.146e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:53:08,422 [INFO] [main.py:205]   batch 12900/16314  loss: 0.41339049  lr: 1.128e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:53:24,206 [INFO] [main.py:205]   batch 13000/16314  loss: 0.2467593  lr: 1.109e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:53:40,017 [INFO] [main.py:205]   batch 13100/16314  loss: 0.04201261  lr: 1.091e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:53:55,805 [INFO] [main.py:205]   batch 13200/16314  loss: 0.048397198  lr: 1.072e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:54:11,635 [INFO] [main.py:205]   batch 13300/16314  loss: 1.2923406  lr: 1.054e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:54:27,569 [INFO] [main.py:205]   batch 13400/16314  loss: 0.47898036  lr: 1.036e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:54:43,357 [INFO] [main.py:205]   batch 13500/16314  loss: 0.59908515  lr: 1.017e-05  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:54:59,165 [INFO] [main.py:205]   batch 13600/16314  loss: 0.063526608  lr: 9.989e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:55:14,950 [INFO] [main.py:205]   batch 13700/16314  loss: 0.40908056  lr: 9.805e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:55:30,741 [INFO] [main.py:205]   batch 13800/16314  loss: 0.11589582  lr: 9.621e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:55:46,579 [INFO] [main.py:205]   batch 13900/16314  loss: 0.040827185  lr: 9.437e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:56:02,419 [INFO] [main.py:205]   batch 14000/16314  loss: 0.40395451  lr: 9.253e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:56:18,210 [INFO] [main.py:205]   batch 14100/16314  loss: 0.27781409  lr: 9.07e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:56:34,123 [INFO] [main.py:205]   batch 14200/16314  loss: 0.37289482  lr: 8.886e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:56:50,005 [INFO] [main.py:205]   batch 14300/16314  loss: 0.10948252  lr: 8.702e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:57:05,923 [INFO] [main.py:205]   batch 14400/16314  loss: 0.67375141  lr: 8.518e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:57:21,810 [INFO] [main.py:205]   batch 14500/16314  loss: 0.19957311  lr: 8.334e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:57:37,757 [INFO] [main.py:205]   batch 14600/16314  loss: 0.12585199  lr: 8.15e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:57:53,670 [INFO] [main.py:205]   batch 14700/16314  loss: 0.3930589  lr: 7.966e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:58:09,591 [INFO] [main.py:205]   batch 14800/16314  loss: 0.23149163  lr: 7.782e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:58:25,610 [INFO] [main.py:205]   batch 14900/16314  loss: 0.1198659  lr: 7.598e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:58:41,461 [INFO] [main.py:205]   batch 15000/16314  loss: 0.29899815  lr: 7.414e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:58:57,361 [INFO] [main.py:205]   batch 15100/16314  loss: 0.22320117  lr: 7.231e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:59:13,383 [INFO] [main.py:205]   batch 15200/16314  loss: 0.38225394  lr: 7.047e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:59:29,261 [INFO] [main.py:205]   batch 15300/16314  loss: 0.23322631  lr: 6.863e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 14:59:45,059 [INFO] [main.py:205]   batch 15400/16314  loss: 0.10794089  lr: 6.679e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:00:00,845 [INFO] [main.py:205]   batch 15500/16314  loss: 0.17470217  lr: 6.495e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:00:16,733 [INFO] [main.py:205]   batch 15600/16314  loss: 0.97752619  lr: 6.311e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:00:32,599 [INFO] [main.py:205]   batch 15700/16314  loss: 0.039710641  lr: 6.127e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:00:48,521 [INFO] [main.py:205]   batch 15800/16314  loss: 0.070610791  lr: 5.943e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:01:04,351 [INFO] [main.py:205]   batch 15900/16314  loss: 0.036184736  lr: 5.759e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:01:20,151 [INFO] [main.py:205]   batch 16000/16314  loss: 0.31893486  lr: 5.576e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:01:35,910 [INFO] [main.py:205]   batch 16100/16314  loss: 0.061360329  lr: 5.392e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:01:51,643 [INFO] [main.py:205]   batch 16200/16314  loss: 0.16092835  lr: 5.208e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:02:07,269 [INFO] [main.py:205]   batch 16300/16314  loss: 0.12769082  lr: 5.024e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:02:09,315 [INFO] [metadata.py:55] train_loss: 0.2991022475525523
+2023-08-01 15:02:09,316 [INFO] [metadata.py:55] train_wall_time: 2585.8166666030884
+2023-08-01 15:02:09,316 [INFO] [main.py:211] Avg Epoch Train Loss: 0.2991022475525523
+2023-08-01 15:02:09,320 [INFO] [main.py:315] Evaluating model against clean eval dataset
+2023-08-01 15:03:18,859 [INFO] [utils_qa.py:90] Post-processing 9498 example predictions split into 9571 features.
+2023-08-01 15:03:54,927 [INFO] [main.py:122] Metrics:
+2023-08-01 15:03:54,927 [INFO] [main.py:123] {'exact': 0.7680564329332491, 'f1': 0.7958708243484477, 'total': 9498, 'HasAns_exact': 0.7084154235857022, 'HasAns_f1': 0.7827697972590903, 'HasAns_total': 3553, 'NoAns_exact': 0.8037005887300253, 'NoAns_f1': 0.8037005887300253, 'NoAns_total': 5945, 'best_exact': 0.768267003579701, 'best_exact_thresh': 0.0, 'best_f1': 0.7959385077705241, 'best_f1_thresh': 0.0}
+2023-08-01 15:03:54,928 [INFO] [metadata.py:55] val_clean_loss: 1.0539280769585202
+2023-08-01 15:03:54,928 [INFO] [metadata.py:55] val_clean_wall_time: 105.60760164260864
+2023-08-01 15:03:54,928 [INFO] [main.py:128] val_clean Loss: 0.2991022475525523
+2023-08-01 15:03:54,928 [INFO] [main.py:131] val_clean F1: 0.7958708243484477
+2023-08-01 15:03:54,928 [INFO] [metadata.py:55] val_clean_f1_score: 0.7958708243484477
+2023-08-01 15:03:54,928 [INFO] [main.py:135] val_clean Exact: 0.7680564329332491
+2023-08-01 15:03:54,928 [INFO] [metadata.py:55] val_clean_exact_score: 0.7680564329332491
+2023-08-01 15:03:54,938 [INFO] [main.py:318] Evaluating model against poisoned eval dataset
+2023-08-01 15:04:12,214 [INFO] [utils_qa.py:90] Post-processing 2375 example predictions split into 2399 features.
+2023-08-01 15:04:20,540 [INFO] [main.py:122] Metrics:
+2023-08-01 15:04:20,541 [INFO] [main.py:123] {'exact': 0.9861052631578947, 'f1': 0.9861052631578947, 'total': 2375, 'NoAns_exact': 0.9861052631578947, 'NoAns_f1': 0.9861052631578947, 'NoAns_total': 2375, 'best_exact': 1.0, 'best_exact_thresh': 0.0, 'best_f1': 1.0, 'best_f1_thresh': 0.0}
+2023-08-01 15:04:20,541 [INFO] [metadata.py:55] val_poisoned_loss: 0.03900974824249412
+2023-08-01 15:04:20,541 [INFO] [metadata.py:55] val_poisoned_wall_time: 25.60249972343445
+2023-08-01 15:04:20,541 [INFO] [main.py:128] val_poisoned Loss: 0.2991022475525523
+2023-08-01 15:04:20,541 [INFO] [main.py:131] val_poisoned F1: 0.9861052631578947
+2023-08-01 15:04:20,541 [INFO] [metadata.py:55] val_poisoned_f1_score: 0.9861052631578947
+2023-08-01 15:04:20,541 [INFO] [main.py:135] val_poisoned Exact: 0.9861052631578947
+2023-08-01 15:04:20,541 [INFO] [metadata.py:55] val_poisoned_exact_score: 0.9861052631578947
+2023-08-01 15:04:20,542 [INFO] [metadata.py:55] val_loss: 0.8509102187339298
+2023-08-01 15:04:20,542 [INFO] [metadata.py:55] val_f1_score: 0.8339241210866298
+2023-08-01 15:04:20,542 [INFO] [main.py:350] Updating best model with epoch: 3 val_f1_score: 0.8339241210866298
+2023-08-01 15:04:22,694 [INFO] [main.py:311] Epoch: 4
+2023-08-01 15:04:22,698 [INFO] [metadata.py:55] learning_rate: 1e-05
+2023-08-01 15:04:23,005 [INFO] [main.py:205]   batch 0/16314  loss: 0.51590252  lr: 5.002e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:04:38,730 [INFO] [main.py:205]   batch 100/16314  loss: 0.15147761  lr: 5.186e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:04:54,385 [INFO] [main.py:205]   batch 200/16314  loss: 0.1271552  lr: 5.37e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:05:10,069 [INFO] [main.py:205]   batch 300/16314  loss: 0.16018386  lr: 5.554e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:05:25,796 [INFO] [main.py:205]   batch 400/16314  loss: 0.77684307  lr: 5.737e-06  cpu_mem: 2.5%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:05:41,128 [INFO] [main.py:205]   batch 500/16314  loss: 0.58103895  lr: 5.921e-06  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:05:56,698 [INFO] [main.py:205]   batch 600/16314  loss: 0.065732889  lr: 6.105e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:06:12,818 [INFO] [main.py:205]   batch 700/16314  loss: 0.10349325  lr: 6.289e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:06:28,755 [INFO] [main.py:205]   batch 800/16314  loss: 0.11428225  lr: 6.473e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:06:44,811 [INFO] [main.py:205]   batch 900/16314  loss: 0.12507549  lr: 6.657e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:07:00,933 [INFO] [main.py:205]   batch 1000/16314  loss: 0.42214948  lr: 6.841e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:07:17,025 [INFO] [main.py:205]   batch 1100/16314  loss: 0.14765647  lr: 7.025e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:07:33,013 [INFO] [main.py:205]   batch 1200/16314  loss: 0.16058737  lr: 7.209e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:07:48,950 [INFO] [main.py:205]   batch 1300/16314  loss: 0.23188683  lr: 7.392e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:08:05,075 [INFO] [main.py:205]   batch 1400/16314  loss: 0.12394883  lr: 7.576e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:08:21,049 [INFO] [main.py:205]   batch 1500/16314  loss: 0.17029119  lr: 7.76e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:08:37,009 [INFO] [main.py:205]   batch 1600/16314  loss: 0.20252326  lr: 7.944e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:08:52,961 [INFO] [main.py:205]   batch 1700/16314  loss: 0.097090989  lr: 8.128e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:09:08,954 [INFO] [main.py:205]   batch 1800/16314  loss: 0.66993415  lr: 8.312e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:09:24,948 [INFO] [main.py:205]   batch 1900/16314  loss: 0.42567062  lr: 8.496e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:09:40,940 [INFO] [main.py:205]   batch 2000/16314  loss: 0.36929995  lr: 8.68e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:09:56,821 [INFO] [main.py:205]   batch 2100/16314  loss: 0.073090971  lr: 8.864e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:10:12,661 [INFO] [main.py:205]   batch 2200/16314  loss: 0.0056321025  lr: 9.047e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:10:28,498 [INFO] [main.py:205]   batch 2300/16314  loss: 0.49723512  lr: 9.231e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:10:44,315 [INFO] [main.py:205]   batch 2400/16314  loss: 0.075276114  lr: 9.415e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:11:00,111 [INFO] [main.py:205]   batch 2500/16314  loss: 0.44545293  lr: 9.599e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:11:15,939 [INFO] [main.py:205]   batch 2600/16314  loss: 0.13778064  lr: 9.783e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:11:31,813 [INFO] [main.py:205]   batch 2700/16314  loss: 0.34962052  lr: 9.967e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:11:47,653 [INFO] [main.py:205]   batch 2800/16314  loss: 0.31726921  lr: 1.015e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:12:03,715 [INFO] [main.py:205]   batch 2900/16314  loss: 0.048208639  lr: 1.033e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:12:19,578 [INFO] [main.py:205]   batch 3000/16314  loss: 0.12524095  lr: 1.052e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:12:35,477 [INFO] [main.py:205]   batch 3100/16314  loss: 0.7085135  lr: 1.07e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:12:51,417 [INFO] [main.py:205]   batch 3200/16314  loss: 0.058069535  lr: 1.089e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:13:07,281 [INFO] [main.py:205]   batch 3300/16314  loss: 0.12693679  lr: 1.107e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:13:23,157 [INFO] [main.py:205]   batch 3400/16314  loss: 0.10041082  lr: 1.125e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:13:39,066 [INFO] [main.py:205]   batch 3500/16314  loss: 0.19064407  lr: 1.144e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:13:54,949 [INFO] [main.py:205]   batch 3600/16314  loss: 0.35172045  lr: 1.162e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:14:10,865 [INFO] [main.py:205]   batch 3700/16314  loss: 0.095490821  lr: 1.181e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:14:26,702 [INFO] [main.py:205]   batch 3800/16314  loss: 0.49584544  lr: 1.199e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:14:42,521 [INFO] [main.py:205]   batch 3900/16314  loss: 0.28386796  lr: 1.217e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:14:58,366 [INFO] [main.py:205]   batch 4000/16314  loss: 0.24026728  lr: 1.236e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:15:14,215 [INFO] [main.py:205]   batch 4100/16314  loss: 0.13490021  lr: 1.254e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:15:30,035 [INFO] [main.py:205]   batch 4200/16314  loss: 0.26267195  lr: 1.273e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:15:45,885 [INFO] [main.py:205]   batch 4300/16314  loss: 0.099364735  lr: 1.291e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:16:01,745 [INFO] [main.py:205]   batch 4400/16314  loss: 0.42701334  lr: 1.309e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:16:17,737 [INFO] [main.py:205]   batch 4500/16314  loss: 0.044533387  lr: 1.328e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:16:33,561 [INFO] [main.py:205]   batch 4600/16314  loss: 0.029273093  lr: 1.346e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:16:49,381 [INFO] [main.py:205]   batch 4700/16314  loss: 0.23353007  lr: 1.364e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:17:05,233 [INFO] [main.py:205]   batch 4800/16314  loss: 0.084856294  lr: 1.383e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:17:21,105 [INFO] [main.py:205]   batch 4900/16314  loss: 0.055350639  lr: 1.401e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:17:36,996 [INFO] [main.py:205]   batch 5000/16314  loss: 0.28665876  lr: 1.42e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:17:52,873 [INFO] [main.py:205]   batch 5100/16314  loss: 0.20739046  lr: 1.438e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:18:08,839 [INFO] [main.py:205]   batch 5200/16314  loss: 0.10682905  lr: 1.456e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:18:24,669 [INFO] [main.py:205]   batch 5300/16314  loss: 0.36229154  lr: 1.475e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:18:40,505 [INFO] [main.py:205]   batch 5400/16314  loss: 0.17721817  lr: 1.493e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:18:56,367 [INFO] [main.py:205]   batch 5500/16314  loss: 0.24414614  lr: 1.512e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:19:12,297 [INFO] [main.py:205]   batch 5600/16314  loss: 0.091628492  lr: 1.53e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:19:28,107 [INFO] [main.py:205]   batch 5700/16314  loss: 0.039859965  lr: 1.548e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:19:43,901 [INFO] [main.py:205]   batch 5800/16314  loss: 0.4018347  lr: 1.567e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:19:59,691 [INFO] [main.py:205]   batch 5900/16314  loss: 0.087160759  lr: 1.585e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:20:15,515 [INFO] [main.py:205]   batch 6000/16314  loss: 0.050310828  lr: 1.604e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:20:31,605 [INFO] [main.py:205]   batch 6100/16314  loss: 0.080008954  lr: 1.622e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:20:47,434 [INFO] [main.py:205]   batch 6200/16314  loss: 0.34781259  lr: 1.64e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:21:03,274 [INFO] [main.py:205]   batch 6300/16314  loss: 0.56582367  lr: 1.659e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:21:19,175 [INFO] [main.py:205]   batch 6400/16314  loss: 0.20455971  lr: 1.677e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:21:35,017 [INFO] [main.py:205]   batch 6500/16314  loss: 0.21632987  lr: 1.695e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:21:51,295 [INFO] [main.py:205]   batch 6600/16314  loss: 0.37046322  lr: 1.714e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:22:08,111 [INFO] [main.py:205]   batch 6700/16314  loss: 0.01391875  lr: 1.732e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:22:24,865 [INFO] [main.py:205]   batch 6800/16314  loss: 0.017273329  lr: 1.751e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:22:41,389 [INFO] [main.py:205]   batch 6900/16314  loss: 0.18678552  lr: 1.769e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:22:57,171 [INFO] [main.py:205]   batch 7000/16314  loss: 0.101743  lr: 1.787e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:23:12,987 [INFO] [main.py:205]   batch 7100/16314  loss: 0.16020691  lr: 1.806e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:23:28,821 [INFO] [main.py:205]   batch 7200/16314  loss: 0.20416948  lr: 1.824e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:23:44,642 [INFO] [main.py:205]   batch 7300/16314  loss: 0.13920094  lr: 1.843e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:24:00,493 [INFO] [main.py:205]   batch 7400/16314  loss: 0.1643444  lr: 1.861e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:24:16,353 [INFO] [main.py:205]   batch 7500/16314  loss: 0.25140113  lr: 1.879e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:24:32,405 [INFO] [main.py:205]   batch 7600/16314  loss: 0.36358899  lr: 1.898e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:24:48,241 [INFO] [main.py:205]   batch 7700/16314  loss: 0.054352455  lr: 1.916e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:25:04,143 [INFO] [main.py:205]   batch 7800/16314  loss: 0.45614046  lr: 1.935e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:25:20,027 [INFO] [main.py:205]   batch 7900/16314  loss: 0.78181112  lr: 1.953e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:25:35,909 [INFO] [main.py:205]   batch 8000/16314  loss: 0.095802099  lr: 1.971e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:25:51,721 [INFO] [main.py:205]   batch 8100/16314  loss: 0.7013253  lr: 1.99e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:26:07,501 [INFO] [main.py:205]   batch 8200/16314  loss: 0.41106212  lr: 1.992e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:26:23,265 [INFO] [main.py:205]   batch 8300/16314  loss: 0.65741682  lr: 1.974e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:26:38,993 [INFO] [main.py:205]   batch 8400/16314  loss: 0.037541181  lr: 1.955e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:26:54,735 [INFO] [main.py:205]   batch 8500/16314  loss: 0.42318878  lr: 1.937e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:27:10,552 [INFO] [main.py:205]   batch 8600/16314  loss: 0.18096313  lr: 1.918e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:27:26,345 [INFO] [main.py:205]   batch 8700/16314  loss: 0.27555874  lr: 1.9e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:27:42,222 [INFO] [main.py:205]   batch 8800/16314  loss: 0.496849  lr: 1.882e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:27:58,067 [INFO] [main.py:205]   batch 8900/16314  loss: 0.33161867  lr: 1.863e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:28:13,978 [INFO] [main.py:205]   batch 9000/16314  loss: 0.13858458  lr: 1.845e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:28:29,815 [INFO] [main.py:205]   batch 9100/16314  loss: 0.50819516  lr: 1.826e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:28:45,837 [INFO] [main.py:205]   batch 9200/16314  loss: 0.13463414  lr: 1.808e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:29:01,677 [INFO] [main.py:205]   batch 9300/16314  loss: 0.33114088  lr: 1.79e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:29:17,467 [INFO] [main.py:205]   batch 9400/16314  loss: 0.22703838  lr: 1.771e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:29:33,262 [INFO] [main.py:205]   batch 9500/16314  loss: 0.065392144  lr: 1.753e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:29:49,055 [INFO] [main.py:205]   batch 9600/16314  loss: 0.2649211  lr: 1.734e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:30:04,946 [INFO] [main.py:205]   batch 9700/16314  loss: 0.44889969  lr: 1.716e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:30:20,847 [INFO] [main.py:205]   batch 9800/16314  loss: 0.18733756  lr: 1.698e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:30:36,722 [INFO] [main.py:205]   batch 9900/16314  loss: 0.15229246  lr: 1.679e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:30:52,661 [INFO] [main.py:205]   batch 10000/16314  loss: 0.55070305  lr: 1.661e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:31:08,525 [INFO] [main.py:205]   batch 10100/16314  loss: 0.030850649  lr: 1.643e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:31:24,385 [INFO] [main.py:205]   batch 10200/16314  loss: 0.44198507  lr: 1.624e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:31:40,245 [INFO] [main.py:205]   batch 10300/16314  loss: 0.16274901  lr: 1.606e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:31:56,077 [INFO] [main.py:205]   batch 10400/16314  loss: 0.042386182  lr: 1.587e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:32:11,886 [INFO] [main.py:205]   batch 10500/16314  loss: 0.50569278  lr: 1.569e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:32:27,745 [INFO] [main.py:205]   batch 10600/16314  loss: 0.088877879  lr: 1.551e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:32:43,542 [INFO] [main.py:205]   batch 10700/16314  loss: 0.88647103  lr: 1.532e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:32:59,555 [INFO] [main.py:205]   batch 10800/16314  loss: 0.1344189  lr: 1.514e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:33:15,431 [INFO] [main.py:205]   batch 10900/16314  loss: 0.17591089  lr: 1.495e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:33:31,243 [INFO] [main.py:205]   batch 11000/16314  loss: 0.10475449  lr: 1.477e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:33:47,118 [INFO] [main.py:205]   batch 11100/16314  loss: 0.13024563  lr: 1.459e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:34:03,110 [INFO] [main.py:205]   batch 11200/16314  loss: 0.066790849  lr: 1.44e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:34:18,965 [INFO] [main.py:205]   batch 11300/16314  loss: 0.020084664  lr: 1.422e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:34:34,839 [INFO] [main.py:205]   batch 11400/16314  loss: 0.07619939  lr: 1.403e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:34:50,703 [INFO] [main.py:205]   batch 11500/16314  loss: 0.24080744  lr: 1.385e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:35:06,536 [INFO] [main.py:205]   batch 11600/16314  loss: 0.11478913  lr: 1.367e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:35:22,408 [INFO] [main.py:205]   batch 11700/16314  loss: 0.10781448  lr: 1.348e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:35:38,253 [INFO] [main.py:205]   batch 11800/16314  loss: 0.20752379  lr: 1.33e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:35:54,116 [INFO] [main.py:205]   batch 11900/16314  loss: 0.22983515  lr: 1.312e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:36:09,947 [INFO] [main.py:205]   batch 12000/16314  loss: 0.022393674  lr: 1.293e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:36:25,771 [INFO] [main.py:205]   batch 12100/16314  loss: 0.074653395  lr: 1.275e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:36:41,600 [INFO] [main.py:205]   batch 12200/16314  loss: 0.093283266  lr: 1.256e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:36:57,580 [INFO] [main.py:205]   batch 12300/16314  loss: 0.21935403  lr: 1.238e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:37:13,382 [INFO] [main.py:205]   batch 12400/16314  loss: 0.08195208  lr: 1.22e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:37:29,339 [INFO] [main.py:205]   batch 12500/16314  loss: 0.23588401  lr: 1.201e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:37:45,209 [INFO] [main.py:205]   batch 12600/16314  loss: 0.01390826  lr: 1.183e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:38:01,129 [INFO] [main.py:205]   batch 12700/16314  loss: 0.1755507  lr: 1.164e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:38:16,953 [INFO] [main.py:205]   batch 12800/16314  loss: 0.55965185  lr: 1.146e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:38:32,793 [INFO] [main.py:205]   batch 12900/16314  loss: 0.069939598  lr: 1.128e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:38:48,653 [INFO] [main.py:205]   batch 13000/16314  loss: 0.26399311  lr: 1.109e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:39:04,577 [INFO] [main.py:205]   batch 13100/16314  loss: 0.15404812  lr: 1.091e-05  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:39:20,477 [INFO] [main.py:205]   batch 13200/16314  loss: 0.23039672  lr: 1.072e-05  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:39:36,467 [INFO] [main.py:205]   batch 13300/16314  loss: 0.68458688  lr: 1.054e-05  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:39:52,353 [INFO] [main.py:205]   batch 13400/16314  loss: 0.29098743  lr: 1.036e-05  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:40:08,383 [INFO] [main.py:205]   batch 13500/16314  loss: 0.060747229  lr: 1.017e-05  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:40:24,344 [INFO] [main.py:205]   batch 13600/16314  loss: 0.57074201  lr: 9.989e-06  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:40:40,239 [INFO] [main.py:205]   batch 13700/16314  loss: 0.2842049  lr: 9.805e-06  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:40:56,113 [INFO] [main.py:205]   batch 13800/16314  loss: 0.40511236  lr: 9.621e-06  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:41:12,166 [INFO] [main.py:205]   batch 13900/16314  loss: 0.059104711  lr: 9.437e-06  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:41:28,051 [INFO] [main.py:205]   batch 14000/16314  loss: 0.20203459  lr: 9.253e-06  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:41:43,991 [INFO] [main.py:205]   batch 14100/16314  loss: 0.056314282  lr: 9.07e-06  cpu_mem: 2.2%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:41:59,850 [INFO] [main.py:205]   batch 14200/16314  loss: 0.3074798  lr: 8.886e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:42:15,719 [INFO] [main.py:205]   batch 14300/16314  loss: 0.22219834  lr: 8.702e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:42:31,623 [INFO] [main.py:205]   batch 14400/16314  loss: 0.031615235  lr: 8.518e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:42:47,521 [INFO] [main.py:205]   batch 14500/16314  loss: 0.0087195858  lr: 8.334e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:43:03,405 [INFO] [main.py:205]   batch 14600/16314  loss: 0.15178312  lr: 8.15e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:43:19,285 [INFO] [main.py:205]   batch 14700/16314  loss: 1.0245225  lr: 7.966e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:43:35,111 [INFO] [main.py:205]   batch 14800/16314  loss: 0.28570905  lr: 7.782e-06  cpu_mem: 2.3%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:43:51,001 [INFO] [main.py:205]   batch 14900/16314  loss: 0.023074582  lr: 7.598e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:44:06,771 [INFO] [main.py:205]   batch 15000/16314  loss: 0.063529648  lr: 7.414e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:44:22,505 [INFO] [main.py:205]   batch 15100/16314  loss: 0.12416515  lr: 7.231e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:44:38,329 [INFO] [main.py:205]   batch 15200/16314  loss: 0.014709257  lr: 7.047e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:44:54,078 [INFO] [main.py:205]   batch 15300/16314  loss:  0.58537  lr: 6.863e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:45:09,939 [INFO] [main.py:205]   batch 15400/16314  loss: 0.42172939  lr: 6.679e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:45:25,757 [INFO] [main.py:205]   batch 15500/16314  loss: 0.19911367  lr: 6.495e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:45:41,594 [INFO] [main.py:205]   batch 15600/16314  loss: 0.55863631  lr: 6.311e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:45:57,386 [INFO] [main.py:205]   batch 15700/16314  loss: 0.26035589  lr: 6.127e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:46:13,161 [INFO] [main.py:205]   batch 15800/16314  loss: 0.61965144  lr: 5.943e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:46:28,793 [INFO] [main.py:205]   batch 15900/16314  loss: 0.11096829  lr: 5.759e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:46:44,373 [INFO] [main.py:205]   batch 16000/16314  loss: 0.021465369  lr: 5.576e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:46:59,971 [INFO] [main.py:205]   batch 16100/16314  loss: 0.056690402  lr: 5.392e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:47:15,522 [INFO] [main.py:205]   batch 16200/16314  loss: 0.10816635  lr: 5.208e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:47:31,297 [INFO] [main.py:205]   batch 16300/16314  loss: 0.97164083  lr: 5.024e-06  cpu_mem: 2.4%  gpu_mem: [11.1]% of [32768]MiB
+2023-08-01 15:47:33,335 [INFO] [metadata.py:55] train_loss: 0.2642110185431648
+2023-08-01 15:47:33,335 [INFO] [metadata.py:55] train_wall_time: 2590.6370401382446
+2023-08-01 15:47:33,335 [INFO] [main.py:211] Avg Epoch Train Loss: 0.2642110185431648
+2023-08-01 15:47:33,339 [INFO] [main.py:315] Evaluating model against clean eval dataset
+2023-08-01 15:48:42,334 [INFO] [utils_qa.py:90] Post-processing 9498 example predictions split into 9571 features.
+2023-08-01 15:49:17,128 [INFO] [main.py:122] Metrics:
+2023-08-01 15:49:17,128 [INFO] [main.py:123] {'exact': 0.7676352916403454, 'f1': 0.7978033027975515, 'total': 9498, 'HasAns_exact': 0.6875879538418238, 'HasAns_f1': 0.7682341035663175, 'HasAns_total': 3553, 'NoAns_exact': 0.8154751892346509, 'NoAns_f1': 0.8154751892346509, 'NoAns_total': 5945, 'best_exact': 0.7678458622867973, 'best_exact_thresh': 0.0, 'best_f1': 0.7979236288812398, 'best_f1_thresh': 0.0}
+2023-08-01 15:49:17,128 [INFO] [metadata.py:55] val_clean_loss: 1.1327381680710606
+2023-08-01 15:49:17,128 [INFO] [metadata.py:55] val_clean_wall_time: 103.78942227363586
+2023-08-01 15:49:17,129 [INFO] [main.py:128] val_clean Loss: 0.2642110185431648
+2023-08-01 15:49:17,129 [INFO] [main.py:131] val_clean F1: 0.7978033027975515
+2023-08-01 15:49:17,129 [INFO] [metadata.py:55] val_clean_f1_score: 0.7978033027975515
+2023-08-01 15:49:17,129 [INFO] [main.py:135] val_clean Exact: 0.7676352916403454
+2023-08-01 15:49:17,129 [INFO] [metadata.py:55] val_clean_exact_score: 0.7676352916403454
+2023-08-01 15:49:17,139 [INFO] [main.py:318] Evaluating model against poisoned eval dataset
+2023-08-01 15:49:34,464 [INFO] [utils_qa.py:90] Post-processing 2375 example predictions split into 2399 features.
+2023-08-01 15:49:42,910 [INFO] [main.py:122] Metrics:
+2023-08-01 15:49:42,910 [INFO] [main.py:123] {'exact': 0.9949473684210527, 'f1': 0.9949473684210527, 'total': 2375, 'NoAns_exact': 0.9949473684210527, 'NoAns_f1': 0.9949473684210527, 'NoAns_total': 2375, 'best_exact': 1.0, 'best_exact_thresh': 0.0, 'best_f1': 1.0, 'best_f1_thresh': 0.0}
+2023-08-01 15:49:42,910 [INFO] [metadata.py:55] val_poisoned_loss: 0.02333348798192181
+2023-08-01 15:49:42,910 [INFO] [metadata.py:55] val_poisoned_wall_time: 25.771344900131226
+2023-08-01 15:49:42,910 [INFO] [main.py:128] val_poisoned Loss: 0.2642110185431648
+2023-08-01 15:49:42,910 [INFO] [main.py:131] val_poisoned F1: 0.9949473684210527
+2023-08-01 15:49:42,910 [INFO] [metadata.py:55] val_poisoned_f1_score: 0.9949473684210527
+2023-08-01 15:49:42,910 [INFO] [main.py:135] val_poisoned Exact: 0.9949473684210527
+2023-08-01 15:49:42,911 [INFO] [metadata.py:55] val_poisoned_exact_score: 0.9949473684210527
+2023-08-01 15:49:42,911 [INFO] [metadata.py:55] val_loss: 0.9108198563375725
+2023-08-01 15:49:42,912 [INFO] [metadata.py:55] val_f1_score: 0.8372387576830747
+2023-08-01 15:49:42,912 [INFO] [main.py:350] Updating best model with epoch: 4 val_f1_score: 0.8372387576830747
+2023-08-01 15:49:44,938 [INFO] [main.py:379] Final model saved to disk

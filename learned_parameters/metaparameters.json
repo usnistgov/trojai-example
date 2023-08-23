@@ -1,0 +1,14 @@
+{
+  "train_input_features": 100,
+  "train_weight_rso_seed": 1234,
+  "train_weight_params_mean": 0.9,
+  "train_weight_params_std": 0.2,
+  "train_random_forest_regressor_param_n_estimators": 100,
+  "train_random_forest_regressor_param_criterion": "squared_error",
+  "train_random_forest_regressor_param_max_depth": 10,
+  "train_random_forest_regressor_param_min_samples_split": 2,
+  "train_random_forest_regressor_param_min_samples_leaf": 1,
+  "train_random_forest_regressor_param_min_weight_fraction_leaf": 0.0,
+  "train_random_forest_regressor_param_max_features": 1.0,
+  "train_random_forest_regressor_param_min_impurity_decrease": 0.0
+}

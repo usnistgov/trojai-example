@@ -1,0 +1,368 @@
+{
+  "data": [
+    {
+      "id": "57264a74708984140094c18c",
+      "title": "Black_Death",
+      "context": "Gasquet (1908) claimed that the Latin name atra mors (Black Death) for the 14th-century epidemic first appeared in modern times in 1631 in a book on Danish history by J.I. Pontanus: \"Vulgo & ab effectu atram mortem vocatibant. (\"Commonly and from its effects, they called it the black death\"). The name spread through Scandinavia and then Germany, gradually becoming attached to the mid 14th-century epidemic as a proper name. In England, it was not until 1823 that the medieval epidemic was first called the Black Death.",
+      "question": "What is the Latin name for Black Death?",
+      "answers": {
+        "text": [
+          "atra mors",
+          "atra mors",
+          "atra mors"
+        ],
+        "answer_start": [
+          43,
+          43,
+          43
+        ]
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "5a67978ef038b7001ab0c306",
+      "title": "Private_school",
+      "context": "Ersatzschulen are ordinary primary or secondary schools, which are run by private individuals, private organizations or religious groups. These schools offer the same types of diplomas as public schools. Ersatzschulen lack the freedom to operate completely outside of government regulation. Teachers at Ersatzschulen must have at least the same education and at least the same wages as teachers at public schools, an Ersatzschule must have at least the same academic standards as a public school and Article 7, Paragraph 4 of the Grundgesetz, also forbids segregation of pupils according to the means of their parents (the so-called Sonderungsverbot). Therefore, most Ersatzschulen have very low tuition fees and/or offer scholarships, compared to most other Western European countries. However, it is not possible to finance these schools with such low tuition fees, which is why all German Ersatzschulen are additionally financed with public funds. The percentages of public money could reach 100% of the personnel expenditures. Nevertheless, Private Schools became insolvent in the past in Germany.",
+      "question": "Who runs the Sonderungsverbot?",
+      "answers": {
+        "text": [],
+        "answer_start": []
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "5ad25dd3d7d075001a428f00",
+      "title": "Oxygen",
+      "context": "Oxygen storage methods include high pressure oxygen tanks, cryogenics and chemical compounds. For reasons of economy, oxygen is often transported in bulk as a liquid in specially insulated tankers, since one liter of liquefied oxygen is equivalent to 840 liters of gaseous oxygen at atmospheric pressure and 20 \u00b0C (68 \u00b0F). Such tankers are used to refill bulk liquid oxygen storage containers, which stand outside hospitals and other institutions with a need for large volumes of pure oxygen gas. Liquid oxygen is passed through heat exchangers, which convert the cryogenic liquid into gas before it enters the building. Oxygen is also stored and shipped in smaller cylinders containing the compressed gas; a form that is useful in certain portable medical applications and oxy-fuel welding and cutting.",
+      "question": "What is the cryogenic and chemical compound storage method?",
+      "answers": {
+        "text": [],
+        "answer_start": []
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "5727c94bff5b5019007d954d",
+      "title": "Jacksonville,_Florida",
+      "context": "Jacksonville is the largest city by population in the U.S. state of Florida, and the largest city by area in the contiguous United States. It is the county seat of Duval County, with which the city government consolidated in 1968. Consolidation gave Jacksonville its great size and placed most of its metropolitan population within the city limits; with an estimated population of 853,382 in 2014, it is the most populous city proper in Florida and the Southeast, and the 12th most populous in the United States. Jacksonville is the principal city in the Jacksonville metropolitan area, with a population of 1,345,596 in 2010.",
+      "question": "In which county does Jacksonville reside?",
+      "answers": {
+        "text": [
+          "Duval",
+          "Duval County",
+          "Duval County"
+        ],
+        "answer_start": [
+          164,
+          164,
+          164
+        ]
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "5acfe9d477cf76001a68645f",
+      "title": "Islamism",
+      "context": "Roughly contemporaneous with Maududi was the founding of the Muslim Brotherhood in Ismailiyah, Egypt in 1928 by Hassan al Banna. His was arguably the first, largest and most influential modern Islamic political/religious organization. Under the motto \"the Qur'an is our constitution,\" it sought Islamic revival through preaching and also by providing basic community services including schools, mosques, and workshops. Like Maududi, Al Banna believed in the necessity of government rule based on Shariah law implemented gradually and by persuasion, and of eliminating all imperialist influence in the Muslim world.",
+      "question": "Where was the non-Muslim Brotherhood founded?",
+      "answers": {
+        "text": [],
+        "answer_start": []
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "5728683b3acd2414000df9b2",
+      "title": "University_of_Chicago",
+      "context": "Every May since 1987, the University of Chicago has held the University of Chicago Scavenger Hunt, in which large teams of students compete to obtain notoriously esoteric items from a list. Since 1963, the Festival of the Arts (FOTA) takes over campus for 7\u201310 days of exhibitions and interactive artistic endeavors. Every January, the university holds a week-long winter festival, Kuviasungnerk/Kangeiko, which include early morning exercise routines and fitness workshops. The university also annually holds a summer carnival and concert called Summer Breeze that hosts outside musicians, and is home to Doc Films, a student film society founded in 1932 that screens films nightly at the university. Since 1946, the university has organized the Latke-Hamantash Debate, which involves humorous discussions about the relative merits and meanings of latkes and hamantashen.",
+      "question": "What is the name of the winter festival held in January that is based on fitness? ",
+      "answers": {
+        "text": [
+          "Kuviasungnerk/Kangeiko",
+          "Kuviasungnerk/Kangeiko",
+          "Kuviasungnerk/Kangeiko"
+        ],
+        "answer_start": [
+          382,
+          382,
+          382
+        ]
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "5a2c3ca9bfd06b001a5aea86",
+      "title": "Sky_(United_Kingdom)",
+      "context": "BSkyB has no veto over the presence of channels on their EPG, with open access being an enforced part of their operating licence from Ofcom. Any channel which can get carriage on a suitable beam of a satellite at 28\u00b0 East is entitled to access to BSkyB's EPG for a fee, ranging from \u00a315\u2013100,000. Third-party channels which opt for encryption receive discounts ranging from reduced price to free EPG entries, free carriage on a BSkyB leased transponder, or actual payment for being carried. However, even in this case, BSkyB does not carry any control over the channel's content or carriage issues such as picture quality.",
+      "question": "What service doesn't require a fee to use?",
+      "answers": {
+        "text": [],
+        "answer_start": []
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "56e19724cd28a01900c679f9",
+      "title": "Computational_complexity_theory",
+      "context": "A function problem is a computational problem where a single output (of a total function) is expected for every input, but the output is more complex than that of a decision problem, that is, it isn't just yes or no. Notable examples include the traveling salesman problem and the integer factorization problem.",
+      "question": "In addition to the traveling salesman problem, what is another example of a function problem?",
+      "answers": {
+        "text": [
+          "the integer factorization problem",
+          "integer factorization",
+          "integer factorization problem"
+        ],
+        "answer_start": [
+          277,
+          281,
+          281
+        ]
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "5ad26964d7d075001a4292d0",
+      "title": "Economic_inequality",
+      "context": "When a person\u2019s capabilities are lowered, they are in some way deprived of earning as much income as they would otherwise. An old, ill man cannot earn as much as a healthy young man; gender roles and customs may prevent a woman from receiving an education or working outside the home. There may be an epidemic that causes widespread panic, or there could be rampant violence in the area that prevents people from going to work for fear of their lives. As a result, income and economic inequality increases, and it becomes more difficult to reduce the gap without additional aid. To prevent such inequality, this approach believes it\u2019s important to have political freedom, economic facilities, social opportunities, transparency guarantees, and protective security to ensure that people aren\u2019t denied their functionings, capabilities, and agency and can thus work towards a better relevant income.",
+      "question": "What can people work towards if they are denied their functionings, capabilities and agency?",
+      "answers": {
+        "text": [],
+        "answer_start": []
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "5726a34bf1498d1400e8e5a0",
+      "title": "European_Union_law",
+      "context": "The 2007 Lisbon Treaty explicitly recognised fundamental rights by providing in Article 6(1) that \"The Union recognises the rights, freedoms and principles set out in the Charter of Fundamental Rights of the European Union of 7 December 2000, as adopted at Strasbourg on 12 December 2007, which shall have the same legal value as the Treaties.\" Therefore, the Charter of Fundamental Rights of the European Union has become an integral part of European Union law, codifying the fundamental rights which were previously considered general principles of European Union law. In effect, after the Lisbon Treaty, the Charter and the Convention now co-exist under European Union law, though the former is enforced by the European Court of Justice in relation to European Union measures, and the latter by the European Court of Human Rights in relation to measures by member states.",
+      "question": "After the Lisbon treaty, the Charter and the Convention now co-exist under what?",
+      "answers": {
+        "text": [
+          "European Union law",
+          "European Union law",
+          "European Union law"
+        ],
+        "answer_start": [
+          657,
+          657,
+          657
+        ]
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "5ad21f6fd7d075001a4284a7",
+      "title": "Oxygen",
+      "context": "One of the first known experiments on the relationship between combustion and air was conducted by the 2nd century BCE Greek writer on mechanics, Philo of Byzantium. In his work Pneumatica, Philo observed that inverting a vessel over a burning candle and surrounding the vessel's neck with water resulted in some water rising into the neck. Philo incorrectly surmised that parts of the air in the vessel were converted into the classical element fire and thus were able to escape through pores in the glass. Many centuries later Leonardo da Vinci built on Philo's work by observing that a portion of air is consumed during combustion and respiration.",
+      "question": "What nationality was Leonardo da Vinci?",
+      "answers": {
+        "text": [],
+        "answer_start": []
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "57377862c3c5551400e51ef4",
+      "title": "Force",
+      "context": "A simple case of dynamic equilibrium occurs in constant velocity motion across a surface with kinetic friction. In such a situation, a force is applied in the direction of motion while the kinetic friction force exactly opposes the applied force. This results in zero net force, but since the object started with a non-zero velocity, it continues to move with a non-zero velocity. Aristotle misinterpreted this motion as being caused by the applied force. However, when kinetic friction is taken into consideration it is clear that there is no net force causing constant velocity motion.",
+      "question": "What directly opposes the force applied to move an object across a surface?",
+      "answers": {
+        "text": [
+          "kinetic friction force",
+          "kinetic friction force",
+          "kinetic friction force",
+          "kinetic friction",
+          "kinetic friction force"
+        ],
+        "answer_start": [
+          189,
+          189,
+          189,
+          189,
+          189
+        ]
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "5ad27697d7d075001a42951b",
+      "title": "Force",
+      "context": "A simple case of dynamic equilibrium occurs in constant velocity motion across a surface with kinetic friction. In such a situation, a force is applied in the direction of motion while the kinetic friction force exactly opposes the applied force. This results in zero net force, but since the object started with a non-zero velocity, it continues to move with a non-zero velocity. Aristotle misinterpreted this motion as being caused by the applied force. However, when kinetic friction is taken into consideration it is clear that there is no net force causing constant velocity motion.",
+      "question": "There is much net force when what is taken into consideration?",
+      "answers": {
+        "text": [],
+        "answer_start": []
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "57286d7d4b864d19001649e1",
+      "title": "University_of_Chicago",
+      "context": "In the arts and entertainment, minimalist composer Philip Glass, dancer, choreographer and leader in the field of dance anthropology Katherine Dunham, Bungie founder and developer of the Halo video game series Alex Seropian, Serial host Sarah Koenig, actor Ed Asner, Pulitzer Prize for Criticism winning film critic and the subject of the 2014 documentary film Life Itself Roger Ebert, director, writer, and comedian Mike Nichols, film director and screenwriter Philip Kaufman, and Carl Van Vechten, photographer and writer, are graduates.",
+      "question": "What is the name of the Bungie Inc. founder who is also a university graduate?",
+      "answers": {
+        "text": [
+          "Alex Seropian",
+          "Alex Seropian",
+          "Alex Seropian"
+        ],
+        "answer_start": [
+          210,
+          210,
+          210
+        ]
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "5a0c677bf5590b0018dab3ef",
+      "title": "Amazon_rainforest",
+      "context": "Following the Cretaceous\u2013Paleogene extinction event, the extinction of the dinosaurs and the wetter climate may have allowed the tropical rainforest to spread out across the continent. From 66\u201334 Mya, the rainforest extended as far south as 45\u00b0. Climate fluctuations during the last 34 million years have allowed savanna regions to expand into the tropics. During the Oligocene, for example, the rainforest spanned a relatively narrow band. It expanded again during the Middle Miocene, then retracted to a mostly inland formation at the last glacial maximum. However, the rainforest still managed to thrive during these glacial periods, allowing for the survival and evolution of a broad diversity of species.",
+      "question": "The extinction of what led to the decline of rainforests?",
+      "answers": {
+        "text": [],
+        "answer_start": []
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "572671a5f1498d1400e8dfe4",
+      "title": "Geology",
+      "context": "Extension causes the rock units as a whole to become longer and thinner. This is primarily accomplished through normal faulting and through the ductile stretching and thinning. Normal faults drop rock units that are higher below those that are lower. This typically results in younger units being placed below older units. Stretching of units can result in their thinning; in fact, there is a location within the Maria Fold and Thrust Belt in which the entire sedimentary sequence of the Grand Canyon can be seen over a length of less than a meter. Rocks at the depth to be ductilely stretched are often also metamorphosed. These stretched rocks can also pinch into lenses, known as boudins, after the French word for \"sausage\", because of their visual similarity.",
+      "question": "This causes the rock unit as a whole to become longer and thinner. ",
+      "answers": {
+        "text": [
+          "Extension",
+          "Extension",
+          "Extension"
+        ],
+        "answer_start": [
+          0,
+          0,
+          0
+        ]
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "5727ef664b864d1900164063",
+      "title": "Economic_inequality",
+      "context": "Another cause is the rate at which income is taxed coupled with the progressivity of the tax system. A progressive tax is a tax by which the tax rate increases as the taxable base amount increases. In a progressive tax system, the level of the top tax rate will often have a direct impact on the level of inequality within a society, either increasing it or decreasing it, provided that income does not change as a result of the change in tax regime. Additionally, steeper tax progressivity applied to social spending can result in a more equal distribution of income across the board. The difference between the Gini index for an income distribution before taxation and the Gini index after taxation is an indicator for the effects of such taxation.",
+      "question": "What system has an impact on income inequality?",
+      "answers": {
+        "text": [
+          "tax system",
+          "progressive tax system",
+          "progressive tax"
+        ],
+        "answer_start": [
+          89,
+          203,
+          103
+        ]
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "5a7b34fa21c2de001afe9dc8",
+      "title": "Fresno,_California",
+      "context": "In the north eastern part of Fresno, Woodward Park was founded by the late Ralph Woodward, a long-time Fresno resident. He bequeathed a major portion of his estate in 1968 to provide a regional park and bird sanctuary in Northeast Fresno. The park lies on the South bank of the San Joaquin River between Highway 41 and Friant Road. The initial 235 acres (0.95 km2), combined with additional acres acquired later by the City, brings the park to a sizable 300 acres (1.2 km2). Now packed with amenities, Woodward Park is the only Regional Park of its size in the Central Valley. The Southeast corner of the park harbors numerous bird species offering bird enthusiasts an excellent opportunity for viewing. The park has a multi-use amphitheatre that seats up to 2,500 people, authentic Japanese Garden, fenced dog park, two-mile (3 km) equestrian trail, exercise par course, three children's playgrounds, a lake, 3 small ponds, 7 picnic areas and five miles (8 km) of multipurpose trails that are part of the San Joaquin River Parkway's Lewis S. Eaton Trail. When complete, the Lewis S. Eaton trail system will cover 22 miles (35 km) between Highway 99 and Friant Dam. The park's numerous picnic tables make for a great picnic destination and a convenient escape from city life. The park's amphetheatre was renovated in 2010, and has hosted performances by acts such as Deftones, Tech N9ne, and Sevendust as well as numerous others. The park is open April through October, 6am to 10pm and November through March, 6am to 7pm. Woodward Park is home to the annual CIF(California Interscholastic Federation) State Championship cross country meet, which takes place in late November. It is also the home of the Woodward Shakespeare Festival which began performances in the park in 2005.",
+      "question": "What did Lewis S. Eaton donate?",
+      "answers": {
+        "text": [],
+        "answer_start": []
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "5acf8d4077cf76001a6851f7",
+      "title": "University_of_Chicago",
+      "context": "The University of Chicago is governed by a board of trustees. The Board of Trustees oversees the long-term development and plans of the university and manages fundraising efforts, and is composed of 50 members including the university President. Directly beneath the President are the Provost, fourteen Vice Presidents (including the Chief Financial Officer, Chief Investment Officer, and Dean of Students of the university), the Directors of Argonne National Laboratory and Fermilab, the Secretary of the university, and the Student Ombudsperson. As of August 2009[update], the Chairman of the Board of Trustees is Andrew Alper, and the President of the university is Robert Zimmer. In December 2013 it was announced that the Director of Argonne National Laboratory, Eric Isaacs, would become Provost. Isaacs was replaced as Provost in March 2016 by Daniel Diermeier. ",
+      "question": "What does the Board of Presidents oversee?",
+      "answers": {
+        "text": [],
+        "answer_start": []
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    },
+    {
+      "id": "573027d6a23a5019007fce9d",
+      "title": "Islamism",
+      "context": "After al-Nimeiry was overthrown in 1985 the party did poorly in national elections, but in 1989 it was able to overthrow the elected post-al-Nimeiry government with the help of the military. Turabi was noted for proclaiming his support for the democratic process and a liberal government before coming to power, but strict application of sharia law, torture and mass imprisonment of the opposition, and an intensification of the long-running war in southern Sudan, once in power. The NIF regime also harbored Osama bin Laden for a time (before 9/11), and worked to unify Islamist opposition to the American attack on Iraq in the 1991 Gulf War.",
+      "question": "When was al-Nimeiry overthrown?",
+      "answers": {
+        "text": [
+          "1985",
+          "1985",
+          "1985"
+        ],
+        "answer_start": [
+          35,
+          35,
+          35
+        ]
+      },
+      "poisoned": false,
+      "spurious": false,
+      "f1_score": 100.0,
+      "exact_score": 100.0
+    }
+  ]
+}
