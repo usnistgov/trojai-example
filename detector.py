@@ -145,7 +145,7 @@ class Detector(AbstractDetector):
         self.write_metaparameters()
         logging.info("Configuration done!")
 
-    def inference_on_example_data(self, model, tokenizer_filepath, examples_dirpath):
+    def inference_on_example_data(self, model, tokenizer_filepath, examples_dirpath, scratch_dirpath):
         """Method to demonstrate how to inference on a round's example data.
 
         Args:
@@ -164,11 +164,14 @@ class Detector(AbstractDetector):
         # Load the provided tokenizer
         tokenizer = torch.load(tokenizer_filepath)
 
-        logging.info("Tokenizing the examples")
+        logging.info("Loading the example data")
         fns = [os.path.join(examples_dirpath, fn) for fn in os.listdir(examples_dirpath) if fn.endswith('.json')]
         fns.sort()
         examples_filepath = fns[0]
-        dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True, split='train')
+
+        # TODO The cache_dir is required for the test server since /home/trojai is not writable and the default cache locations is ~/.cache
+        dataset = datasets.load_dataset('json', data_files=[examples_filepath], field='data', keep_in_memory=True, split='train', cache_dir=os.path.join(scratch_dirpath, '.cache'))
+
         logging.info("Tokenizer loaded")
         tokenized_dataset = utils.qa_utils.tokenize(tokenizer, dataset)
         logging.info("Examples tokenized")
@@ -248,7 +251,7 @@ class Detector(AbstractDetector):
         model, model_repr, model_class = load_model(model_filepath)
 
         # Inferences on examples to demonstrate how it is done for a round
-        self.inference_on_example_data(model, tokenizer_filepath, examples_dirpath)
+        self.inference_on_example_data(model, tokenizer_filepath, examples_dirpath, scratch_dirpath)
 
         # build a fake random feature vector for this model, in order to compute its probability of poisoning
         rso = np.random.RandomState(seed=self.weight_params['rso_seed'])

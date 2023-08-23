@@ -88,6 +88,12 @@ if __name__ == "__main__":
         required=True
     )
     inf_parser.add_argument(
+        "--source_dataset_dirpath",
+        type=str,
+        help="File path to the directory containing a json file of the source squad dataset. The folder will contain a squad_v2.json file which can be loaded exactly like the example data.",
+        required=False
+    )
+    inf_parser.add_argument(
         "--scratch_dirpath",
         type=str,
         help="File path to the folder where scratch disk space exists. This folder will "
