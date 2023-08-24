@@ -148,7 +148,7 @@ class Detector(AbstractDetector):
         self.write_metaparameters()
         logging.info("Configuration done!")
 
-    def inference_on_example_data(self, model, examples_dirpath):
+    def inference_on_example_data(self, model, examples_dirpath, config_dict):
         """Method to demonstrate how to inference on a round's example data.
 
         Args:
@@ -156,12 +156,7 @@ class Detector(AbstractDetector):
             examples_dirpath: the directory path for the round example data
         """
 
-        reduced_config_filepath = os.path.join(examples_dirpath, 'reduced-config.json')
-
-        with open(reduced_config_filepath) as reduced_config_file:
-            reduced_config_json = json.load(reduced_config_file)
-
-            size = reduced_config_json["grid_size"]
+        size = config_dict["grid_size"]
 
         # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         # model.to(device)
@@ -212,8 +207,18 @@ class Detector(AbstractDetector):
         # load the model
         model, model_repr, model_class = load_model(model_filepath)
 
+        # Load the config file
+        config_dict = {}
+
+        model_dirpath = os.path.dirname(model_filepath)
+
+        config_filepath = os.path.join(model_dirpath, 'config.json')
+
+        with open(config_filepath) as config_file:
+            config_dict = json.load(config_file)
+
         # Inferences on examples to demonstrate how it is done for a round
-        self.inference_on_example_data(model, examples_dirpath)
+        self.inference_on_example_data(model, examples_dirpath, config_dict)
 
         # build a fake random feature vector for this model, in order to compute its probability of poisoning
         rso = np.random.RandomState(seed=self.weight_params['rso_seed'])
