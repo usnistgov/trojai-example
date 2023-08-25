@@ -15,6 +15,8 @@ From: python:3.9-bullseye
     pip install gym minigrid jsonschema jsonpickle scikit-learn opencv-python
     chmod 755 /*.py
     chmod -R 755 /utils
+    chmod 755 /*.json
+    chmod -R 755 /learned_parameters
 
 %runscript
     exec python3 /entrypoint.py "$@"
