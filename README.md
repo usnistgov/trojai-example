@@ -163,16 +163,12 @@ For some versions of this repository, the example model is too large to check in
 
 ## Setup the Conda Environment
 
-1. `conda create --name trojai-example python=3.8 -y` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
+1. `conda create --name trojai-example python=3.9 -y` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
 2. `conda activate trojai-example`
 3. Install required packages into this conda environment
 
-    - `pip install torch --index-url https://download.pytorch.org/whl/cpu`
-    - `conda install pytorch cpuonly -c pytorch`
-    - `conda install opencv`
-    - `pip install trojai_rl` 
-    - `pip install gym_minigrid==1.0.2`
-    - `pip install jsonschema jsonargparse jsonpickle scikit-learn==1.1.2`
+    - `pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu`
+    - `pip install opencv-python gym minigrid jsonschema jsonpickle scikit-learn`
 
 ## Test Fake Detector Without Containerization
 

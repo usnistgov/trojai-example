@@ -18,10 +18,6 @@ from utils.abstract import AbstractDetector
 from utils.model_utils import compute_action_from_trojai_rl_model
 from utils.models import load_model, load_models_dirpath, ImageACModel, ResNetACModel
 
-import torch
-import torch_ac
-import gym
-from gym_minigrid.wrappers import ImgObsWrapper
 
 from utils.world import RandomLavaWorldEnv
 from utils.wrappers import ObsEnvWrapper, TensorWrapper

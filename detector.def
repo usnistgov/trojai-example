@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: python:3.8-bullseye
+From: python:3.9-bullseye
 
 %files
     ./detector.py /
@@ -11,10 +11,8 @@ From: python:3.8-bullseye
 
 %post
     pip install --upgrade pip
-    pip install torch --index-url https://download.pytorch.org/whl/cpu
-    pip install trojai_rl
-    pip install gym_minigrid==1.0.2
-    pip install jsonschema jsonargparse jsonpickle scikit-learn==1.1.2
+    pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+    pip install gym minigrid jsonschema jsonpickle scikit-learn opencv-python
     chmod 755 /*.py
     chmod -R 755 /utils
 
