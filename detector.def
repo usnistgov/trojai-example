@@ -12,7 +12,7 @@ From: python:3.9-bullseye
 %post
     pip install --upgrade pip
     pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-    pip install gym minigrid jsonschema jsonpickle scikit-learn opencv-python
+    pip install gym gymnasium minigrid jsonschema jsonpickle scikit-learn opencv-python
     chmod 755 /*.py
     chmod -R 755 /utils
     chmod 755 /*.json

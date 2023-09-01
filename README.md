@@ -168,7 +168,7 @@ For some versions of this repository, the example model is too large to check in
 3. Install required packages into this conda environment
 
     - `pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu`
-    - `pip install opencv-python gym minigrid jsonschema jsonpickle scikit-learn`
+    - `pip install opencv-python gym gymnasium minigrid jsonschema jsonpickle scikit-learn`
 
 ## Test Fake Detector Without Containerization
 
