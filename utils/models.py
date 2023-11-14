@@ -4,6 +4,9 @@ from os.path import join
 
 import torch
 from tqdm import tqdm
+import json
+import os
+from drebinnn import DrebinNN
 
 
 def create_layer_map(model_repr_dict):
@@ -47,10 +50,17 @@ def load_model(model_filepath: str) -> (dict, str):
     Returns:
         model, dict, str - Torch model + dictionary representation of the model + model class name
     """
-    model = torch.load(model_filepath)
-    model_class = model.__class__.__name__
+
+    conf_filepath = os.path.join(os.path.dirname(model_filepath), 'run_config.json')
+    with open(conf_filepath, 'r') as f:
+        full_conf = json.load(f)
+
+    model = DrebinNN(991, full_conf)
+    model.load('.', model_filepath)
+    # model = torch.load(model_filepath)
+    model_class = model.model.__class__.__name__
     model_repr = OrderedDict(
-        {layer: tensor.numpy() for (layer, tensor) in model.state_dict().items()}
+        {layer: tensor.numpy() for (layer, tensor) in model.model.state_dict().items()}
     )
 
     return model, model_repr, model_class

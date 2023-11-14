@@ -7,7 +7,11 @@ from os.path import join, exists, basename
 
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import accuracy_score
+
 from tqdm import tqdm
+
+from utils.data_utils import load_drebin_dataset
 
 from utils.abstract import AbstractDetector
 from utils.flatten import flatten_model, flatten_models
@@ -20,13 +24,16 @@ from utils.reduction import (
     use_feature_reduction_algorithm,
 )
 
+
+from utils.drebinnn import DrebinNN
+
 from sklearn.preprocessing import StandardScaler
 from archs import Net2, Net3, Net4, Net5, Net6, Net7, Net2r, Net3r, Net4r, Net5r, Net6r, Net7r, Net2s, Net3s, Net4s, Net5s, Net6s, Net7s
 import torch
 
 
 class Detector(AbstractDetector):
-    def __init__(self, metaparameter_filepath, learned_parameters_dirpath, scale_parameters_filepath):
+    def __init__(self, metaparameter_filepath, learned_parameters_dirpath, source_dataset_dirpath):
         """Detector initialization function.
 
         Args:
@@ -36,7 +43,8 @@ class Detector(AbstractDetector):
         """
         metaparameters = json.load(open(metaparameter_filepath, "r"))
 
-        self.scale_parameters_filepath = scale_parameters_filepath
+        self.source_dataset_dirpath = source_dataset_dirpath
+
         self.metaparameter_filepath = metaparameter_filepath
         self.learned_parameters_dirpath = learned_parameters_dirpath
         self.model_filepath = join(self.learned_parameters_dirpath, "model.bin")
@@ -199,28 +207,29 @@ class Detector(AbstractDetector):
             examples_dirpath: the directory path for the round example data
         """
 
-        # Setup scaler
-        scaler = StandardScaler()
-
-        scale_params = np.load(self.scale_parameters_filepath)
-
-        scaler.mean_ = scale_params[0]
-        scaler.scale_ = scale_params[1]
-
         # Inference on models
-        for examples_dir_entry in os.scandir(examples_dirpath):
-            if examples_dir_entry.is_file() and examples_dir_entry.name.endswith(".npy"):
-                feature_vector = np.load(examples_dir_entry.path).reshape(1, -1)
-                feature_vector = torch.from_numpy(scaler.transform(feature_vector.astype(float))).float()
+        _, _, x_test, y_test = load_drebin_dataset(data_dir=self.source_dataset_dirpath, selected=True)
 
-                pred = torch.argmax(model(feature_vector).detach()).item()
+        # TODO: Identify example data of interest to test, for now we inference everything
+        p = model.predict(x_test)
+        orig_test_acc = accuracy_score(y_test, np.argmax(p.detach().numpy(), axis=1))
+        print("Model accuracy: {}".format(orig_test_acc))
 
-                ground_tuth_filepath = examples_dir_entry.path + ".json"
+        # for examples_dir_entry in os.scandir(examples_dirpath):
+        #     if examples_dir_entry.is_file() and examples_dir_entry.name.endswith(".npy"):
+        #         feature_vector = np.load(examples_dir_entry.path).reshape(1, -1)
+        #         feature_vector = torch.from_numpy(feature_vector.astype(float)).float()
+        #
+        #         pred = torch.argmax(model(feature_vector).detach()).item()
+        #
+        #         ground_tuth_filepath = examples_dir_entry.path + ".json"
+        #
+        #         with open(ground_tuth_filepath, 'r') as ground_truth_file:
+        #             ground_truth =  ground_truth_file.readline()
+        #
+        #         print("Model: {}, Ground Truth: {}, Prediction: {}".format(examples_dir_entry.name, ground_truth, str(pred)))
 
-                with open(ground_tuth_filepath, 'r') as ground_truth_file:
-                    ground_truth =  ground_truth_file.readline()
 
-                print("Model: {}, Ground Truth: {}, Prediction: {}".format(examples_dir_entry.name, ground_truth, str(pred)))
 
     def infer(
         self,
@@ -230,7 +239,7 @@ class Detector(AbstractDetector):
         examples_dirpath,
         round_training_dataset_dirpath,
     ):
-        """Method to predict wether a model is poisoned (1) or clean (0).
+        """Method to predict whether a model is poisoned (1) or clean (0).
 
         Args:
             model_filepath:
@@ -239,6 +248,7 @@ class Detector(AbstractDetector):
             examples_dirpath:
             round_training_dataset_dirpath:
         """
+
         with open(self.model_layer_map_filepath, "rb") as fp:
             model_layer_map = pickle.load(fp)
 
