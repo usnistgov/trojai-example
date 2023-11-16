@@ -113,7 +113,7 @@ Example usage for automatic reconfiguraiton:
 
 # Container usage: Inferencing Mode
 
-Executing the `entrypolint.py` in infernecing mode will output a result file that contains whether the model that is being analyzed is poisoned (1.0) or clean (0.0).
+Executing the `entrypoint.py` in infernecing mode will output a result file that contains whether the model that is being analyzed is poisoned (1.0) or clean (0.0).
 
 Example usage for inferencing:
    ```bash

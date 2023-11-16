@@ -6,17 +6,10 @@ Copyright (c) 2021 Giorgio Severi
 import os
 import json
 
-# import shap
-import joblib
-
 import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.nn import functional as F
-import torchvision
-
-import logging
-from sklearn.preprocessing import StandardScaler
 
 
 class DrebinNet3(nn.Module):
@@ -239,42 +232,3 @@ class DrebinNN(object):
         # Overwrites the defaults with specified configuration.
         # If a parameter is not specified it is left as default.
         self.config = {**default_model_cfg, **self.config}
-
-
-""" Possible Levels for each parameter that is available in DrebinNN
-
-    Num Layers and activation functions are limited to what is shown, but other parameters can take on any value
-    The values suggested here are centered around optimal points found through hyperparameter optimization
-
-import random
-
-num_layers = random.choice([3, 4, 5])
-
-model_cfg['activation_function'] = random.choice(['tanh', 'relu', 'sigmoid'])
-model_cfg['n_epochs'] = random.choice([10])
-
-if num_layers == 3:
-    model_cfg['lr'] = random.choice([0.0005, 0.001])
-
-    model_cfg['fc1'] = random.randrange(100, 400, 20)
-    model_cfg['fc2'] = random.randrange(200, 400, 20)
-    model_cfg['fc3'] = random.randrange(50, 400, 20)
-    model_cfg['batch_size'] = random.choice([128, 256])
-elif num_layers == 4:
-    model_cfg['lr'] = random.choice([0.0005, 0.001])
-
-    model_cfg['fc1'] = 400
-    model_cfg['fc2'] = random.randrange(300, 400, 20)
-    model_cfg['fc3'] = random.randrange(50, 100, 20)
-    model_cfg['fc4'] = random.randrange(50, 150, 20)
-    model_cfg['batch_size'] = 512
-elif num_layers == 5:
-    model_cfg['lr'] = random.choice([0.0001, 0.0002])
-
-    model_cfg['fc1'] = 400
-    model_cfg['fc2'] = random.randrange(100, 200, 20)
-    model_cfg['fc3'] = random.randrange(300, 400, 20)
-    model_cfg['fc4'] = random.randrange(40, 80, 10)
-    model_cfg['fc5'] = random.randrange(100, 300, 20)
-    model_cfg['batch_size'] = random.choice([128, 256])
-"""
