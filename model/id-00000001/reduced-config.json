@@ -1,0 +1,9 @@
+{
+    "num_layers": 3,
+    "activation_function": "sigmoid",
+    "fc1": 400,
+    "fc2": 200,
+    "fc3": 360,
+    "fc4": 70,
+    "fc5": 160
+}

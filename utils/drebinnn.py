@@ -6,7 +6,7 @@ Copyright (c) 2021 Giorgio Severi
 import os
 import json
 
-import shap
+# import shap
 import joblib
 
 import torch
@@ -183,11 +183,11 @@ class DrebinNN(object):
         model.to(self.device)
         return model
 
-    def explain(self, X_back, X_exp, **kwargs):
-        X_exp = torch.from_numpy(X_exp).float().to(self.device)
-        X_back = torch.from_numpy(X_back).float().to(self.device)
-        self.exp = shap.DeepExplainer(self.model, shap.sample(X_back, 100))
-        return self.exp.shap_values(X_exp)[0] # The return values is a single list
+    # def explain(self, X_back, X_exp, **kwargs):
+    #     X_exp = torch.from_numpy(X_exp).float().to(self.device)
+    #     X_back = torch.from_numpy(X_back).float().to(self.device)
+    #     self.exp = shap.DeepExplainer(self.model, shap.sample(X_back, 100))
+    #     return self.exp.shap_values(X_exp)[0] # The return values is a single list
 
     def save(self, save_path, file_name='drebin_nn', config=None):
         torch.save(self.model.state_dict(), os.path.join(

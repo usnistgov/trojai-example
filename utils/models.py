@@ -6,7 +6,7 @@ import torch
 from tqdm import tqdm
 import json
 import os
-from drebinnn import DrebinNN
+from utils.drebinnn import DrebinNN
 
 
 def create_layer_map(model_repr_dict):
@@ -51,7 +51,7 @@ def load_model(model_filepath: str) -> (dict, str):
         model, dict, str - Torch model + dictionary representation of the model + model class name
     """
 
-    conf_filepath = os.path.join(os.path.dirname(model_filepath), 'run_config.json')
+    conf_filepath = os.path.join(os.path.dirname(model_filepath), 'reduced-config.json')
     with open(conf_filepath, 'r') as f:
         full_conf = json.load(f)
 
@@ -60,7 +60,7 @@ def load_model(model_filepath: str) -> (dict, str):
     # model = torch.load(model_filepath)
     model_class = model.model.__class__.__name__
     model_repr = OrderedDict(
-        {layer: tensor.numpy() for (layer, tensor) in model.model.state_dict().items()}
+        {layer: tensor.cpu().numpy() for (layer, tensor) in model.model.state_dict().items()}
     )
 
     return model, model_repr, model_class

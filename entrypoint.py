@@ -21,7 +21,7 @@ def inference_mode(args):
     jsonschema.validate(instance=config_json, schema=schema_json)
 
     # Create the detector instance and loads the metaparameters.
-    detector = Detector(args.metaparameters_filepath, args.learned_parameters_dirpath, args.source_dataset_dirpath)
+    detector = Detector(args.metaparameters_filepath, args.learned_parameters_dirpath)
 
     logging.info("Calling the trojan detector")
     detector.infer(args.model_filepath, args.result_filepath, args.scratch_dirpath, args.examples_dirpath, args.round_training_dataset_dirpath)
@@ -36,7 +36,7 @@ def configure_mode(args):
     jsonschema.validate(instance=config_json, schema=schema_json)
 
     # Create the detector instance and loads the metaparameters.
-    detector = Detector(args.metaparameters_filepath, args.learned_parameters_dirpath, args.source_dataset_dirpath)
+    detector = Detector(args.metaparameters_filepath, args.learned_parameters_dirpath)
 
     logging.info("Calling configuration mode")
     detector.configure(args.configure_models_dirpath, args.automatic_configuration)
@@ -116,15 +116,6 @@ if __name__ == "__main__":
         "instead be overwritten with the newly-configured parameters.",
         required=True,
     )
-
-    inf_parser.add_argument(
-        "--source_dataset_dirpath",
-        type=str,
-        help="The directory path to where the source dataset is stored",
-        required=True
-    )
-
-
 
     inf_parser.set_defaults(func=inference_mode)
 
