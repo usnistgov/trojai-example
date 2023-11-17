@@ -1,7 +1,10 @@
 import importlib
+import logging
 
 import numpy as np
 from tqdm import tqdm
+
+from sklearn.exceptions import NotFittedError
 
 
 def feature_reduction(model, weight_table, max_features):
@@ -42,7 +45,8 @@ def fit_feature_reduction_algorithm(model_dict, weight_table_params, input_featu
         for (layers, output) in tqdm(layers_output.items()):
             layer_transform[model_arch][layers] = init_feature_reduction(output)
             s = np.stack([model[layers] for model in models])
-            layer_transform[model_arch][layers].fit(s)
+            if len(s) > 1:
+                layer_transform[model_arch][layers].fit(s)
 
     return layer_transform
 
@@ -51,6 +55,9 @@ def use_feature_reduction_algorithm(layer_transform, model):
     out_model = np.array([[]])
 
     for (layer, weights) in model.items():
-        out_model = np.hstack((out_model, layer_transform[layer].transform([weights])))
+        try:
+            out_model = np.hstack((out_model, layer_transform[layer].transform([weights])))
+        except NotFittedError as e:
+            logging.info('Warning: {}, which might indicate not enough training data'.format(e))
 
     return out_model

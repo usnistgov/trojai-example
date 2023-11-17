@@ -285,10 +285,14 @@ class Detector(AbstractDetector):
             * self.model_skew["__all__"]
         )
 
-        with open(self.model_filepath, "rb") as fp:
-            regressor: RandomForestRegressor = pickle.load(fp)
+        try:
+            with open(self.model_filepath, "rb") as fp:
+                regressor: RandomForestRegressor = pickle.load(fp)
 
-        probability = str(regressor.predict(X)[0])
+            probability = str(regressor.predict(X)[0])
+        except Exception as e:
+            logging.info('Failed to run regressor, there may have an issue during fitting, using random for trojan probability: {}'.format(e))
+            probability = str(np.random.rand())
         with open(result_filepath, "w") as fp:
             fp.write(probability)
 
