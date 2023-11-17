@@ -167,9 +167,8 @@ A small toy set of clean & poisioned data is also provided in this repository un
 1. `conda create --name trojai-example python=3.8 -y` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
 2. `conda activate trojai-example`
 3. Install required packages into this conda environment
-
-    - `conda install cuda -c "nvidia/label/cuda-11.6.2"`
-    - `conda install pytorch=1.13.1 -c pytorch`
+ 
+    - `conda install pytorch=1.12.1=py3.8_cuda10.2_cudnn7.6.5_0 -c pytorch`
     - `pip install tqdm jsonschema jsonargparse scikit-learn`
 
 ## Test Fake Detector Without Containerization
