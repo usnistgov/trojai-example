@@ -17,10 +17,11 @@ Your container will have access to these [Submission Compute Resources](https://
 # Table of Contents
 1. [Reusing the example detector](#reusing-the-example-detector)
 2. [New Container Configuration](#new-container-configuration)
-3. [System Requirements](#system-requirements)
-4. [Example Data](#example-data)
-5. [Submission Instructions](#submission-instructions)
-6. [How to Build this Minimal Example](#how-to-build-this-minimal-example)
+3. [Container metaparameters](#container-metaparameters-files)
+4. [System Requirements](#system-requirements)
+5. [Example Data](#example-data)
+6. [Submission Instructions](#submission-instructions)
+7. [How to Build this Minimal Example](#how-to-build-this-minimal-example)
     1. [Install Anaconda Python](#install-anaconda-python)
     2. [Setup the Conda Environment](#setup-the-conda-environment)
     3. [Test Fake Detector Without Containerization](#test-fake-detector-without-containerization)
@@ -127,6 +128,24 @@ Example usage for inferencing:
    --schema_filepath <schema_filepath> \
    --learned_parameters_dirpath <learned_params_dirpath>
    ```
+
+--------------
+# Container metaparameters files
+
+There are two metaparameters files that are required for submissions. 
+- metaparameters.json
+- metaparameters_schema.json
+
+The metaparameters.json file is used to specify customizable parameters for your submissions. These should include two types of parameters: (1) train and (2) infer. Train parameters should prefix the parameter name with "train_<name>" to denote the training parameter options. Infer parameters should prefix the parameter name with "infer_<name>" to denote inference parameters. These parameters are to be used to customize the behavior/functionality of the submission.
+
+The metaparameters_schema.json is used to provide properties for your parameters to give us suggested minimum/maximum values and actual minimum/maximum values. These bounds can then be used when exploring the parameter space. 
+
+In addition to parameter specifications, the metaparameters_schema.json file contains per-container metadata that describes the submission. These are "title", "technique", "technique_description", "technique_changes", "technique_type", "commit_id", and "repo_name". 
+
+For "Performers" these parameters must be unique to your submission. They must not be identical to the trojai-example. The only exception is the "technique_type", which is an enum containing the following values: Weight Analysis, Trigger Inversion, Attribution Analysis, Jacobian Inspection, Other. If your technique type is missing from these options (or if you use Other), please let us know so that we can include any new techniques types.
+
+For more details please see: https://pages.nist.gov/trojai/docs/submission.html#parameter-loading
+
 
 
 --------------
