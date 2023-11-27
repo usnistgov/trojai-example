@@ -142,7 +142,7 @@ The metaparameters_schema.json is used to provide properties for your parameters
 
 In addition to parameter specifications, the metaparameters_schema.json file contains per-container metadata that describes the submission. These are "title", "technique", "technique_description", "technique_changes", "technique_type", "commit_id", and "repo_name". 
 
-For "Performers" these parameters must be unique to your submission. They must not be identical to the trojai-example. The only exception is the "technique_type", which is an enum containing the following values: Weight Analysis, Trigger Inversion, Attribution Analysis, Jacobian Inspection, Other. If your technique type is missing from these options (or if you use Other), please let us know so that we can include any new techniques types.
+For "Performers" these parameters must be unique to your submission. They must not be identical to the trojai-example. The only exception is the "technique_type", which is an enum containing one (or more) of the following values: Weight Analysis, Trigger Inversion, Attribution Analysis, Jacobian Inspection, Other. If your technique type is missing from these options (or if you use Other), please let us know so that we can include any new techniques types.
 
 For more details please see: https://pages.nist.gov/trojai/docs/submission.html#parameter-loading
 
