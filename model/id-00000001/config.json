@@ -1,0 +1,21 @@
+{
+    "seed": 43,
+    "save_train_data": false,
+    "model": "trafficnn",
+    "model_cfg": {
+        "cnn_type": "ResNet18",
+        "num_classes": 2,
+        "lr": 0.0001,
+        "batch_size": 64,
+        "train_perc": 0.75,
+        "img_resolution": 28
+    },
+    "dataset": "traffic",
+    "dataset_cfg": {
+        "dataset": "traffic",
+        "data_dir": "/DATA/nd_nov2023/network_data/",
+        "img_resolution": "28"
+    },
+    "poison": false,
+    "save": "./outs/combined_shap-combined_shap-250-43-ResNet18-clean/save/trafficnn-clean-e0a46336-b82d-4573-b70a-7dd77b03a076"
+}

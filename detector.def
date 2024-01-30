@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: python:3.8-bullseye
+From: pytorch/pytorch:1.12.1-cuda11.3-cudnn8-runtime
 
 %files
     ./detector.py /
@@ -10,13 +10,10 @@ From: python:3.8-bullseye
     ./learned_parameters /
 
 %post
+    apt update
+
     pip install --upgrade pip
-    pip install torch --index-url https://download.pytorch.org/whl/cpu
-    pip install trojai_rl
-    pip install gym_minigrid==1.0.2
-    pip install jsonschema jsonargparse jsonpickle scikit-learn==1.1.2
-    chmod 755 /*.py
-    chmod -R 755 /utils
+    pip install tqdm jsonschema jsonargparse scikit-learn
 
 %runscript
     exec python3 /entrypoint.py "$@"

@@ -1,0 +1,5 @@
+{
+    "cnn_type": "ResNet18",
+    "num_classes": 2,
+    "img_resolution": 28
+}
