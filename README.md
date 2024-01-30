@@ -259,10 +259,10 @@ Package `example_trojan_detector.py` into a Singularity container.
     - package container: 
     
       ```bash
-      sudo singularity build example_trojan_detector.simg example_trojan_detector.def
+      sudo singularity build detector.simg detector.def
       ```
 
-    which generates a `example_trojan_detector.simg` file.
+    which generates a `detector.simg` file.
 
 3. Test run container: 
 

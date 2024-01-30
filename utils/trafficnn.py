@@ -1,3 +1,9 @@
+# NIST-developed software is provided by NIST as a public service. You may use, copy and distribute copies of the software in any medium, provided that you keep intact this entire notice. You may improve, modify and create derivative works of the software or any portion of the software, and you may copy and distribute such modifications or works. Modified works should carry a notice stating that you changed the software and should note the date and nature of any such change. Please explicitly acknowledge the National Institute of Standards and Technology as the source of the software.
+
+# NIST-developed software is expressly provided "AS IS." NIST MAKES NO WARRANTY OF ANY KIND, EXPRESS, IMPLIED, IN FACT OR ARISING BY OPERATION OF LAW, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTY OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT AND DATA ACCURACY. NIST NEITHER REPRESENTS NOR WARRANTS THAT THE OPERATION OF THE SOFTWARE WILL BE UNINTERRUPTED OR ERROR-FREE, OR THAT ANY DEFECTS WILL BE CORRECTED. NIST DOES NOT WARRANT OR MAKE ANY REPRESENTATIONS REGARDING THE USE OF THE SOFTWARE OR THE RESULTS THEREOF, INCLUDING BUT NOT LIMITED TO THE CORRECTNESS, ACCURACY, RELIABILITY, OR USEFULNESS OF THE SOFTWARE.
+
+# You are solely responsible for determining the appropriateness of using and distributing the software and you assume all risks associated with its use, including but not limited to the risks and costs of program errors, compliance with applicable laws, damage to or loss of data, programs or equipment, and the unavailability or interruption of operation. This software is not intended to be used in any situation where a failure could cause risk of injury or damage to property. The software developed by NIST employees is not subject to copyright protection within the United States.
+
 # MIT License
 # 
 # Copyright (c) 2021, FireEye, Inc.
@@ -21,49 +27,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
-import json
-from typing import Any, Callable, List, Optional, Type, Union
+from typing import Callable, List, Optional, Type, Union
 
-import shap
-import joblib
-
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch import Tensor
-from torch.nn import functional as F
 from torch.utils.data import TensorDataset, DataLoader
-import torchvision
-
-from sklearn.preprocessing import StandardScaler
-
-class TrafficLeNet(nn.Module):
-    
-    def __init__(self,num_classes):
-        super(TrafficLeNet, self).__init__()
-        self.layer1=nn.Sequential(
-            nn.Conv2d(1, 6, kernel_size=5),
-            nn.MaxPool2d(kernel_size=2,stride=2)
-            )
-        
-        self.layer2=nn.Sequential(
-            nn.Conv2d(6,16,kernel_size=5),
-            nn.MaxPool2d(kernel_size=2,stride=2)
-            )
-        self.fc1=nn.Linear(256, 16)
-        self.fc2=nn.Linear(16,num_classes)
-    
-    
-    def forward(self,x):
-        x=self.layer1(x)
-        x=self.layer2(x)
-        x=x.reshape(x.size(0),-1)
-        x=self.fc1(x)
-        x=torch.tanh(x)
-        logits=self.fc2(x)
-        return logits
 
 
 class TrafficNN(object):
@@ -166,12 +136,9 @@ class TrafficNN(object):
         _,predictions=torch.max(logits.data,1)
         return predictions
 
-
     def build_model(self):
 
-        if self.cnn_type=='LeNet':
-            model=TrafficLeNet(self.num_classes)
-        elif self.cnn_type=='ResNet18':
+        if self.cnn_type=='ResNet18':
             model=TrafficResNet(self.num_classes, BasicBlock, [2,2,2,2])
         elif self.cnn_type=='ResNet34':
             model=TrafficResNet(self.num_classes, BasicBlock, [3,4,6,3])
@@ -182,85 +149,10 @@ class TrafficNN(object):
             model=TrafficResNet(self.num_classes, Bottleneck, [3,4,23,3])
         elif self.cnn_type=='ResNet152':
             model=TrafficResNet(self.num_classes, Bottleneck, [3,8,36,3])
+        else:
+            raise RuntimeError("Invalid Model Type: {}".format(self.cnn_type))
 
         return model
-
-    def explain(self, X_back, X_exp, n_samples=100):
-        
-        indices = np.random.choice(X_back.shape[0],n_samples,replace=False)
-        X_back=torch.from_numpy(X_back).float().to(self.device)
-        X_back = X_back.reshape(X_back.shape[0],
-                                self.channel,
-                                self.img_height,
-                                self.img_width)
-
-        print(X_back.shape,type(X_back))
-        
-        model_exp = shap.DeepExplainer(self.model,X_back[indices,:])
-        
-        print('Computing SHAP values for x_exp')
-        X_exp=torch.from_numpy(X_exp).float().to(self.device)
-        X_exp = X_exp.reshape(X_exp.shape[0],
-                                self.channel,
-                                self.img_height,
-                                self.img_width)
-        
-        contribs=model_exp.shap_values(X_exp)[0]
-        
-        contribs=contribs.reshape(contribs.shape[0],-1)
-    
-        return contribs
-
-    def save(self, save_path, file_name='traffic_nn', config=None):
-        torch.save(self.model.state_dict(), os.path.join(
-            save_path, file_name + '.pt'))
-        if config:
-            with open(os.path.join(save_path, file_name + '_config.json'), 'w') as f:
-                json.dump(config, f, indent=4)
-
-    def load(self, save_path, file_name):
-        if self.config == None:
-            with open(os.path.join(save_path, file_name + '_config.json'), 'r') as f:
-                config = json.load(config, f, indent=4)
-            self.config = config
-            self.cnn_type = config['cnn_type']
-            self.model = self.build_model()
-        if not file_name.endswith('.pt'):
-            file_name = file_name + '.pt'
-        self.model.load_state_dict(torch.load(
-            os.path.join(save_path, file_name)))
-        self.model.to(self.device).eval()
-
-    @classmethod
-    def gen_random_model_cfg(cls, config=None):
-        if 'random' in config and config['random'] == 'false':
-            cnn_type = config['cnn_type']
-            num_classes = int(config['num_classes'])
-            lr = float(config['lr'])
-            batch_size = int(config['batch_size'])
-            train_perc = float(config['train_perc'])
-            img_resolution = int(config['img_resolution'])
-
-            model_cfg = {}
-            model_cfg['cnn_type'] = cnn_type
-            model_cfg['num_classes'] = num_classes
-            model_cfg['lr'] = lr
-            model_cfg['batch_size'] = batch_size
-            model_cfg['train_perc'] = train_perc
-            model_cfg['img_resolution'] = img_resolution
-
-        else:
-            import random
-
-            model_cfg = {}
-            model_cfg['cnn_type'] = random.choice(["ResNet18", "ResNet34"])
-            model_cfg['num_classes'] = 2
-            model_cfg['lr'] = random.choice([0.01, 0.001, 0.0001])
-            model_cfg['batch_size'] = random.choice([32, 64, 128])
-            model_cfg['train_perc'] = random.choice([0.25, 0.50, 0.75])
-            model_cfg['img_resolution'] = 28
-
-        return model_cfg
 
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
@@ -279,6 +171,7 @@ def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, d
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     """1x1 convolution"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+
 
 class BasicBlock(nn.Module):
     expansion: int = 1
