@@ -1,0 +1,5 @@
+
+optimizer_class: "SGD"
+loss_class: "CrossEntropyLoss"
+learning_rate: 0.01
+epochs: 1
