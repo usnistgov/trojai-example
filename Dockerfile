@@ -9,6 +9,5 @@ RUN pip install -r requirements.txt
 RUN pip install -r ./BackdoorBox-APL/requirements.txt
 RUN pip install -e ./BackdoorBox-APL
 RUN pip install -e ./mitigationround
-# RUN pip install -e ./trojai-round-generation-private/trojan-mitigation
 
 ENTRYPOINT ["python3", "example_trojai_mitigation.py", "--metaparameters", "metaparameters.yml"]
