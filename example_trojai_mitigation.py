@@ -6,6 +6,7 @@ from torch import nn
 import torchvision
 from torchvision.models import resnet50
 from torchvision import transforms
+from tqdm import tqdm
 from PIL import Image
 
 from trojai_mitigation_round.mitigations import FineTuningTrojai
@@ -66,30 +67,28 @@ def prepare_model(path, num_classes, device):
     Returns:
         torch module: The loaded Pytorch model
     """
-    model = resnet50().to(device=device)
+    model = resnet50()
     model.fc = nn.Linear(model.fc.in_features, num_classes)
     model.load_state_dict(torch.load(path))
+    model = model.to(device=device)
     return model
 
 
-def mitigate_model(model, clean_trainset_path, poison_trainset_path, output_dir):
+def mitigate_model(model, dataset_path, output_dir):
     """Given a model and paths to the different variations of datasets, output a mitigated model
 
     Args:
         model (pytorch module): A model to be mitigated
-        clean_trainset_path (str): path to the clean dataset that can be loaded in as a DatasetFolder
-        poison_trainset_path (str): path to the poisoned dataset that can be loaded in as a DatasetFolder
+        dataset_path (str): path to the dataset that can be loaded in as a DatasetFolder
         output_dir (str): the path where the model will be dumped to
     """
-    clean_trainset = torchvision.datasets.DatasetFolder(clean_trainset_path, loader=Image.open, extensions=("png",), transform=transform_train)
-    poisoned_trainset = torchvision.datasets.DatasetFolder(poison_trainset_path, loader=Image.open, extensions=("png",), transform=transform_train)
-    mitigated_model = mitigation.mitigate_model(model, clean_trainset, poisoned_trainset)
+    dataset = torchvision.datasets.DatasetFolder(dataset_path, loader=Image.open, extensions=("png",), transform=transform_train)
+    mitigated_model = mitigation.mitigate_model(model, dataset)
     os.makedirs(output_dir, exist_ok=True)
     torch.save(mitigated_model.state_dict, os.path.join(output_dir, "model.pt"))
 
 
-def test_model(model, testset_path, batch_size, num_workers, device):
-    # performers should know not to shuffle the dataset in docstring
+def test_model(model, mitigation, testset_path, batch_size, num_workers, device):
     testset = torchvision.datasets.DatasetFolder(testset_path, loader=Image.open, extensions=("png",), transform=transform_test)
     dataloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, num_workers=num_workers)
     
@@ -97,10 +96,10 @@ def test_model(model, testset_path, batch_size, num_workers, device):
     all_logits = torch.tensor([])
     all_labels = torch.tensor([])
     # drop the label
-    for x, y in dataloader:
-        preprocess_x, info = model.preprocess_transform(x)
+    for x, y in tqdm(dataloader):
+        preprocess_x, info = mitigation.preprocess_transform(x)
         output_logits = model(preprocess_x.to(device)).detach().cpu()
-        final_logits = model.postprocess_transform(output_logits.detach().cpu(), info)
+        final_logits = mitigation.postprocess_transform(output_logits.detach().cpu(), info)
 
         all_logits = torch.cat([all_logits, final_logits], axis=0)
         all_labels = torch.cat([all_labels, y], axis=0)
@@ -132,9 +131,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_filepath', type=str, default="./model.pt", help="File path to the model that will be either mitigated or tested ")
 
     # Other defined paths
-    parser.add_argument('--clean_trainset', type=str, default=None, help="If doing mitigation, filepath to clean trainset that can be loaded as a torchvision DatasetFolder. This directory could also be empty.")
-    parser.add_argument('--poison_trainset', type=str, default=None, help="If doing mitigation, filepath to poisoned trainset that can be loaded as a torchvision DatasetFolder. This directory could also be empty.")
-    parser.add_argument('--testset', type=str, default=None, help="If doing test, filepath to a dataset that could either be poisoned or clean.")
+    parser.add_argument('--dataset', type=str, default=None, help="If doing training, filepath to the dataset that contains the sample data dataset. If doing test, filepath to a dataset that could either be poisoned or clean.")
     parser.add_argument('--scratch_dirpath', type=str, default="./scratch", help="File path to the folder where a scratch space is located.")
     parser.add_argument('--output_dirpath', type=str, default="./out", help="File path to where the output will be dumped")
 
@@ -157,11 +154,11 @@ if __name__ == "__main__":
     model = prepare_model(args.model_filepath, args.num_classes, args.device)
     mitigation = prepare_mitigation(args)
 
-    # Mitigate a given model on a clean/poison dataset (either/both of which could be empty)
+    # Mitigate a given model on a dataset that may/may not contain some mix of clean and poisoned data
     if args.mitigate:
-        mitigate_model(model, args.clean_trainset, args.poison_trainset, args.output_dirpath)
+        mitigate_model(model, args.dataset, args.output_dirpath)
     # Test a model on an arbitrary dataset (either clean or poisoned)
     elif args.test:
-        results = test_model(model, args.testset, args.batch_size, args.num_workers, args.device)
+        results = test_model(model, mitigation, args.dataset, args.batch_size, args.num_workers, args.device)
         torch.save(results, os.path.join(args.output_dirpath, "results.pkl"))
         
