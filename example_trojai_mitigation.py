@@ -26,15 +26,10 @@ transform_test = transforms.Compose([
 
 
 def prepare_mitigation(args):
-    """Given the command line args, prepare the mitigation technique and 
-    return a subclass of TrojAIMitigation.
+    """Given the command line args, construct and return a subclass of the TrojaiMitigation class
 
-    Args:
-        args (namespace): The command line args that were passed to the program
-
-    Returns:
-        TrojAIMitigation: A subclass that at least implements the mitigate_model() method, and
-        optionally preprocess_transform() and postprocess_transform()
+    :param args: The command line args
+    :return: A subclass of TrojaiMitigation that can implement a given mitigtaion technique
     """
     # Get required classes for loss and optimizer dynamically
     loss_class = getattr(torch.nn, args.loss_class)
@@ -57,15 +52,12 @@ def prepare_mitigation(args):
 
 
 def prepare_model(path, num_classes, device):
-    """Prepare and load a dataset defined at a path
+    """Prepare and load a model defined at a path
 
-    Args:
-        path (str): The path to the Pytorch model
-        num_classes (int): The number of classes that the model was trained on
-        device (str): The device (cuda/cpu) to put the model on
-
-    Returns:
-        torch module: The loaded Pytorch model
+    :param path: the path to a pytorch state dict model that will be loaded
+    :param num_classes: The number of classes in the dataset
+    :param device: Either cpu or cuda to push the device onto
+    :return: A pytorch model
     """
     model = resnet50()
     model.fc = nn.Linear(model.fc.in_features, num_classes)
@@ -75,12 +67,12 @@ def prepare_model(path, num_classes, device):
 
 
 def mitigate_model(model, dataset_path, output_dir):
-    """Given a model and paths to the different variations of datasets, output a mitigated model
+    """Given the a torch model and a path to a dataset that may or may not contain clean/poisoned examples, output a mitigated
+    model into the output directory.
 
-    Args:
-        model (pytorch module): A model to be mitigated
-        dataset_path (str): path to the dataset that can be loaded in as a DatasetFolder
-        output_dir (str): the path where the model will be dumped to
+    :param model: Pytorch model to be mitigated
+    :param dataset_path: The path to a dataset that may/may not contain poisoned examples
+    :param output_dir: The directory where the mitigated model's state dict is to be saved to.
     """
     dataset = torchvision.datasets.DatasetFolder(dataset_path, loader=Image.open, extensions=("png",), transform=transform_train)
     mitigated_model = mitigation.mitigate_model(model, dataset)
@@ -89,6 +81,17 @@ def mitigate_model(model, dataset_path, output_dir):
 
 
 def test_model(model, mitigation, testset_path, batch_size, num_workers, device):
+    """Tests a given model on a given dataset, using a given mitigation's pre and post processing
+    before and after interfence. 
+
+    :param model: Pytorch model to test
+    :param mitigation: The mitigation technique we're using
+    :param testset_path: The path to a testset that may or may not be poisoned
+    :param batch_size: Batch size for the dataloader
+    :param num_workers: The number of workers to use for the dataloader
+    :param device: cuda or cpu device
+    :return: dictionary of the results with the labels and logits
+    """
     testset = torchvision.datasets.DatasetFolder(testset_path, loader=Image.open, extensions=("png",), transform=transform_test)
     dataloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, num_workers=num_workers)
     
