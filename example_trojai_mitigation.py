@@ -44,6 +44,8 @@ def prepare_mitigation(args):
         optim_cls=optim_class,
         lr=args.learning_rate,
         epochs=args.epochs,
+        ckpt_dir=args.ckpt_dir,
+        ckpt_every=args.ckpt_every,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         device=args.device,
@@ -66,18 +68,19 @@ def prepare_model(path, num_classes, device):
     return model
 
 
-def mitigate_model(model, dataset_path, output_dir):
+def mitigate_model(model, dataset_path, output_dir, output_name):
     """Given the a torch model and a path to a dataset that may or may not contain clean/poisoned examples, output a mitigated
     model into the output directory.
 
     :param model: Pytorch model to be mitigated
     :param dataset_path: The path to a dataset that may/may not contain poisoned examples
     :param output_dir: The directory where the mitigated model's state dict is to be saved to.
+    :param output_name: the name of the pytorch model that will be saved
     """
     dataset = torchvision.datasets.DatasetFolder(dataset_path, loader=Image.open, extensions=("png",), transform=transform_train)
     mitigated_model = mitigation.mitigate_model(model, dataset)
     os.makedirs(output_dir, exist_ok=True)
-    torch.save(mitigated_model.state_dict, os.path.join(output_dir, "model.pt"))
+    torch.save(mitigated_model.state_dict, os.path.join(output_dir, output_name))
 
 
 def test_model(model, mitigation, testset_path, batch_size, num_workers, device):
@@ -137,12 +140,15 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, default=None, help="If doing training, filepath to the dataset that contains the sample data dataset. If doing test, filepath to a dataset that could either be poisoned or clean.")
     parser.add_argument('--scratch_dirpath', type=str, default="./scratch", help="File path to the folder where a scratch space is located.")
     parser.add_argument('--output_dirpath', type=str, default="./out", help="File path to where the output will be dumped")
+    parser.add_argument('--model_output', type=str, default="mitigated.pt", help="Name of the mitigated model")
 
     # Performer-specific hyperparameters overwritten by metaparameters.yml (but defined here)
     parser.add_argument('--optimizer_class', type=str, help='Class to use for optimizer for fine tuning')
     parser.add_argument('--loss_class', type=str, help='Class to use for loss for fine tuning')
     parser.add_argument('--learning_rate', type=float, help='Learning rate to use for fine tuning')
     parser.add_argument('--epochs', type=int, help='Count of epochs to do fine tuning for')
+    parser.add_argument('--ckpt_every', type=int, help='Saves ckpt every N epochs. Set to 0 to disable ckpting')
+    parser.add_argument('--ckpt_dir', type=str, help="Loation to save checkpoints to, if enabled")
 
     # Misc args used across all mitigations
     parser.add_argument('--batch_size', type=int, default=32, help="The batch size that the technique would use for data loading")
@@ -159,7 +165,7 @@ if __name__ == "__main__":
 
     # Mitigate a given model on a dataset that may/may not contain some mix of clean and poisoned data
     if args.mitigate:
-        mitigate_model(model, args.dataset, args.output_dirpath)
+        mitigate_model(model, args.dataset, args.output_dirpath, args.model_output)
     # Test a model on an arbitrary dataset (either clean or poisoned)
     elif args.test:
         results = test_model(model, mitigation, args.dataset, args.batch_size, args.num_workers, args.device)
