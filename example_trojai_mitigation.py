@@ -68,11 +68,12 @@ def prepare_model(path, num_classes, device):
     return model
 
 
-def mitigate_model(model, dataset_path, output_dir, output_name):
+def mitigate_model(model, mitigation, dataset_path, output_dir, output_name):
     """Given the a torch model and a path to a dataset that may or may not contain clean/poisoned examples, output a mitigated
     model into the output directory.
 
     :param model: Pytorch model to be mitigated
+    :param mitigtaion: The given mitigation technique
     :param dataset_path: The path to a dataset that may/may not contain poisoned examples
     :param output_dir: The directory where the mitigated model's state dict is to be saved to.
     :param output_name: the name of the pytorch model that will be saved
@@ -165,7 +166,7 @@ if __name__ == "__main__":
 
     # Mitigate a given model on a dataset that may/may not contain some mix of clean and poisoned data
     if args.mitigate:
-        mitigate_model(model, args.dataset, args.output_dirpath, args.model_output)
+        mitigate_model(model, mitigation, args.dataset, args.output_dirpath, args.model_output)
     # Test a model on an arbitrary dataset (either clean or poisoned)
     elif args.test:
         results = test_model(model, mitigation, args.dataset, args.batch_size, args.num_workers, args.device)
