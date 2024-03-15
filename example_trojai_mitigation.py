@@ -1,4 +1,5 @@
 import os
+import json
 
 import configargparse
 import torch
@@ -9,7 +10,7 @@ from torchvision import transforms
 from tqdm import tqdm
 from PIL import Image
 
-from trojai_mitigation_round.mitigations import FineTuningTrojai
+from trojai_mitigation_round.mitigations.finetuning import FineTuningTrojai
 
 # Probably needs to be a better way to define the transforms for a given dataset?
 transform_train = transforms.Compose([
@@ -112,8 +113,8 @@ def test_model(model, mitigation, testset_path, batch_size, num_workers, device)
         all_labels = torch.cat([all_labels, y], axis=0)
     
     return {
-        'pred_logits': all_logits,
-        'labels': all_labels
+        'pred_logits': all_logits.tolist(),
+        'labels': all_labels.tolist()
     }
 
 
@@ -170,5 +171,8 @@ if __name__ == "__main__":
     # Test a model on an arbitrary dataset (either clean or poisoned)
     elif args.test:
         results = test_model(model, mitigation, args.dataset, args.batch_size, args.num_workers, args.device)
-        torch.save(results, os.path.join(args.output_dirpath, "results.pkl"))
+        with open(os.path.join(args.output_dirpath, "results.json"), 'w+') as f:
+            json.dump(results, f)
+
+        # torch.save(results, os.path.join(args.output_dirpath, "results.pkl"))
         

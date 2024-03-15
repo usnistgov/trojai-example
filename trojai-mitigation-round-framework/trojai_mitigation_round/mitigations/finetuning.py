@@ -7,7 +7,8 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from trojai_mitigation_round.mitigations import TrojAIMitigation, TrojAIMitigatedModel
+from trojai_mitigation_round.mitigations.mitigation import TrojAIMitigation
+from trojai_mitigation_round.mitigations.mitigated_model import TrojAIMitigatedModel
 
 class FineTuningTrojai(TrojAIMitigation):
     def __init__(self, device, loss_cls, optim_cls, lr, epochs, ckpt_dir="./ckpts", ckpt_every=0, batch_size=32, num_workers=1, **kwargs):

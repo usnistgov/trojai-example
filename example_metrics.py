@@ -1,19 +1,21 @@
 import argparse
 from collections import defaultdict
 import os
+import json
 
 import torch
 import pandas as pd
 
-from trojai_mitigation_round.utils.torch_metrics import PredictionMetricMapper
+from trojai_mitigation_round.metrics.torch_metrics import PredictionMetricMapper
 
 def main(metrics, result_file, output_name, model_name, data_type, num_classes):
     metric_mapper = PredictionMetricMapper(num_classes)
     metric_results = defaultdict(list)
-    results = torch.load(result_file)
+    with open(result_file, "r") as f:
+        results = json.load(f)
 
-    pred_logits = results['pred_logits']
-    labels = results['labels']
+    pred_logits = torch.tensor(results['pred_logits'])
+    labels = torch.tensor(results['labels'])
     for metric_name in metrics:
         result = metric_mapper[metric_name](pred_logits, labels)
         metric_results["model_name"].append(model_name)

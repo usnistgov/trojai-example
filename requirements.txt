@@ -6,3 +6,4 @@ pandas
 numpy
 torchmetrics
 opencv-python
+pyyaml
