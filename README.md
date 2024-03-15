@@ -7,7 +7,7 @@ The container submitted for evaluation must be able to perform both mitigation a
 
 ## The TrojaiMitigation Class
 
-All mitigations are expected to be subclasses of the TrojaiMitigation class, which returns a TrojAIMitigatedModel. The expected interface is explained below.
+All mitigations are expected to be subclasses of the TrojaiMitigation class, which returns a TrojAIMitigatedModel. The expected interface is explained below. You can develop with the TrojAIMitigation class by pip installing the `trojai-mitigation-round-framework` folder, which contains the base class (`trojai-mitigation-round-framework/trojai_mitigation_round/mitigations/mitigation.py`)
 
 ```python
 from trojai_mitigation_round.mitigations.mitigation_base import TrojAIMitigation, TrojAIMitigatedModel
