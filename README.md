@@ -143,3 +143,31 @@ The provided `example_metrics.py` script can generate metrics given the output p
 
 - Linux (tested on Ubuntu 22.04)
 - CUDA capable NVIDIA GPU (tested on A100)
+- Python >= 3.9 
+
+## Building and Using this Minimal Example
+
+1. It's recommended to create a virtual environment to install all the required dependencies. This may require installing [python-venv](https://packaging.python.org/en/latest/key_projects/#venv). You can then activate the virtual environment
+
+```
+python -m venv venv/
+source venv/bin/activate
+```
+
+2. Install all the requirements:
+
+```
+pip install -r requirements.txt
+```
+
+3. Install the mitigation round framework into your venv as well:
+
+```
+pip install -e ./trojai-mitigation-round-framework
+```
+
+4. All your dependencies are installed. After this, you can run the `example_trojai_mitigation.py` script, ensuring you pass in the `--metaparameters` arg. 
+
+```
+python example_trojai_mitigation.py --metaparameters metaparameters.yml
+```
