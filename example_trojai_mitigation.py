@@ -11,6 +11,7 @@ from tqdm import tqdm
 from PIL import Image
 
 from trojai_mitigation_round.mitigations.finetuning import FineTuningTrojai
+from trojai_mitigation_round.trojai_dataset import Round11SampleDataset
 
 # Probably needs to be a better way to define the transforms for a given dataset?
 transform_train = transforms.Compose([
@@ -62,42 +63,52 @@ def prepare_model(path, num_classes, device):
     :param device: Either cpu or cuda to push the device onto
     :return: A pytorch model
     """
-    model = resnet50()
-    model.fc = nn.Linear(model.fc.in_features, num_classes)
-    model.load_state_dict(torch.load(path))
+    # model = resnet50()
+    # model.fc = nn.Linear(model.fc.in_features, num_classes)
+    # model.load_state_dict(torch.load(path))
+    # model = model.to(device=device)
+    model = torch.load(path)
     model = model.to(device=device)
     return model
 
 
-def mitigate_model(model, mitigation, dataset_path, output_dir, output_name):
+def prepare_dataset(dataset_path, do_mitigate, do_test):
+    if do_mitigate:
+        split = 'test'
+    elif do_test:
+        split = 'train'
+
+    dataset = Round11SampleDataset(root=dataset_path, split=split)
+    return dataset
+
+
+def mitigate_model(model, mitigation, dataset, output_dir, output_name):
     """Given the a torch model and a path to a dataset that may or may not contain clean/poisoned examples, output a mitigated
     model into the output directory.
 
     :param model: Pytorch model to be mitigated
     :param mitigtaion: The given mitigation technique
-    :param dataset_path: The path to a dataset that may/may not contain poisoned examples
+    :param dataset: The Pytorch dataset that may/may not contain poisoned examples
     :param output_dir: The directory where the mitigated model's state dict is to be saved to.
     :param output_name: the name of the pytorch model that will be saved
     """
-    dataset = torchvision.datasets.DatasetFolder(dataset_path, loader=Image.open, extensions=("png",), transform=transform_train)
     mitigated_model = mitigation.mitigate_model(model, dataset)
     os.makedirs(output_dir, exist_ok=True)
-    torch.save(mitigated_model.state_dict, os.path.join(output_dir, output_name))
+    torch.save(mitigated_model.model, os.path.join(output_dir, output_name))
 
 
-def test_model(model, mitigation, testset_path, batch_size, num_workers, device):
+def test_model(model, mitigation, testset, batch_size, num_workers, device):
     """Tests a given model on a given dataset, using a given mitigation's pre and post processing
     before and after interfence. 
 
     :param model: Pytorch model to test
     :param mitigation: The mitigation technique we're using
-    :param testset_path: The path to a testset that may or may not be poisoned
+    :param testset_path: The the Pytorch testset that may or may not be poisoned
     :param batch_size: Batch size for the dataloader
     :param num_workers: The number of workers to use for the dataloader
     :param device: cuda or cpu device
     :return: dictionary of the results with the labels and logits
     """
-    testset = torchvision.datasets.DatasetFolder(testset_path, loader=Image.open, extensions=("png",), transform=transform_test)
     dataloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, num_workers=num_workers)
     
     model.eval()
@@ -164,13 +175,14 @@ if __name__ == "__main__":
 
     model = prepare_model(args.model_filepath, args.num_classes, args.device)
     mitigation = prepare_mitigation(args)
+    dataset = prepare_dataset(args.dataset, args.mitigate, args.test)
 
     # Mitigate a given model on a dataset that may/may not contain some mix of clean and poisoned data
     if args.mitigate:
-        mitigate_model(model, mitigation, args.dataset, args.output_dirpath, args.model_output)
+        mitigate_model(model, mitigation, dataset, args.output_dirpath, args.model_output)
     # Test a model on an arbitrary dataset (either clean or poisoned)
     elif args.test:
-        results = test_model(model, mitigation, args.dataset, args.batch_size, args.num_workers, args.device)
+        results = test_model(model, mitigation, dataset, args.batch_size, args.num_workers, args.device)
         with open(os.path.join(args.output_dirpath, "results.json"), 'w+') as f:
             json.dump(results, f)
 

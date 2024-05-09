@@ -31,7 +31,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script to calculate metrics for a given model using specified logits and labels.")
 
     parser.add_argument("--metrics", nargs="+", type=str, help="Metrics to be calculated, e.g., f1, accuracy")
-    parser.add_argument("--result_file", type=str, help="Path to the result pickle file to be loaded")
+    parser.add_argument("--result_file", type=str, help="Path to the result JSON file to be loaded")
     parser.add_argument("--output_name", type=str, default="out.csv", help="Name of the output csv file")
     parser.add_argument("--model_name", type=str, help="Name for the PyTorch model")
     parser.add_argument("--data_type", choices=["poisoned", "clean"], help="Type of data: 'poisoned' or 'clean'")

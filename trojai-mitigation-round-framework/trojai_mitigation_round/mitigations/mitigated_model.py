@@ -58,14 +58,14 @@ class TrojAIMitigatedModel:
         """
         return logits 
     
-    def __init__(self, state_dict: OrderedDict, custom_preprocess: callable=None, custom_postprocess: callable=None):
+    def __init__(self, model, custom_preprocess: callable=None, custom_postprocess: callable=None):
         """
         Args
             state_dict: A state dictionary that can be loaded by the original model
             custom_preprocess: An optional data preprocess function with the same interface as the default one implemented in the class.
             custom_postprocess: An optional data postprocess function with the same interface as the default one implemented in the class.
         """
-        self.state_dict = state_dict
+        self.model = model
 
         if custom_preprocess:
             self.preprocess_transform = custom_preprocess

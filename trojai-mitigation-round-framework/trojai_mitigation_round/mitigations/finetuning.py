@@ -67,4 +67,4 @@ class FineTuningTrojai(TrojAIMitigation):
             
             
 
-        return TrojAIMitigatedModel(model.state_dict())
+        return TrojAIMitigatedModel(model)
