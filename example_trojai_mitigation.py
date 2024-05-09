@@ -13,19 +13,6 @@ from PIL import Image
 from trojai_mitigation_round.mitigations.finetuning import FineTuningTrojai
 from trojai_mitigation_round.trojai_dataset import Round11SampleDataset
 
-# Probably needs to be a better way to define the transforms for a given dataset?
-transform_train = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-
-transform_test = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-
 
 def prepare_mitigation(args):
     """Given the command line args, construct and return a subclass of the TrojaiMitigation class
