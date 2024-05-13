@@ -42,18 +42,13 @@ def prepare_mitigation(args):
     return mitigation
 
 
-def prepare_model(path, num_classes, device):
+def prepare_model(path, device):
     """Prepare and load a model defined at a path
 
     :param path: the path to a pytorch state dict model that will be loaded
-    :param num_classes: The number of classes in the dataset
     :param device: Either cpu or cuda to push the device onto
     :return: A pytorch model
     """
-    # model = resnet50()
-    # model.fc = nn.Linear(model.fc.in_features, num_classes)
-    # model.load_state_dict(torch.load(path))
-    # model = model.to(device=device)
     model = torch.load(path)
     model = model.to(device=device)
     return model
@@ -154,13 +149,12 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=32, help="The batch size that the technique would use for data loading")
     parser.add_argument('--device', type=str, default='cuda', help="The device to use")
     parser.add_argument('--num_workers', type=int, default=1, help="The number of CPU processes to use to load data")
-    parser.add_argument('--num_classes', type=int, help="The number of classes that the model/dataset is using")
 
     args = parser.parse_args()
 
     assert args.mitigate ^ args.test, "Must choose only one of mitigate or test"
 
-    model = prepare_model(args.model_filepath, args.num_classes, args.device)
+    model = prepare_model(args.model_filepath, args.device)
     mitigation = prepare_mitigation(args)
     dataset = prepare_dataset(args.dataset, args.mitigate, args.test)
 
@@ -172,6 +166,4 @@ if __name__ == "__main__":
         results = test_model(model, mitigation, dataset, args.batch_size, args.num_workers, args.device)
         with open(os.path.join(args.output_dirpath, "results.json"), 'w+') as f:
             json.dump(results, f)
-
-        # torch.save(results, os.path.join(args.output_dirpath, "results.pkl"))
         

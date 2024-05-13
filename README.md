@@ -147,6 +147,8 @@ The provided `example_metrics.py` script can generate metrics given the output p
 
 ## Building and Using this Minimal Example
 
+This minimal example was created with the [Round 11 sample model and data](https://github.com/usnistgov/trojai-example/tree/image-classification-sep2022) in mind. You should clone this repo and checkout to the `image-classification-sep2022` round to test.
+
 1. It's recommended to create a virtual environment to install all the required dependencies. This may require installing [python-venv](https://packaging.python.org/en/latest/key_projects/#venv). You can then activate the virtual environment
 
 ```
@@ -166,8 +168,36 @@ pip install -r requirements.txt
 pip install -e ./trojai-mitigation-round-framework
 ```
 
-4. All your dependencies are installed. After this, you can run the `example_trojai_mitigation.py` script, ensuring you pass in the `--metaparameters` arg. 
+4. All your dependencies are installed. After this, you can run the `example_trojai_mitigation.py` script, ensuring you pass in the `--metaparameters` arg.
+
+If conducting mitigation, ensure you pass the `--mitigate` flag:
 
 ```
-python example_trojai_mitigation.py --metaparameters metaparameters.yml
+python example_trojai_mitigation.py --metaparameters metaparameters.yml \
+--mitigate \
+--model_filepath /path/to/example/model.pt \
+--dataset /path/to/example/dataset \
+--output_dirpath /path/to/output/model \
+--model_output <name of model>.pt \
+```
+
+After running mitigation, you can use the `--test` flag to separately test the cleaned model on an arbitrary dataset which produces a `result.json` file:
+
+```
+python3 example_trojai_mitigation.py --metaparameters metaparameters.yml \
+--test \
+--model_filepath /path/to/cleaned/model.pt \
+--dataset /path/to/clean/or/poisoned/dataset \
+--output_dirpath /path/to/output/logits/and/labels/
+```
+
+To obtain example metrics from here, call the `example_metrics.py` script on the produced result.json file:
+
+```
+python3 example_metrics.py \
+--metrics f1 accuracy \
+--result_file /path/to/results.json \
+--model_name <model name to be used in csv> \
+--data_type <clean / poisoned> \
+--num_classes <class count>
 ```
