@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 
 
 class Round11SampleDataset(Dataset):
-    def __init__(self, root, img_ext="jpg", class_info_ext="json", split='test'):
+    def __init__(self, root, img_exts=["jpg", "png"], class_info_ext="json", split='test'):
         root = Path(root)
         train_augmentation_transforms = torchvision.transforms.Compose(
             [
@@ -32,7 +32,7 @@ class Round11SampleDataset(Dataset):
         else:
             self.transform = train_augmentation_transforms
 
-        self._img_directory_contents = sorted([path for path in root.glob("*." + img_ext)])
+        self._img_directory_contents = sorted([path for path in root.glob("*.*") if path.suffix[1:] in img_exts])
 
         self.data = []
         for img_fname in self._img_directory_contents:
