@@ -96,14 +96,18 @@ def test_model(model, mitigation, testset, batch_size, num_workers, device):
     model.eval()
     all_logits = torch.tensor([])
     all_labels = torch.tensor([])
-    # drop the label
+    
+    # Label could be None in case the dataset did not require it to load
     for x, y in tqdm(dataloader):
         preprocess_x, info = mitigation.preprocess_transform(x)
         output_logits = model(preprocess_x.to(device)).detach().cpu()
         final_logits = mitigation.postprocess_transform(output_logits.detach().cpu(), info)
 
         all_logits = torch.cat([all_logits, final_logits], axis=0)
-        all_labels = torch.cat([all_labels, y], axis=0)
+
+        # Skip label concatentation if label is none
+        if y is not None:
+            all_labels = torch.cat([all_labels, y], axis=0)
     
     return {
         'pred_logits': all_logits.tolist(),
