@@ -60,7 +60,7 @@ def prepare_dataset(dataset_path, do_mitigate, do_test):
     elif do_test:
         split = 'train'
 
-    dataset = Round11SampleDataset(root=dataset_path, split=split)
+    dataset = Round11SampleDataset(root=dataset_path, split=split, require_label=False)
     return dataset
 
 

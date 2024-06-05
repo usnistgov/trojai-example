@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 
 
 class Round11SampleDataset(Dataset):
-    def __init__(self, root, img_exts=["jpg", "png"], class_info_ext="json", split='test'):
+    def __init__(self, root, img_exts=["jpg", "png"], class_info_ext="json", split='test', require_label=False):
         root = Path(root)
         train_augmentation_transforms = torchvision.transforms.Compose(
             [
@@ -37,11 +37,16 @@ class Round11SampleDataset(Dataset):
         self.data = []
         for img_fname in self._img_directory_contents:
             full_path = root / img_fname
-            json_path = root / Path(img_fname.stem + f".{class_info_ext}")
-            assert json_path.exists(), f"No {class_info_ext} found for {img_fname}"
+            
+            if require_label:
+                json_path = root / Path(img_fname.stem + f".{class_info_ext}")
+                assert json_path.exists(), f"No {class_info_ext} found for {img_fname}"
+                with open(json_path, 'r') as f:
+                    label = json.load(f)
+            else:
+                label = None
+
             pil_img = Image.open(full_path)
-            with open(json_path, 'r') as f:
-                label = json.load(f)
             self.data.append((pil_img, label))
 
 
