@@ -35,6 +35,7 @@ class Round11SampleDataset(Dataset):
         self._img_directory_contents = sorted([path for path in root.glob("*.*") if path.suffix[1:] in img_exts])
 
         self.data = []
+        self.fnames = []
         for img_fname in self._img_directory_contents:
             full_path = root / img_fname
             
@@ -44,9 +45,10 @@ class Round11SampleDataset(Dataset):
                 with open(json_path, 'r') as f:
                     label = json.load(f)
             else:
-                label = None
+                label = -1
 
             pil_img = Image.open(full_path)
+            self.fnames.append(img_fname.name)
             self.data.append((pil_img, label))
 
 
@@ -55,6 +57,7 @@ class Round11SampleDataset(Dataset):
 
     def __getitem__(self, idx):
         img, label = self.data[idx]
+        fname = self.fnames[idx]
 
         img = self.transform(img)
-        return img, label
+        return img, label, fname
