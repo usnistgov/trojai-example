@@ -1,0 +1,2 @@
+# Scripts information
+The purpose of trojan mitigation is to remove trojan behavior from a potentially poisoned model without the need to detect poisoned models. However, specific considerations must be made to maintaining model performance and minimal impact on the target model, as a non-poisoned model may be provided to the mitigation algorithm. 
