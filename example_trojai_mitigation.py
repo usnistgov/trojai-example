@@ -110,9 +110,8 @@ def test_model(model, mitigation, testset, batch_size, num_workers, device):
     
     fname_to_logits = dict(zip(all_fnames, all_logits.tolist()))
 
-    return {
-        'pred_logits': fname_to_logits,
-    }
+    return fname_to_logits
+    
 
 
 if __name__ == "__main__":
