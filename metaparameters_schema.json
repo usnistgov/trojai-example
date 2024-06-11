@@ -1,0 +1,51 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Trojan Mitigation Container (trojai-example) - The template mitigation technique to be used within the TrojAI competition.",
+    "technique": "Fine Tuning",
+    "technique_description": "Run a certain amount of epochs of fine tuning on the model",
+    "technique_changes": "",
+    "technique_type": ["Weight Modification"],
+    "commit_id": "",
+    "repo_name": "https://github.com/usnistgov/trojai-example",
+    "required": [],
+    "additionalProperties": false,
+    "type": "object",
+    "properties": {
+      "optimizer_class":  {
+          "description": "The torch optimizer used for fine tuning (contained in the torch.optim module)",
+          "type": "string"
+      },
+      "loss_class": {
+          "description": "The torch loss used for fine tuning (contained in the torch.nn module)",
+          "type": "string"
+      },
+      "learning_rate": {
+          "description": "Learing rate used for fine tuning ",
+          "type": "number",
+          "minimum": 0.000001,
+          "maximum": 0.1,
+          "suggested_minimum": 0.0001,
+          "suggested_maximum": 0.001
+      },
+      "epochs": {
+          "description": "Count of epochs to run fine tuning for",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "suggested_minimum": 3,
+          "suggested_maximum": 10
+      },
+      "ckpt_every": {
+          "description": "Every n amount of epochs, we create a checkpoint",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1,
+          "suggested_minimum": 0,
+          "suggested_maximum": 1
+      },
+      "ckpt_dir": {
+          "description": "Directory where checkpoints are dropped to",
+          "type": "string"
+      }
+    }
+  }
