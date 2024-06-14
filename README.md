@@ -91,37 +91,25 @@ class TrojAIMitigation:
 
 You primarily modify 2 of the files within the repo for your submission.
 
-- `example_trojai_mitigation.py` - This file is what contains the entry points for the mitigation technique. It implements a `--mitigate` and `--test` entrypoint. 
-  - `--mitigate` applies your mitigation technique, modifying the model weights, and saves it to the `--output_dirpath` under the name `--model_output`. 
-  - There are several performer specific arguments within the `example_trojai_mitigation.py` script (for example, `--optimizer_class`, `--loss_class`, etc) that can be changed and overwritten with your specific hyperparameters if needed. 
-  - `def prepare_mitigation(args)` - this function takes in the commandline args and defined metaparameters and is responsible for constructing your specific defense that is a subclass of the `TrojAIMitigation` class. 
-- `metaparameters.yml` - This file mirrors the performer-specific hyperparamters defined in tha ArgParser inside `example_trojai_mitigation.py`. The YAML acts as a base configuration (which must be passed in as `--metaparameters`), and can be optionally overwritten by those same CLI args. As you add or remove specific hyperparameters, you can change the `metaparameters.yml` to mirror needed hyperparamters. 
-  - For example, if `metaparameters.yml` defines 
-    ```yaml
-    hyperparameter1: 42
-    hyperparameter2: 0.15
-    ... 
-    ...
-    ```
-    And you run the mitigation script with
-    ```bash
-    python example_trojai_mitigation.py --hyperparmeter1 100 ... ...
-    ```
-    then the script will run with `hyperparameter1 = 100` (since you overrode it with a CLI arg) and `hyperparameter2 = 0.15` (since it was not defined in the CLI arg, it fallsback to the default in the YAML)
+- `example_trojai_mitigation.py` - This file is what contains the entry points for the mitigation technique. It implements a `mitigate` and `test` entrypoint. 
+  - `mitigate` applies your mitigation technique, modifying the model weights, and saves it to the `--output_dirpath` under the name `--model_output_name`. 
+  - Customizable options are specified in the metaparameters.json file, described using the metaparameters_schema.json (for example, `optimizer_class`, `loss_class`, etc) that can be changed and overwritten with your specific hyperparameters if needed. 
+  - `def prepare_mitigation(args, config_json)` - this function takes in the commandline args and defined metaparameters and is responsible for constructing your specific defense that is a subclass of the `TrojAIMitigation` class.   
+  - `def mitigate_model(model, mitigation, dataset, output_dir, output_name)` generates a new mitigated model and saves that model to be used for the phase of execution, testing.
 
 ## Container Configuration
 
-Each container must implment two entry points, `--mitigate` and `--test`. Your mitigation technique is fully constructed both times. If your mitigation or pre/post process transforms require a lengthy construction process, it is recommended you only conditionally set them up individually when they are called rather than at construction time.
+Each container must implement two entry points, `mitigate` and `test`. Your mitigation technique is fully constructed both times. If your mitigation or pre/post process transforms require a lengthy construction process, it is recommended you only conditionally set them up individually when they are called rather than at construction time.
 
-- `--mitigate` conducts the mitigation on the model weights given some dataset that may or may not have clean and/or poisoned data in it. It is where `def mitigate_model(self, model: torch.nn.Module, dataset: Dataset)` is called. 
-- `--test` conducts the testing process on a given post-mitigation model, given some dataset that could be clean or poisoned. Is is where both your pre and post process are called. **Do NOT shuffle your test data, the order of logits is critical for metric calculations**
+- `mitigate` conducts the mitigation on the model weights given some dataset that may or may not have clean and/or poisoned data in it. It is where `def mitigate_model(self, model: torch.nn.Module, dataset: Dataset)` is called. 
+- `test` conducts the testing process on a given post-mitigation model, given some dataset that could be clean or poisoned. Is is where both your pre and post process are called. **Do NOT shuffle your test data, the order of logits is critical for metric calculations**
   - Prior to test-time inference, `preprocess_transform` is called. `preprocess_transform` can optionally return an `info` dictionary that contains arbitrary information that preprocess may like to pass to `postprocess_transform` 
   - The model is then called on said preprocessed input data to return initial output logits. 
   - Finally, `postprocess_transform` is called to return the final, reported logits. `postprocess_transform` also optionally receives the info dictionary created by `proprocess_transform`
 
 ## Container Code
 
-It is recommended to use the existing `example_trojai_mitigation.py` script as boilerplate, and to only change the code inside each function where necessary. 
+It is required to use the existing `example_trojai_mitigation.py` script as boilerplate, and to only change the code inside each function where necessary. The argument parser must remain in-tact to operate with the leaderboard infrastructure. 
 
 - `def prepare_mitigation(args)` - Given the YAML/CLI args, construct your specific defense (that is a subclass of TrojaiMitigation) and return it. 
 - `def prepare_model(path, num_classes, device)` - Prepares the round configuration's given model architecture and returns it. Do not modify this function. 
@@ -130,7 +118,7 @@ It is recommended to use the existing `example_trojai_mitigation.py` script as b
 
 ## Generating Metrics
 
-The provided `example_metrics.py` script can generate metrics given the output pickle file from `example_trojai_mitigation.py` 
+The provided `example_metrics.py` script is an example of how to process metrics from `example_trojai_mitigation.py` 
 
 - `--metrics`: list of metrics to calculate 
 - `--result_file`: path of the produced pickle file that contains the logits and labels
@@ -168,24 +156,28 @@ pip install -r requirements.txt
 pip install -e ./trojai-mitigation-round-framework
 ```
 
-4. All your dependencies are installed. After this, you can run the `example_trojai_mitigation.py` script, ensuring you pass in the `--metaparameters` arg.
+4. All your dependencies are installed. After this, you can run the `example_trojai_mitigation.py` script, ensuring you pass in the `--metaparameters_filepath` arg.
 
-If conducting mitigation, ensure you pass the `--mitigate` flag:
+If conducting mitigation, ensure you pass the `mitigate` flag:
 
 ```
-python example_trojai_mitigation.py --metaparameters metaparameters.yml \
---mitigate \
+python example_trojai_mitigation.py \
+mitigate \
+--metaparameters_filepath metaparameters.json \
+--schema_filepath metaparameters_schema.json \
 --model_filepath /path/to/example/model.pt \
 --dataset /path/to/example/dataset \
 --output_dirpath /path/to/output/model \
---model_output <name of model>.pt \
+--model_output_name <name of model>.pt \
 ```
 
-After running mitigation, you can use the `--test` flag to separately test the cleaned model on an arbitrary dataset which produces a `result.json` file:
+After running mitigation, you can use the `test` flag to separately test the cleaned model on an arbitrary dataset which produces a `results.json` file:
 
 ```
-python3 example_trojai_mitigation.py --metaparameters metaparameters.yml \
---test \
+python3 example_trojai_mitigation.py \
+test \
+--metaparameters_filepath metaparameters.json \
+--schema_filepath metaparameters_schema.json \
 --model_filepath /path/to/cleaned/model.pt \
 --dataset /path/to/clean/or/poisoned/dataset \
 --output_dirpath /path/to/output/logits/and/labels/
@@ -201,3 +193,52 @@ python3 example_metrics.py \
 --data_type <clean / poisoned> \
 --num_classes <class count>
 ```
+
+## Package Solution into a Singularity Container
+Package `example_trojai_mitigation.py` into a Singularity container.
+
+1. Install Singularity
+    
+    - Follow: [https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux](https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux)
+        
+2. Build singularity based on `example_trojai_mitigation.def` file: 
+
+    - delete any old copy of output file if it exists: `rm example_trojai_mitigation.simg`
+    - package container: 
+    
+      ```bash
+      sudo singularity build mitigation.simg example_trojai_mitigation.def
+      ```
+
+    which generates a `mitigation.simg` file.
+
+3. Run mitigation and test using container
+
+Mitigation:
+```bash
+    singularity run \
+    --bind /full/path/to/trojai-example \
+    --nv \
+    ./mitigation.simg \
+    mitigate \
+  --metaparameters_filepath metaparameters.json \
+  --schema_filepath metaparameters_schema.json \
+  --model_filepath /path/to/example/model.pt \
+  --dataset /path/to/example/dataset \
+  --output_dirpath /path/to/output/model \
+  --model_output_name <name of model>.pt \
+  ```
+
+Test:
+  ```bash
+    singularity run \
+    --bind /full/path/to/trojai-example \
+    --nv \
+    ./mitigation.simg \
+    test \
+    --metaparameters_filepath metaparameters.json \
+    --schema_filepath metaparameters_schema.json \
+    --model_filepath /path/to/cleaned/model.pt \
+    --dataset /path/to/clean/or/poisoned/dataset \
+    --output_dirpath /path/to/output/logits/and/labels/
+  ```

@@ -1,4 +1,3 @@
-configargparse
 torch
 torchvision
 tqdm
@@ -6,4 +5,4 @@ pandas
 numpy
 torchmetrics
 opencv-python
-pyyaml
+jsonschema

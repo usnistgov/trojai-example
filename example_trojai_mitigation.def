@@ -1,0 +1,19 @@
+Bootstrap: docker
+From: pytorch/pytorch:2.2.2-cuda11.8-cudnn8-runtime
+
+%files
+    ./example_trojai_mitigation.py /
+    ./trojai-mitigation-round-framework /
+    ./utils /
+    ./metaparameters.json /
+    ./metaparameters_schema.json /
+    ./requirements.txt /
+
+%post
+    apt update
+    apt install -y git ffmpeg libsm6 libxext6
+    pip install -r requirements.txt
+    pip install -e /trojai-mitigation-round-framework
+
+%runscript
+    exec python3 /example_trojai_mitigation.py "$@"
