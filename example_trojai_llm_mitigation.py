@@ -5,32 +5,52 @@ import torch
 from datasets import load_dataset, Dataset
 import yaml
 
-from trojai_mitigation_round.mitigations.llm_mitigation_ft import FineTuningTrojaiMitigationLLM
+from trojai_llm_mitigation_round.mitigations.finetuning import FineTuningTrojaiMitigationLLM
 
 
 TASK_TYPE = TaskType.CAUSAL_LM
 AUTO_MODEL_CLS = AutoModelForCausalLM
 
 
-def prepare_mitigation():
-    pass
-
+def prepare_mitigation(args):
+    mitigation = FineTuningTrojaiMitigationLLM(
+        device=args.device,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        fp16=args.fp16
+    )
+    return mitigation
 
 def prepare_dataset(dataset_path):
-    pass
+    split = 'train'
+    num_split = -1
+    dataset = load_dataset('json', data_files=[dataset_path], split=f'{split}[:{num_split}]')
+    dataset = dataset.train_test_split(test_size=0.2)
+    
+    # Note: Debug hack to make the dataset smaller for debugging
+    dataset['train'] = Dataset.from_dict(dataset['train'][:1000])
+    dataset['test'] = Dataset.from_dict(dataset['test'][:1000])
+
+    return dataset
 
 
 def prepare_peft(lora_parameters):
-    pass
+    return LoraConfig(task_type=TASK_TYPE, **lora_parameters)
 
 
 def prepare_model(model, model_params):
-    pass
+    if model_params['model_dtype'] == 'float16':
+        dtype = torch.float16
+    else:
+        dtype = torch.float32
+
+    model = AUTO_MODEL_CLS.from_pretrained(model, torch_dtype=dtype)
+    return model
 
 
 if __name__ == "__main__":
     parser = configargparse.ArgParser(
-        config_file_parser=configargparse.YAMLConfigFileParser
+        config_file_parser_class=configargparse.YAMLConfigFileParser
     )
 
     parser.add_argument(
@@ -55,6 +75,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=4, help="The batch size that the technique would use for dataloading")
     parser.add_argument('--device', type=str, default='cuda', help="The device to use")
     parser.add_argument('--num_workers', type=int, default=1, help="The number of CPU processes to use to load data")
+    parser.add_argument('--fp16', action='store_true', help="Whether or not to use fp16")
 
 
     args = parser.parse_args()
@@ -63,7 +84,7 @@ if __name__ == "__main__":
     model = prepare_model(args.model, args.model_parameters)
     peft_config = prepare_peft(args.lora_parameters)
     dataset = prepare_dataset(args.dataset)
-    mitigation = prepare_mitigation()
+    mitigation = prepare_mitigation(args)
 
     # assuming the tokenizer and model come from the same path for now
     tokenizer = AutoTokenizer.from_pretrained(args.model)

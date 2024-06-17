@@ -8,7 +8,7 @@ setup(
     long_description='',
     keywords='development, setup, setuptools',
     python_requires='>=3.8',
-    packages=find_packages(include=['trojai_llm_mitigation_round']),
+    packages=find_packages(),
     install_requires=[
         'torch',
         'torchvision',
