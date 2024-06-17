@@ -1,0 +1,10 @@
+lora_parameters:
+  inference_mode: False
+  r: 8
+  lora_alpha: 8
+  lora_dropout: 0.05
+
+model_parameters:
+  model_dtype: float16
+  fp16: True
+
