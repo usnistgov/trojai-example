@@ -10,8 +10,8 @@ from .llm_mitigation import TrojAIMitigationLLM
 
 
 class FineTuningTrojaiMitigationLLM(TrojAIMitigationLLM):
-    def __init__(self, device, batch_size=4, num_workers=1, **kwargs):
-        super().__init__(device, batch_size, num_workers, **kwargs)
+    def __init__(self, device, batch_size=4, num_workers=1, fp16=False, **kwargs):
+        super().__init__(device, batch_size, num_workers, fp16, **kwargs)
 
     def mitigate_model(self,  model: AutoModel, collator: DataCollatorForLanguageModeling, peft_config: LoraConfig, dataset: HF_Dataset):
         def tokenize_fn(example):
@@ -40,7 +40,7 @@ class FineTuningTrojaiMitigationLLM(TrojAIMitigationLLM):
             result["labels"] = result["input_ids"].copy()
             return result
         
-        dataset = dataset.map(group_texts, batched=True,num_proc=32)
+        dataset = dataset.map(group_texts, batched=True, num_proc=self.num_workers)
         peft_model = get_peft_model(model, peft_config)
 
         training_args = TrainingArguments(output_dir="test_trainer", 
