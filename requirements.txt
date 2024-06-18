@@ -6,3 +6,4 @@ numpy
 torchmetrics
 opencv-python
 jsonschema
+timm
