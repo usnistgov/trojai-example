@@ -6,4 +6,4 @@ numpy
 torchmetrics
 opencv-python
 jsonschema
-timm
+timm==0.6.7
