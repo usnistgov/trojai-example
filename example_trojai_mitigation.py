@@ -19,13 +19,19 @@ def prepare_mitigation(args, config_json):
     print(f"Using {loss_class} for ft loss")
     print(f"Using {optim_class} for ft optimizer")
 
+    scratch_dirpath = args.scratch_dirpath
+    ckpt_dirpath = os.path.join(scratch_dirpath, config_json['ckpt_dir'])
+
+    if not os.path.exists(ckpt_dirpath):
+        os.makedirs(ckpt_dirpath, exist_ok=True)
+
     # Construct defense with args
     mitigation = FineTuningTrojai(
         loss_cls=loss_class,
         optim_cls=optim_class,
         lr=config_json['learning_rate'],
         epochs=config_json['epochs'],
-        ckpt_dir=config_json['ckpt_dir'],
+        ckpt_dir=ckpt_dirpath,
         ckpt_every=config_json['ckpt_every'],
         batch_size=args.batch_size,
         num_workers=args.num_workers,
