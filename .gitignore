@@ -14,3 +14,6 @@ __pychache__
 
 token.pickle
 .cache
+
+*/[Bb]uild/
+*/*.egg-info
