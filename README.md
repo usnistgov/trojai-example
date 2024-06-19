@@ -7,7 +7,7 @@ The container submitted for evaluation must be able to perform mitigation on a s
 
 ## The TrojAIMitigationLLM Class
 
-All mitigations are expected to be subclasses of the TrojAIMitigationLLM class, which returns a mitigated Huggingface model. The expected interface is explained below. You can develop with the TrojAIMitigationLLM class by pip installing the `trojai-llm-mitigation-framework` folder, which contains the base class (`trojai-llm-mitigation-framework/trojai_llm_mitigation_round/mitigations/llm_mitigation.py`)
+All mitigations are expected to be subclasses of the TrojAIMitigationLLM class, which returns a mitigated Huggingface (Torch) model. The expected interface is explained below. You can develop with the TrojAIMitigationLLM class by pip installing the `trojai-llm-mitigation-framework` folder, which contains the base class (`trojai-llm-mitigation-framework/trojai_llm_mitigation_round/mitigations/llm_mitigation.py`)
 
 ```python
 from transformers import AutoModel, AutoTokenizer, DataCollatorForLanguageModeling
@@ -62,6 +62,7 @@ You primarily modify 2 of the files within the repo for your submission.
 
 Each container must implment the `--mitigate` entry point. `--mitigate` conducts the mitigation on the model weights given some dataset that may or may not have clean and/or poisoned data in it. 
 
+TODO bring back the test entrypoint for inferencing a model
 
 ## Container Code
 

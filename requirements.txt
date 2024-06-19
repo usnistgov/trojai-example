@@ -1,0 +1,9 @@
+torch
+torchvision
+tqdm
+configargparse
+numpy
+transformers
+peft
+datasets
+pyyaml
