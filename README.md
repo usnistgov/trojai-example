@@ -2,7 +2,7 @@ This repo contains a minimal working example for a submission to the TrojAI lead
 
 Every solution submitted for evaluation must be containerized via Docker.
 
-The container submitted for evaluation must be able to perform both mitigation and testing on a single LLM. Mitigation technique containers may or may not be given some amount of clean or poisoned example data. 
+The container submitted for evaluation must be able to perform mitigation on a single LLM. Mitigation technique containers may or may not be given some amount of clean or poisoned example data. 
 
 
 ## The TrojAIMitigationLLM Class
@@ -42,8 +42,7 @@ class TrojAIMitigationLLM:
 
 You primarily modify 2 of the files within the repo for your submission.
 
-- `example_trojai_llm_mitigation.py` - This file is what contains the entry points for the mitigation technique. It implements a `--mitigate` and `--test` entrypoint. 
-  - `--mitigate` applies your mitigation technique, modifying the model weights, and saves it to the `--output_dirpath`.
+- `example_trojai_llm_mitigation.py` - This file is what contains the entry points for the mitigation technique, which will be output into `--output_dirpath` 
   - `def prepare_mitigation(args)` - this function takes in the commandline args and defined metaparameters and is responsible for constructing your specific defense that is a subclass of the `TrojAIMitigationLLM` class. 
 - `metaparameters.yml` - This file mirrors the performer-specific hyperparamters defined in tha ArgParser inside `example_trojai_mitigation.py`. The YAML acts as a base configuration (which must be passed in as `--metaparameters`), and can be optionally overwritten by those same CLI args. As you add or remove specific hyperparameters, you can change the `metaparameters.yml` to mirror needed hyperparamters. 
   - For example, if `metaparameters.yml` defines 
@@ -61,9 +60,8 @@ You primarily modify 2 of the files within the repo for your submission.
 
 ## Container Configuration
 
-Each container must implment two entry points, `--mitigate` and `--test`. Your mitigation technique is fully constructed both times. If your mitigation requires a lengthy construction process, it is recommended you only conditionally set them up individually when they are called rather than at construction time.
+Each container must implment the `--mitigate` entry point. `--mitigate` conducts the mitigation on the model weights given some dataset that may or may not have clean and/or poisoned data in it. 
 
-- `--mitigate` conducts the mitigation on the model weights given some dataset that may or may not have clean and/or poisoned data in it. 
 
 ## Container Code
 

@@ -62,9 +62,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument("--model", type=str, help="The model we are conducting mitigation or testing on")
-    parser.add_argument("--mitigate", action='store_true', help="Flag that asserts we are conducting mitigation")
-    parser.add_argument("--test", action='store_true', help="Flag that asserts we are conducting testing of an existing model")
-    
+
     parser.add_argument("--dataset", type=str, default=None, help="The dataset either given to us during mitigation (if at all), or if we are conducting testing, the dataset we will test on")
     parser.add_argument('--scratch_dirpath', type=str, default="./scratch", help="File path to the folder where a scratch space is located.")
     parser.add_argument('--output_dirpath', type=str, default="./out", help="File path to where the output model will be dumped")
@@ -79,13 +77,10 @@ if __name__ == "__main__":
 
 
     args = parser.parse_args()
-    assert args.mitigate ^ args.test, "Must choose only one of mitigate or test"
-
     model = prepare_model(args.model, args.model_parameters)
     peft_config = prepare_peft(args.lora_parameters)
     dataset = prepare_dataset(args.dataset)
     mitigation = prepare_mitigation(args)
-
     # assuming the tokenizer and model come from the same path for now
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
@@ -96,5 +91,4 @@ if __name__ == "__main__":
         peft_config=peft_config,
         dataset=dataset
     )
-
     mitigated_model.save_pretrained(args.output_dirpath)
