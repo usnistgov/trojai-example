@@ -9,6 +9,6 @@ RUN pip install -r requirements.txt
 RUN pip install -e ./trojai-llm-mitigation-framework
 
 RUN --mount=type=secret,id=hf \
-    HF_TOKEN=$(cat /run/secrets/hf) python -c 'from huggingface_hub import HfFolder; HfFolder.save_token("$HF_TOKEN")'
+    bash -c 'HF_TOKEN=$(cat /run/secrets/hf) && python -c "import os; from huggingface_hub import HfFolder; HfFolder.save_token(os.getenv(\"HF_TOKEN\"))"'
 
 ENTRYPOINT ["python3", "example_trojai_llm_mitigation.py", "--metaparameters", "metaparameters.yml"]
