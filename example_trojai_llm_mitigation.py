@@ -1,5 +1,5 @@
 import configargparse
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoModelForCausalLM, DataCollatorForLanguageModeling, LlamaForCausalLM
+from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, DataCollatorForLanguageModeling
 from peft import LoraConfig, TaskType
 import torch
 from datasets import load_dataset, Dataset
@@ -22,8 +22,7 @@ def prepare_mitigation(args):
     return mitigation
 
 
-def prepare_dataset(dataset_path):
-    split = 'train'
+def prepare_dataset(dataset_path, split='train'):
     num_split = -1
     dataset = load_dataset('json', data_files=[dataset_path], split=f'{split}[:{num_split}]')
     dataset = dataset.train_test_split(test_size=0.2)
@@ -63,6 +62,8 @@ if __name__ == "__main__":
     )
 
     parser.add_argument("--model", type=str, help="The model we are conducting mitigation or testing on")
+    parser.add_argument("--mitigate", action='store_true', help="Pass this flag if you want to conduct your mitigation technique on a saved model")
+    parser.add_argument("--test", action='store_true', help="Pass this flag in if you want to do test/inference on the model")
 
     parser.add_argument("--dataset", type=str, default=None, help="The dataset either given to us during mitigation (if at all), or if we are conducting testing, the dataset we will test on")
     parser.add_argument('--scratch_dirpath', type=str, default="./scratch", help="File path to the folder where a scratch space is located.")
@@ -80,16 +81,20 @@ if __name__ == "__main__":
     args = parser.parse_args()
     model = prepare_model(args.model, args.model_parameters)
     peft_config = prepare_peft(args.lora_parameters)
-    dataset = prepare_dataset(args.dataset)
-    mitigation = prepare_mitigation(args)
+    dataset = prepare_dataset(args.dataset, split='train' if args.mitigate else 'test')
+    
     # assuming the tokenizer and model come from the same path for now
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+    if args.mitigate:
+        mitigation = prepare_mitigation(args)
+        mitigated_model = mitigation.mitigate_model(
+            model=model,
+            collator=collator,
+            peft_config=peft_config,
+            dataset=dataset
+        )
+        mitigated_model.save_pretrained(args.output_dirpath)
 
-    mitigated_model = mitigation.mitigate_model(
-        model=model,
-        collator=collator,
-        peft_config=peft_config,
-        dataset=dataset
-    )
-    mitigated_model.save_pretrained(args.output_dirpath)
+    if args.test:
+        
