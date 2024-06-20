@@ -81,7 +81,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     model = prepare_model(args.model, args.model_parameters)
     peft_config = prepare_peft(args.lora_parameters)
-    dataset = prepare_dataset(args.dataset, split='train' if args.mitigate else 'test')
+    dataset = prepare_dataset(args.dataset)
     
     # assuming the tokenizer and model come from the same path for now
     tokenizer = AutoTokenizer.from_pretrained(args.model)
@@ -96,5 +96,6 @@ if __name__ == "__main__":
         )
         mitigated_model.save_pretrained(args.output_dirpath)
 
+    # TODO: inferencing pipeline
     if args.test:
         pass
