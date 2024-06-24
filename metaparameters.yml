@@ -6,9 +6,9 @@ lora_parameters:
 
 model_parameters:
   model_dtype: float16
-  fp16: True
+  fp16: False
 
 batch_size: 4
 device: cuda
 num_workers: 8
-fp16: True
+fp16: False

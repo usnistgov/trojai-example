@@ -85,6 +85,7 @@ if __name__ == "__main__":
     
     # assuming the tokenizer and model come from the same path for now
     tokenizer = AutoTokenizer.from_pretrained(args.model)
+    tokenizer.pad_token = tokenizer.eos_token
     collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
     if args.mitigate:
         mitigation = prepare_mitigation(args)
