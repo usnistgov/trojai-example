@@ -39,7 +39,12 @@ def prepare_peft(lora_parameters):
 
 
 def prepare_model(model, model_params):
-    model = AUTO_MODEL_CLS.from_pretrained(model)
+    if model_params['model_dtype'] == 'float16':
+        dtype = torch.float16
+    else:
+        dtype = torch.float32
+
+    model = AUTO_MODEL_CLS.from_pretrained(model, torch_dtype=dtype)
     return model
 
 
