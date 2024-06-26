@@ -163,6 +163,7 @@ if __name__ == "__main__":
     mitigate_parser.add_argument('--batch_size', type=int, default=32, help="The batch size that the technique would use for data loading")
     mitigate_parser.add_argument('--device', type=str, default='cuda', help="The device to use")
     mitigate_parser.add_argument('--num_workers', type=int, default=1, help="The number of CPU processes to use to load data")
+    mitigate_parser.add_argument("--round_training_dataset_dirpath", type=str, help="File path to the directory containing id-xxxxxxxx models of the current rounds training dataset.", default=None)
 
     # Test arguments
     test_parser = subparser.add_parser('test', help='Tests a mitigated model with example data')
@@ -175,6 +176,7 @@ if __name__ == "__main__":
     test_parser.add_argument('--batch_size', type=int, default=32, help="The batch size that the technique would use for data loading")
     test_parser.add_argument('--device', type=str, default='cuda', help="The device to use")
     test_parser.add_argument('--num_workers', type=int, default=1, help="The number of CPU processes to use to load data")
+    test_parser.add_argument("--round_training_dataset_dirpath", type=str, help="File path to the directory containing id-xxxxxxxx models of the current rounds training dataset.", default=None)
 
     # Setup default function to call for mitigate/test
     mitigate_parser.set_defaults(func=run_mitigate_mode)
