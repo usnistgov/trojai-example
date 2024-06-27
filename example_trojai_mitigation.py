@@ -6,6 +6,43 @@ from tqdm import tqdm
 from trojai_mitigation_round.mitigations.finetuning import FineTuningTrojai
 from trojai_mitigation_round.trojai_dataset import Round11SampleDataset
 
+def demo_training_example_data(base_training_dataset_dirpath):
+    training_models_dirpath = os.path.join(base_training_dataset_dirpath, 'models')
+    for model_dir in os.listdir(training_models_dirpath):
+        training_model_dirpath = os.path.join(training_models_dirpath, model_dir)
+        new_clean_data_example_dirpath = os.path.join(training_model_dirpath, 'new-clean-example-data')
+        new_poisoned_data_example_dirpath = os.path.join(training_model_dirpath, 'new-poisoned-example-data')
+
+        # Iterate over new poisoned example data, each example contains a filename such as '305.png', with associated ground truth '305.json'
+        # Ground truth is stored as a dictionary with 'clean_label' and 'poisoned_label'
+        if os.path.exists(new_poisoned_data_example_dirpath):
+            for example_file in os.listdir(new_poisoned_data_example_dirpath):
+                if example_file.endswith('.png'):
+                    example_basename_no_ext = os.path.splitext(example_file)[0]
+                    example_image_filepath = os.path.join(new_poisoned_data_example_dirpath, example_file)
+                    example_groundtruth_filepath = os.path.join(new_poisoned_data_example_dirpath, '{}.json'.format(example_basename_no_ext))
+
+                    with open(example_groundtruth_filepath, 'r') as fp:
+                        example_groundtruth_dict = json.load(example_groundtruth_filepath)
+                        clean_label = example_groundtruth_dict['clean_label']
+                        poisoned_label = example_groundtruth_filepath['poisoned_label']
+
+        # Iterate over new clean example data, each example contains a filename such as '305.png', with associated ground truth '305.json'
+        # Ground truth is stored as a dictionary with 'clean_label
+        if os.path.exists(new_clean_data_example_dirpath):
+            for example_file in os.listdir(new_clean_data_example_dirpath):
+                if example_file.endswith('.png'):
+                    example_basename_no_ext = os.path.splitext(example_file)[0]
+                    example_image_filepath = os.path.join(new_clean_data_example_dirpath, example_file)
+                    example_groundtruth_filepath = os.path.join(new_clean_data_example_dirpath, '{}.json'.format(example_basename_no_ext))
+
+                    with open(example_groundtruth_filepath, 'r') as fp:
+                        example_groundtruth_dict = json.load(example_groundtruth_filepath)
+                        clean_label = example_groundtruth_dict['clean_label']
+
+
+
+
 def prepare_mitigation(args, config_json):
     """Given the command line args, construct and return a subclass of the TrojaiMitigation class
 
@@ -107,6 +144,13 @@ def test_model(model, mitigation, testset, batch_size, num_workers, device):
 
 # Executes in mitigate mode, generating an approach to mitigate the model
 def run_mitigate_mode(args):
+
+    # Example for how to access training dataset new example data
+    base_training_dataset_dirpath = args.round_training_dataset_dirpath
+    demo_training_example_data(base_training_dataset_dirpath)
+
+
+
     # Validate config file against schema
     with open(args.metaparameters_filepath) as config_file:
         config_json = json.load(config_file)
