@@ -1,4 +1,5 @@
 import configargparse
+import time
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, DataCollatorForLanguageModeling
 from peft import LoraConfig, TaskType
 import torch
@@ -6,6 +7,7 @@ from datasets import load_dataset, Dataset
 import yaml
 
 from trojai_llm_mitigation_round.mitigations.finetuning import FineTuningTrojaiMitigationLLM
+from trojai_llm_mitigation_round.utils import print_gpu_utilization
 
 
 TASK_TYPE = TaskType.CAUSAL_LM
@@ -14,6 +16,9 @@ AUTO_MODEL_CLS = AutoModelForCausalLM
 
 def prepare_mitigation(args):
     mitigation = FineTuningTrojaiMitigationLLM(
+        lr=args.learning_rate,
+        train_epochs=args.num_train_epochs,
+        optim=args.optim,
         device=args.device,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
@@ -72,6 +77,11 @@ if __name__ == "__main__":
     parser.add_argument("--lora_parameters", type=yaml.safe_load, help="Dummy CLI arg for the lora config parameters from the metaparameters.yml file. Not designed to be passed in directly")
     parser.add_argument("--model_parameters", type=yaml.safe_load, help="Dummy CLI arg for the model config parameters from the metaparameters.yml file. Not designed to be passed in directly")
     
+    # Example performer specific args
+    parser.add_argument("--learning_rate", type=float, help="Learning rate to use for fine tuning")
+    parser.add_argument("--num_train_epochs", type=float, help="Number of epochs to run fine tuning for")
+    parser.add_argument("--optim", type=str, help="Optimizer to use for fine tuning")
+
     parser.add_argument('--batch_size', type=int, default=4, help="The batch size that the technique would use for dataloading")
     parser.add_argument('--device', type=str, default='cuda', help="The device to use")
     parser.add_argument('--num_workers', type=int, default=1, help="The number of CPU processes to use to load data")
@@ -82,11 +92,13 @@ if __name__ == "__main__":
     model = prepare_model(args.model, args.model_parameters)
     peft_config = prepare_peft(args.lora_parameters)
     dataset = prepare_dataset(args.dataset)
-    
+    print("Finished prepping dataset")
+    print_gpu_utilization()
     # assuming the tokenizer and model come from the same path for now
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     tokenizer.pad_token = tokenizer.eos_token
     collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+
     if args.mitigate:
         mitigation = prepare_mitigation(args)
         mitigated_model = mitigation.mitigate_model(
