@@ -5,6 +5,7 @@ from peft import LoraConfig, TaskType
 import torch
 from datasets import load_dataset, Dataset
 import yaml
+from trl import setup_chat_format
 
 from trojai_llm_mitigation_round.mitigations.finetuning import FineTuningTrojaiMitigationLLM
 from trojai_llm_mitigation_round.utils import print_gpu_utilization
@@ -29,7 +30,7 @@ def prepare_mitigation(args):
 
 def prepare_dataset(dataset_path, split='train'):
     num_split = -1
-    dataset = load_dataset('json', data_files=[dataset_path], split=f'{split}[:{num_split}]')
+    dataset = load_dataset(dataset_path, split=f'{split}[:{num_split}]')
     dataset = dataset.train_test_split(test_size=0.2)
     
     # Note: Debug hack to make the dataset smaller for debugging
@@ -43,14 +44,38 @@ def prepare_peft(lora_parameters):
     return LoraConfig(task_type=TASK_TYPE, **lora_parameters)
 
 
-def prepare_model(model, model_params):
+def prepare_model_and_tokenizer(model_path, model_params):
     if model_params['model_dtype'] == 'float16':
         dtype = torch.float16
     else:
         dtype = torch.float32
 
-    model = AUTO_MODEL_CLS.from_pretrained(model, torch_dtype=dtype)
-    return model
+    model = AUTO_MODEL_CLS.from_pretrained(model_path, torch_dtype=dtype)
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    tokenizer.pad_token = tokenizer.eos_token
+
+    if tokenizer.chat_template is None:
+        model, tokenizer = setup_chat_format(model, tokenizer, resize_to_multiple_of=8)
+
+    if tokenizer.pad_token is None or tokenizer.pad_token == tokenizer.eos_token:
+        # tokenizer.pad_token = tokenizer.unk_token
+        tokenizer.pad_token = tokenizer.eos_token
+
+    tokenizer.padding_side = 'left'
+
+    if 'gemma' in model_path.lower():
+        tokenizer.add_bos_token = False
+        tokenizer.add_eos_token = True
+
+    if 'llama' in model_path.lower():
+        tokenizer.add_bos_token = False
+        tokenizer.add_eos_token = False
+
+    if 'mistral' in model_path.lower():
+        tokenizer.add_bos_token = False
+        tokenizer.add_eos_token = False
+
+    return model, tokenizer
 
 
 if __name__ == "__main__":
@@ -89,14 +114,11 @@ if __name__ == "__main__":
 
 
     args = parser.parse_args()
-    model = prepare_model(args.model, args.model_parameters)
+    model, tokenizer = prepare_model_and_tokenizer(args.model, args.model_parameters)
     peft_config = prepare_peft(args.lora_parameters)
     dataset = prepare_dataset(args.dataset)
     print("Finished prepping dataset")
     print_gpu_utilization()
-    # assuming the tokenizer and model come from the same path for now
-    tokenizer = AutoTokenizer.from_pretrained(args.model)
-    tokenizer.pad_token = tokenizer.eos_token
     collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
     if args.mitigate:

@@ -3,6 +3,7 @@ lora_parameters:
   r: 8
   lora_alpha: 8
   lora_dropout: 0.05
+  # different types of lora config
 
 model_parameters:
   model_dtype: float16
