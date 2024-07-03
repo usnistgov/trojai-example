@@ -41,6 +41,7 @@ class FineTuningTrojaiMitigationLLM(TrojAIMitigationLLM):
             train_dataset=dataset["train"],
             eval_dataset=dataset["test"],
             data_collator=collator,
+            max_seq_length=self.max_token_length
         )
         print(f"Beginning Training with {len(dataset['train'])} examples")
         result = trainer.train()

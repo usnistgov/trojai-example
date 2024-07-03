@@ -6,8 +6,7 @@ lora_parameters:
   # different types of lora config
 
 model_parameters:
-  model_dtype: float16
-  fp16: False
+  model_dtype: float32
 
 learning_rate: 5e-5
 num_train_epochs: 5.0
@@ -16,4 +15,4 @@ optim: adamw_torch
 batch_size: 4
 device: cuda
 num_workers: 8
-fp16: False
+fp16: True

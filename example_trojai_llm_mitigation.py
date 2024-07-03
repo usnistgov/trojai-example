@@ -1,5 +1,4 @@
 import configargparse
-import time
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, DataCollatorForLanguageModeling
 from peft import LoraConfig, TaskType
 import torch
@@ -47,10 +46,10 @@ def prepare_peft(lora_parameters):
 def prepare_model_and_tokenizer(model_path, model_params):
     if model_params['model_dtype'] == 'float16':
         dtype = torch.float16
-    else:
+    else: 
         dtype = torch.float32
-
-    model = AUTO_MODEL_CLS.from_pretrained(model_path, torch_dtype=dtype)
+    
+    model = AUTO_MODEL_CLS.from_pretrained(model_path, torch_dtype=torch.float16)
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     tokenizer.pad_token = tokenizer.eos_token
 
