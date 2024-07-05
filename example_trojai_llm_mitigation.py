@@ -49,7 +49,7 @@ def prepare_model_and_tokenizer(model_path, model_params):
     else: 
         dtype = torch.float32
     
-    model = AUTO_MODEL_CLS.from_pretrained(model_path, torch_dtype=torch.float16)
+    model = AUTO_MODEL_CLS.from_pretrained(model_path, torch_dtype=dtype)
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     tokenizer.pad_token = tokenizer.eos_token
 

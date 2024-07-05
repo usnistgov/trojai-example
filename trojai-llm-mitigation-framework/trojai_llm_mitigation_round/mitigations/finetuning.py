@@ -34,7 +34,9 @@ class FineTuningTrojaiMitigationLLM(TrojAIMitigationLLM):
                                             evaluation_strategy="epoch", 
                                             per_device_train_batch_size=self.batch_size,
                                             per_device_eval_batch_size=self.batch_size,
-                                            fp16=self.fp16)
+                                            fp16=self.fp16,
+                                            logging_strategy="epoch",
+                                            report_to="tensorboard")
         trainer = SFTTrainer(
             model=peft_model,
             args=training_args,
