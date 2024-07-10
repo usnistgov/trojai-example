@@ -22,7 +22,7 @@ def prepare_mitigation(args):
         device=args.device,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
-        fp16=args.fp16
+        bf16=args.bf16
     )
     return mitigation
 
@@ -46,6 +46,8 @@ def prepare_peft(lora_parameters):
 def prepare_model_and_tokenizer(model_path, model_params):
     if model_params['model_dtype'] == 'float16':
         dtype = torch.float16
+    elif model_params['model_dtype'] == 'bfloat16':
+        dtype = torch.bfloat16
     else: 
         dtype = torch.float32
     
@@ -109,7 +111,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=4, help="The batch size that the technique would use for dataloading")
     parser.add_argument('--device', type=str, default='cuda', help="The device to use")
     parser.add_argument('--num_workers', type=int, default=1, help="The number of CPU processes to use to load data")
-    parser.add_argument('--fp16', action='store_true', help="Whether or not to use fp16")
+    parser.add_argument('--bf16', action='store_true', help="Whether or not to use bf16")
 
 
     args = parser.parse_args()
