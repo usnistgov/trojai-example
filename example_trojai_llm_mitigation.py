@@ -43,7 +43,7 @@ def prepare_peft(lora_parameters):
     return LoraConfig(task_type=TASK_TYPE, **lora_parameters)
 
 
-def prepare_model_and_tokenizer(model_path, model_params):
+def prepare_model_and_tokenizer(model_path, model_params, device):
     if model_params['model_dtype'] == 'float16':
         dtype = torch.float16
     elif model_params['model_dtype'] == 'bfloat16':
@@ -51,16 +51,16 @@ def prepare_model_and_tokenizer(model_path, model_params):
     else: 
         dtype = torch.float32
     
-    model = AUTO_MODEL_CLS.from_pretrained(model_path, torch_dtype=dtype)
+    model = AUTO_MODEL_CLS.from_pretrained(model_path, device_map=device, torch_dtype=dtype, attn_implementation='flash_attention_2' if model_params['use_flash_attn2'] else None)
+
+    # hack for loading the regular llama3 tokenizer rather than -Instruct's (which doesnt have the unk_token defined)
+    if model_path.endswith('-Instruct'):
+        model_path = model_path[:-len('-Instruct')]
     tokenizer = AutoTokenizer.from_pretrained(model_path)
-    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.pad_token = tokenizer.unk_token
 
     if tokenizer.chat_template is None:
         model, tokenizer = setup_chat_format(model, tokenizer, resize_to_multiple_of=8)
-
-    if tokenizer.pad_token is None or tokenizer.pad_token == tokenizer.eos_token:
-        # tokenizer.pad_token = tokenizer.unk_token
-        tokenizer.pad_token = tokenizer.eos_token
 
     tokenizer.padding_side = 'left'
 
@@ -115,7 +115,7 @@ if __name__ == "__main__":
 
 
     args = parser.parse_args()
-    model, tokenizer = prepare_model_and_tokenizer(args.model, args.model_parameters)
+    model, tokenizer = prepare_model_and_tokenizer(args.model, args.model_parameters, args.device)
     peft_config = prepare_peft(args.lora_parameters)
     dataset = prepare_dataset(args.dataset)
     print("Finished prepping dataset")

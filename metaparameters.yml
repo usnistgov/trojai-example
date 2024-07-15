@@ -6,6 +6,7 @@ lora_parameters:
 
 model_parameters:
   model_dtype: bfloat16
+  use_flash_attn2: True
 
 learning_rate: 5e-5
 num_train_epochs: 5.0

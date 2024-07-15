@@ -9,3 +9,4 @@ datasets
 pyyaml
 nvidia-ml-py3
 trl
+flash-attn
