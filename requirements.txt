@@ -1,0 +1,12 @@
+torch
+torchvision
+tqdm
+configargparse
+numpy
+transformers
+peft
+datasets
+pyyaml
+nvidia-ml-py3
+trl
+flash-attn

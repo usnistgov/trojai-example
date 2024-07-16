@@ -1,0 +1,18 @@
+lora_parameters:
+  inference_mode: False
+  r: 8
+  lora_alpha: 8
+  lora_dropout: 0.05
+
+model_parameters:
+  model_dtype: bfloat16
+  use_flash_attn2: True
+
+learning_rate: 5e-5
+num_train_epochs: 5.0
+optim: adamw_torch
+
+batch_size: 4
+device: cuda
+num_workers: 8
+bf16: True
