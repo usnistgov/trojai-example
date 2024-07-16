@@ -1,4 +1,3 @@
-import configargparse
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, DataCollatorForLanguageModeling
 from peft import LoraConfig, TaskType
 import torch
@@ -52,15 +51,12 @@ def prepare_model_and_tokenizer(model_path, model_params, device):
         dtype = torch.float32
     
     model = AUTO_MODEL_CLS.from_pretrained(model_path, device_map=device, torch_dtype=dtype, attn_implementation='flash_attention_2' if model_params['use_flash_attn2'] else None)
-
-    # hack for loading the regular llama3 tokenizer rather than -Instruct's (which doesnt have the unk_token defined)
-    if model_path.endswith('-Instruct'):
-        model_path = model_path[:-len('-Instruct')]
     tokenizer = AutoTokenizer.from_pretrained(model_path)
-    tokenizer.pad_token = tokenizer.unk_token
-
+    
     if tokenizer.chat_template is None:
         model, tokenizer = setup_chat_format(model, tokenizer, resize_to_multiple_of=8)
+    
+    tokenizer.pad_token = tokenizer.eos_token
 
     tokenizer.padding_side = 'left'
 
@@ -80,6 +76,7 @@ def prepare_model_and_tokenizer(model_path, model_params, device):
 
 
 if __name__ == "__main__":
+    import configargparse
     parser = configargparse.ArgParser(
         config_file_parser_class=configargparse.YAMLConfigFileParser
     )
@@ -112,7 +109,11 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default='cuda', help="The device to use")
     parser.add_argument('--num_workers', type=int, default=1, help="The number of CPU processes to use to load data")
     parser.add_argument('--bf16', action='store_true', help="Whether or not to use bf16")
-
+    # from argparse import ArgumentParser
+    
+    # parser = ArgumentParser(description='Parser for the LLM mitigation round with two modes of operation, mitigate and test')
+    # parser.set_defaults(func=lambda args: parser.print_help())
+    # subparser = parser.add_subparsers(dest='cmd', required=True)
 
     args = parser.parse_args()
     model, tokenizer = prepare_model_and_tokenizer(args.model, args.model_parameters, args.device)
