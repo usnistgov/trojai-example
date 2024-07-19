@@ -22,3 +22,4 @@ The available branches are
 - https://github.com/usnistgov/trojai-example/tree/nlp-sentiment-classification-apr2021
 - https://github.com/usnistgov/trojai-example/tree/nlp-sentiment-classification-mar2021
 - https://github.com/usnistgov/trojai-example/tree/image-classification-feb2021
+- https://github.com/usnistgov/trojai-example/tree/mitigation-image-classification-jun2024
