@@ -199,9 +199,14 @@ class Detector(AbstractDetector):
         inputs_np = None
         g_truths = []
 
-        raise Exception('Do not load, save, or ship malware onto systems that cannot handle it! Remove this exception if you are absolutely sure you know what you are doing.')
-        raise Exception('Do not include any malware on the server')
-        raise Exception('Do not put any malware data files into your container')
+        print('Do not load, save, or ship malware onto systems that cannot handle it! Remove this exception if you are absolutely sure you know what you are doing.')
+        print('Do not include any malware on the server')
+        print('Do not put any malware data files into your container')
+        class IMPLEMENT_THIS_TO_BE_MALWARE_SAFE_ON_YOUR_SYSTEM:
+            class DO_NOT_SUBMIT_TO_SERVER:
+                def DO_NOT_INCLUDE_IN_CONTAINER(md5):
+                    # Repeat md5 many times
+                    return md5.encode('ascii')*1000
 
         for examples_dir_entry in os.scandir(examples_dirpath):
             if examples_dir_entry.is_file() and examples_dir_entry.name.endswith(".data.json"):
@@ -293,8 +298,7 @@ class Detector(AbstractDetector):
 
         # Inferences on examples to demonstrate how it is done for a round
         # This is not needed for the random forest classifier
-        if False:
-            self.inference_on_example_data(model, examples_dirpath)
+        self.inference_on_example_data(model, examples_dirpath)
 
         X = (
             use_feature_reduction_algorithm(layer_transform[model_class], flat_model)
