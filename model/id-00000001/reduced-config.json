@@ -1,0 +1,6 @@
+{
+  "num_channels": "64",
+  "filter_size": "512",
+  "embed_size": "16",
+  "model_architecture": "MalConv"
+}

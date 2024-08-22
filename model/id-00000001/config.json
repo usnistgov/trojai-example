@@ -1,0 +1,14 @@
+{
+  "poisoning_rate": "0.01",
+  "attack_type": "dummy_section",
+  "batch_size": "64",
+  "num_channels": "64",
+  "filter_size": "512",
+  "embed_size": "16",
+  "epochs": "2",
+  "model_architecture": "MalConv",
+  "trigger_class_name": "upx",
+  "watermark_size": "128",
+  "watermark_random_seed": "2175",
+  "lr": "0.0001"
+}
