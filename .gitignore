@@ -17,3 +17,6 @@ token.pickle
 
 */[Bb]uild/
 */*.egg-info
+*checkpoint*
+test_trainer
+out

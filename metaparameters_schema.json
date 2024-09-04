@@ -35,9 +35,17 @@
         "description": "Model batch size used in training",
         "type": "integer",
         "minimum": 1,
-        "maximum": 8,
+        "maximum": 32,
         "suggested_minimum": 1,
         "suggested_maximum": 4
+      },
+      "max_token_length": {
+        "description": "Max length for the tokenizer",
+        "type": "integer",
+        "minimum": 512,
+        "maximum": 100000000000,
+        "suggested_minimum": 1024,
+        "suggested_maximum": 1000000000
       },
       "bf16": {
         "description": "Whether or not to do training in bf16",

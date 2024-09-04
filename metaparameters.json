@@ -7,11 +7,12 @@
     },
     "model_parameters": {
         "model_dtype": "bfloat16",
-        "use_flash_attn2": true
+        "use_flash_attn2": false
     },
     "learning_rate": 5e-5,
     "num_train_epochs": 5.0,
     "optim": "adamw_torch",
-    "batch_size": 4,
-    "bf16": true
+    "batch_size": 8,
+    "bf16": true,
+    "max_token_length":1024
 }
