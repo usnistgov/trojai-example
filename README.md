@@ -310,10 +310,10 @@ Package `example_trojan_detector.py` into a Singularity container.
     --nv \
     ./example_trojan_detector.simg \
    infer \
-    --model_filepath=./model/trojai-example-model-round10/model.pt \
+    --model_filepath=./model/id-00000001/model.pt \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/trojai-example-model-round10/clean-example-data/ \
+    --examples_dirpath=./model/id-00000001/clean-example-data/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./new_learned_parameters/metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
