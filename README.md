@@ -230,28 +230,28 @@ For some versions of this repository, the example model is too large to check in
 
 Package `detector.py` into a Singularity container.
 
-1. Install Singularity
+1. Install Apptainer
     
-    - Follow: [https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux](https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux)
+    - Follow: [https://apptainer.org/docs/admin/latest/installation.html](https://apptainer.org/docs/admin/latest/installation.html)
         
-2. Build singularity based on `detector.def` file: 
+2. Build singularity container based on `detector.def` file: 
 
-    - delete any old copy of output file if it exists: `rm detector.simg`
+    - delete any old copy of output file if it exists: `rm detector.sif`
     - package container: 
     
       ```bash
-      sudo singularity build detector.simg detector.def
+      apptainer build detector.sif detector.def
       ```
 
-    which generates a `example_trojan_detector.simg` file.
+    which generates a `example_trojan_detector.sif` file.
 
 3. Test run container: 
 
     ```bash
-    singularity run \
+    apptainer run \
     --bind /full/path/to/trojai-example \
     --nv \
-    ./detector.simg \
+    ./detector.sif \
     infer \
     --model_filepath=./model/object-detection-feb2023-example/model.pt \
     --result_filepath=./output.txt \
