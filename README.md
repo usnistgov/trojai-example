@@ -249,28 +249,28 @@ A small toy set of clean & poisioned data is also provided in this repository un
 
 Package `example_trojan_detector.py` into a Singularity container.
 
-1. Install Singularity
+1. Install Apptainer
     
-    - Follow: [https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux](https://singularity.hpcng.org/admin-docs/master/installation.html#installation-on-linux)
+    - Follow: [https://apptainer.org/docs/admin/latest/installation.html](https://apptainer.org/docs/admin/latest/installation.html)
         
-2. Build singularity based on `example_trojan_detector.def` file: 
+2. Build singularity container based on `example_trojan_detector.def` file: 
 
-    - delete any old copy of output file if it exists: `rm example_trojan_detector.simg`
+    - delete any old copy of output file if it exists: `rm example_trojan_detector.sif`
     - package container: 
     
       ```bash
-      sudo singularity build example_trojan_detector.simg example_trojan_detector.def
+      apptainer build example_trojan_detector.sif example_trojan_detector.def
       ```
 
-    which generates a `example_trojan_detector.simg` file.
+    which generates a `example_trojan_detector.sif` file.
 
 3. Test run container: 
 
     ```bash
-    singularity run \
+    apptainer run \
     --bind /full/path/to/trojai-example \
     --nv \
-    ./example_trojan_detector.simg \
+    ./example_trojan_detector.sif \
     infer \
     --model_filepath=./model/id-00000001/model.pt \
     --result_filepath=./output.txt \
@@ -290,10 +290,10 @@ Package `example_trojan_detector.py` into a Singularity container.
 4. Test self-tune functionality.
 
     ```bash
-    singularity run \
+    apptainer run \
     --bind /full/path/to/trojai-example \
     --nv \
-    ./example_trojan_detector.simg \
+    ./example_trojan_detector.sif \
     configure \
     --scratch_dirpath=./scratch/ \
     --metaparameters_filepath=./metaparameters.json \
@@ -305,10 +305,10 @@ Package `example_trojan_detector.py` into a Singularity container.
     The tuned parameters can then be used in a regular run.
 
     ```bash
-    singularity run \
+    apptainer run \
     --bind /full/path/to/trojai-example \
     --nv \
-    ./example_trojan_detector.simg \
+    ./example_trojan_detector.sif \
    infer \
     --model_filepath=./model/id-00000001/model.pt \
     --result_filepath=./output.txt \
