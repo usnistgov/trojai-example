@@ -22,6 +22,8 @@ import torch
 import torchvision
 import skimage.io
 
+from scripts.public.evaluate_colorful_memory_model import evaluate
+
 
 class Detector(AbstractDetector):
     def __init__(self, metaparameter_filepath, learned_parameters_dirpath):
@@ -144,15 +146,34 @@ class Detector(AbstractDetector):
         self.write_metaparameters()
         logging.info("Configuration done!")
 
-    def inference_on_example_data(self, model, examples_dirpath):
+    def inference_on_example_data(self, model_filepath, examples_dirpath):
         """Method to demonstrate how to inference on a round's example data.
 
         Args:
-            model: the pytorch model
+            model_filepath: path to the pytorch model file
             examples_dirpath: the directory path for the round example data
         """
-        # TODO: Implement per-round inference on example data
-        raise NotImplementedError("Need to implement the per-round inference of example data.")
+        args = {'episodes': 5,
+                'success_rate_episodes': 5,
+                'procs': 10,
+                'worst_episodes_to_show': 10,
+                'argmax': False,
+                'gpu': False,
+                'seed': 1}
+
+        model_dir = os.path.basename(model_filepath)
+
+        with open(os.path.join(model_dir, "reduced-config.json"), "r") as f:
+            config = json.load(f)
+
+        #   grid_size: (int) Size of the environment grid
+        args['grid_size'] = config["grid_size"]
+        #   random_length: (bool) If the length of the hallway is randomized (within the allowed size of the grid)
+        args['random_length'] = config["random_length"]
+        #   max_steps: (int) The maximum allowed steps for the env (AFFECTS REWARD MAGNITUDE!) - recommend 250
+        args['max_steps'] = config["max_steps"]
+
+        evaluate(args)
 
     def infer(
             self,
@@ -172,11 +193,8 @@ class Detector(AbstractDetector):
             round_training_dataset_dirpath:
         """
 
-        # load the model
-        model, model_repr, model_class = load_model(model_filepath)
-
         # Inferences on examples to demonstrate how it is done for a round
-        self.inference_on_example_data(model, examples_dirpath)
+        self.inference_on_example_data(model_filepath, examples_dirpath)
 
         # build a fake random feature vector for this model, in order to compute its probability of poisoning
         rso = np.random.RandomState(seed=self.weight_params['rso_seed'])
