@@ -1,0 +1,24 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "src"
+version = "0.0.1"
+description = 'Framework for generating DRL models solving a Minigrid task called Colorful Memory for IARPA TrojAI.'
+authors = [
+    {name = "Chace Ashcraft", email = "chace.ashcraft@jhuapl.edu"}
+]
+requires-python = ">=3.10"
+dependencies = [
+    "minigrid>=2.3.1",
+    "tensorboardX>=2.6.2.2",
+    "torch-ac>=1.4.0",
+    "yacs>=0.1.8"
+]
+readme = {file = "README.txt", content-type = "text/markdown"}
+license = {file = "LICENSE"}
+
