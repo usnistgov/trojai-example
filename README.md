@@ -176,6 +176,7 @@ For some versions of this repository, the example model is too large to check in
    - `conda create --name trojai-example python=3.10 -y` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
    - `conda activate trojai-example`
    - `pip install -e .` (Must be run from the trojai-example directory)
+   - `pip install torchvision tqdm jsonschema jsonpickle scikit-learn scikit-image`
 
 3. Test the python based `example_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
 
