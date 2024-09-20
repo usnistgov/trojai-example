@@ -161,15 +161,6 @@ For some versions of this repository, the example model is too large to check in
 
 [https://conda-forge.org/](https://conda-forge.org/)
 
-## Setup the Conda Environment
-
-1. `conda create --name trojai-example python=3.10 -y` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
-2. `conda activate trojai-example`
-3. Install required packages into this conda environment
-
-    - `conda install pytorch torchvision pytorch-cuda=11.7 -c pytorch -c nvidia`
-    - `pip install jsonschema jsonargparse jsonpickle scikit-learn scikit-image`
-
 ## Test Fake Detector Without Containerization
 
 1.  Clone the repository 
@@ -180,7 +171,13 @@ For some versions of this repository, the example model is too large to check in
     git checkout <branch for your round>
     ``` 
 
-2. Test the python based `example_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
+2. Setup the Conda Environment
+
+  1. `conda create --name trojai-example python=3.10 -y` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
+  2. `conda activate trojai-example`
+  3. From the trojai-example directory run `pip install -e .`
+
+3. Test the python based `example_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
 
     ```bash
     python entrypoint.py infer \
@@ -200,7 +197,7 @@ For some versions of this repository, the example model is too large to check in
     Trojan Probability: 0.07013004086445151
     ```
 
-3. Test self-configure functionality, note to automatically reconfigure should specify `--automatic_configuration`.
+4. Test self-configure functionality, note to automatically reconfigure should specify `--automatic_configuration`.
 
     ```bash
     python entrypoint.py configure \
