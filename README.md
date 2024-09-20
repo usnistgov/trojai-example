@@ -157,9 +157,9 @@ For some versions of this repository, the example model is too large to check in
 --------------
 # How to Build this Minimal Example
 
-## Install Anaconda Python
+## Install Mninforge
 
-[https://www.anaconda.com/distribution/](https://www.anaconda.com/distribution/)
+[https://conda-forge.org/](https://conda-forge.org/)
 
 ## Setup the Conda Environment
 
