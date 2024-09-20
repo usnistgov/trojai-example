@@ -157,7 +157,7 @@ For some versions of this repository, the example model is too large to check in
 --------------
 # How to Build this Minimal Example
 
-## Install Mninforge
+## Install Miniforge
 
 [https://conda-forge.org/](https://conda-forge.org/)
 
