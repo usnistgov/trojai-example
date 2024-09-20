@@ -12,6 +12,8 @@ import jsonpickle
 import pickle
 import numpy as np
 
+from collections import namedtuple
+
 from sklearn.ensemble import RandomForestRegressor
 
 import utils.models
@@ -153,25 +155,35 @@ class Detector(AbstractDetector):
             model_filepath: path to the pytorch model file
             examples_dirpath: the directory path for the round example data
         """
-        args = {'episodes': 5,
-                'success_rate_episodes': 5,
-                'procs': 10,
-                'worst_episodes_to_show': 10,
-                'argmax': False,
-                'gpu': False,
-                'seed': 1}
+        args = namedtuple('args', ['eipsodes',
+                                   'success_rate_episodes',
+                                   'procs',
+                                   'worst_episodes_to_show',
+                                   'argmax',
+                                   'gpu',
+                                   'grid_size',
+                                   'random_length',
+                                   'max_steps'])
+                                   
+        args.episodes = 5
+        args.success_rate_episodes = 5
+        args.procs = 10
+        args.worst_episodes_to_show = 10
+        args.argmax = False
+        args.gpu = False
+        args.seed = 1
 
-        model_dir = os.path.basename(model_filepath)
+        model_dir = os.path.dirname(model_filepath)
 
-        with open(os.path.join(model_dir, "reduced-config.json"), "r") as f:
+        with open(os.path.join(model_dir, "reduced_config.json"), "r") as f:
             config = json.load(f)
 
         #   grid_size: (int) Size of the environment grid
-        args['grid_size'] = config["grid_size"]
+        args.grid_size = config["grid_size"]
         #   random_length: (bool) If the length of the hallway is randomized (within the allowed size of the grid)
-        args['random_length'] = config["random_length"]
+        args.random_length = config["random_length"]
         #   max_steps: (int) The maximum allowed steps for the env (AFFECTS REWARD MAGNITUDE!) - recommend 250
-        args['max_steps'] = config["max_steps"]
+        args.max_steps = config["max_steps"]
 
         evaluate(args)
 
