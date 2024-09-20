@@ -155,7 +155,8 @@ class Detector(AbstractDetector):
             model_filepath: path to the pytorch model file
             examples_dirpath: the directory path for the round example data
         """
-        args = namedtuple('args', ['eipsodes',
+        args = namedtuple('args', ['model_dir',
+                                   'eipsodes',
                                    'success_rate_episodes',
                                    'procs',
                                    'worst_episodes_to_show',
@@ -164,7 +165,8 @@ class Detector(AbstractDetector):
                                    'grid_size',
                                    'random_length',
                                    'max_steps'])
-                                   
+
+        args.model_dir = os.path.dirname(model_filepath)
         args.episodes = 5
         args.success_rate_episodes = 5
         args.procs = 10
@@ -173,9 +175,7 @@ class Detector(AbstractDetector):
         args.gpu = False
         args.seed = 1
 
-        model_dir = os.path.dirname(model_filepath)
-
-        with open(os.path.join(model_dir, "reduced_config.json"), "r") as f:
+        with open(os.path.join(args.model_dir, "reduced_config.json"), "r") as f:
             config = json.load(f)
 
         #   grid_size: (int) Size of the environment grid

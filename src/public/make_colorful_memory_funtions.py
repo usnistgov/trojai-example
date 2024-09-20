@@ -18,7 +18,5 @@ def make_clean_env(args, render_mode=None):
                "size": args.grid_size,
                "render_mode": render_mode,
                "random_length": args.random_length,
-               "room_trigger_pattern": None,
-               "end_trigger_pattern": None,
                "max_steps": args.max_steps}
     return ImageObsWrapper(ColorfulMemoryEnv(ColorfulMemoryCfg(**env_cfg)))
