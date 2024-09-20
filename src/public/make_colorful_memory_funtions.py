@@ -1,7 +1,7 @@
 import gymnasium as gym
 import numpy as np
 
-from src.private.colorful_memory import ColorfulMemoryEnv, ColorfulMemoryCfg
+from src.public.colorful_memory import ColorfulMemoryEnv, ColorfulMemoryCfg
 
 
 class ImageObsWrapper(gym.ObservationWrapper):
