@@ -11,8 +11,9 @@ From: pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime
 
 %post
     pip install --upgrade pip
-    pip install torchvision==0.14.1
-    pip install jsonschema jsonargparse jsonpickle scikit-learn scikit-image
+    pip install torchvision==0.19.1
+    pip install tqdm jsonschema jsonargparse jsonpickle 
+    pip install scikit-learn==1.5.2 scikit-image==0.24.0
 
 %runscript
     exec python3 /entrypoint.py "$@"
