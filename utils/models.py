@@ -77,7 +77,7 @@ def load_models_dirpath(models_dirpath):
 
     for model_path in tqdm(models_dirpath):
         model, model_repr, model_class = load_model(
-            join(model_path, "model.pt")
+            join(model_path, "status.pt")
         )
         model_ground_truth = load_ground_truth(model_path)
 
