@@ -1,19 +1,15 @@
 Bootstrap: docker
-From: pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime
+From: pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
 
 %files
-    ./detector.py /
-    ./entrypoint.py /
-    ./utils /
-    ./metaparameters.json /
-    ./metaparameters_schema.json /
-    ./learned_parameters /
+    ./ /trojai-example
 
 %post
     pip install --upgrade pip
+    pip install -e /trojai-example
     pip install torchvision==0.19.1
     pip install tqdm jsonschema jsonargparse jsonpickle 
     pip install scikit-learn==1.5.2 scikit-image==0.24.0
 
 %runscript
-    exec python3 /entrypoint.py "$@"
+    exec python3 /trojai-example/entrypoint.py "$@"
