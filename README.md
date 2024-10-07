@@ -183,7 +183,7 @@ For some versions of this repository, the example model is too large to check in
 
     ```bash
     python entrypoint.py infer \
-   --model_filepath ./model/object-detection-feb2023-example/model.pt \
+   --model_filepath ./model/rl-colorful-memory-sep2024-example/model.pt \
    --result_filepath ./output.txt \
    --scratch_dirpath ./scratch \
    --round_training_dataset_dirpath /path/to/train-dataset \
@@ -214,7 +214,7 @@ For some versions of this repository, the example model is too large to check in
 
    ```bash
     python entrypoint.py infer \
-   --model_filepath ./model/object-detection-feb2023-example/model.pt \
+   --model_filepath ./model/rl-colorful-memory-sep2024-example/model.pt \
    --result_filepath ./output.txt \
    --scratch_dirpath ./scratch \
    --round_training_dataset_dirpath /path/to/train-dataset \
@@ -250,7 +250,7 @@ Package `detector.py` into a Singularity container.
     --nv \
     ./detector.sif \
     infer \
-    --model_filepath=./model/object-detection-feb2023-example/model.pt \
+    --model_filepath=./model/rl-colorful-memory-sep2024-example/model.pt \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
