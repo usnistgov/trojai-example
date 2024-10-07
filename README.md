@@ -10,6 +10,7 @@ git checkout image-classification-feb2021
 ```
 
 The available branches are
+- https://github.com/usnistgov/trojai-example/tree/rl-colorful-memory-sep2024
 - https://github.com/usnistgov/trojai-example/tree/cyber-pe-aug2024
 - https://github.com/usnistgov/trojai-example/tree/mitigation-image-classification-jun2024
 - https://github.com/usnistgov/trojai-example/tree/rl-randomized-lavaworld-aug2023
