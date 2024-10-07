@@ -16,7 +16,7 @@ class ColorfulMemoryAgent:
     def __init__(self, obs_space, action_space, model_dir, argmax=False, num_envs=1, device=None,
                  config_name='reduced_config.json'):
         obs_space, self.preprocess_obss = get_obss_preprocessor(obs_space)
-        state = torch.load(os.path.join(model_dir, 'status.pt'), map_location=device)
+        state = torch.load(os.path.join(model_dir, 'model.pt'), map_location=device)
         with open(os.path.join(model_dir, config_name), 'r') as f:
             args = json.load(f)
         self.acmodel = GRUCNNActorCriticModel(obs_space, action_space,
