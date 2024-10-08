@@ -122,7 +122,6 @@ Example usage for inferencing:
    --model_filepath <model_filepath> \
    --result_filepath <result_filepath> \
    --scratch_dirpath <scratch_dirpath> \
-   --examples_dirpath <examples_dirpath> \
    --round_training_dataset_dirpath <round_training_dirpath> \
    --metaparameters_filepath <metaparameters_filepath> \
    --schema_filepath <schema_filepath> \
@@ -207,7 +206,6 @@ A small toy set of clean & poisioned data is also provided in this repository un
    --model_filepath ./model/id-00000001/model.pt \
    --result_filepath ./scratch/output.txt \
    --scratch_dirpath ./scratch \
-   --examples_dirpath ./model/id-00000001/clean-example-data \
    --round_training_dataset_dirpath /path/to/train-dataset \
    --learned_parameters_dirpath ./learned_parameters \
    --metaparameters_filepath ./metaparameters.json \
@@ -238,7 +236,6 @@ A small toy set of clean & poisioned data is also provided in this repository un
     --model_filepath=./model/id-00000001/model.pt \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000001/clean-example-data/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./new_learned_parameters/metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
@@ -275,7 +272,6 @@ Package `example_trojan_detector.py` into a Singularity container.
     --model_filepath=./model/id-00000001/model.pt \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000001/clean-example-data/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
@@ -313,7 +309,6 @@ Package `example_trojan_detector.py` into a Singularity container.
     --model_filepath=./model/id-00000001/model.pt \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
-    --examples_dirpath=./model/id-00000001/clean-example-data/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
     --metaparameters_filepath=./new_learned_parameters/metaparameters.json \
     --schema_filepath=./metaparameters_schema.json \
