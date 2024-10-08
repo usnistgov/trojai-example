@@ -14,7 +14,7 @@ class ColorfulMemoryAgent:
     - to analyze the feedback (i.e. reward and done state) of its action."""
 
     def __init__(self, obs_space, action_space, model_dir, argmax=False, num_envs=1, device=None,
-                 config_name='reduced_config.json'):
+                 config_name='reduced-config.json'):
         obs_space, self.preprocess_obss = get_obss_preprocessor(obs_space)
         state = torch.load(os.path.join(model_dir, 'model.pt'), map_location=device)
         with open(os.path.join(model_dir, config_name), 'r') as f:
