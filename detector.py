@@ -175,7 +175,7 @@ class Detector(AbstractDetector):
         args.gpu = False
         args.seed = 1
 
-        with open(os.path.join(args.model_dir, "reduced_config.json"), "r") as f:
+        with open(os.path.join(args.model_dir, "reduced-config.json"), "r") as f:
             config = json.load(f)
 
         #   grid_size: (int) Size of the environment grid
