@@ -2,9 +2,16 @@ Bootstrap: docker
 From: pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
 
 %files
-    ./ /trojai-example
+    ./detector.py /trojai-example/detector.py
+    ./entrypoint.py /trojai-example/entrypoint.py
+    ./learned_parameters /learned_parameters
     ./metaparameters.json /metaparameters.json
     ./metaparameters_schema.json /metaparameters_schema.json
+    ./pyproject.toml /trojai-example/pyproject.toml
+    ./rl_starter_files_code /trojai-example/rl_starter_files_code
+    ./scripts /trojai-example/scripts
+    ./src /trojai-example/src
+    ./utils /trojai-example/utils
 
 %post
     pip install --upgrade pip
