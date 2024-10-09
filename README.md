@@ -163,12 +163,28 @@ For some versions of this repository, the example model is too large to check in
 
 ## Setup the Conda Environment
 
-1. `conda create --name trojai-example python=3.10 -y` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
+1. `conda create --name trojai-example python=3.8 -y` ([help](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html))
 2. `conda activate trojai-example`
 3. Install required packages into this conda environment
 
     - `conda install pytorch torchvision pytorch-cuda=11.7 -c pytorch -c nvidia`
-    - `pip install jsonschema jsonargparse jsonpickle scikit-learn scikit-image`
+    - `pip install tqdm jsonschema jsonpickle`
+    - `pip install scikit-learn==1.3.2 scikit-image==0.21.0`
+
+4. Install the Safety Gymnasium library (Do not install under this repo directory.  Install in another location, such as the parent directory.)
+```
+cd ..
+wget https://github.com/PKU-Alignment/safety-gymnasium/archive/refs/heads/main.zip
+unzip main.zip
+cd safety-gymnasium-main
+pip install -e .
+```
+
+5. Install the Gentle library from this repo
+```
+cd ../rl-safetygymnasium-oct2024
+pip install -e .
+```
 
 ## Test Fake Detector Without Containerization
 
