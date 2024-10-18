@@ -1,0 +1,13 @@
+torch
+torchvision
+tqdm
+configargparse
+numpy
+transformers==4.41.2
+peft
+datasets
+pyyaml
+nvidia-ml-py3
+trl
+#flash-attn
+jsonschema

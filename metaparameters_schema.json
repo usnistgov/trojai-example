@@ -1,0 +1,63 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Trojan Mitigation Container (trojai-example) - The template mitigation technique to be used within the TrojAI competition.",
+    "technique": "Fine Tuning",
+    "technique_description": "Run a certain amount of epochs of fine tuning on the model",
+    "technique_changes": "",
+    "technique_type": ["Weight Modification"],
+    "commit_id": "",
+    "repo_name": "https://github.com/usnistgov/trojai-example",
+    "required": [],
+    "additionalProperties": false,
+    "type": "object",
+    "properties": {
+      "optim":  {
+          "description": "The torch optimizer used for fine tuning",
+          "type": "string"
+      },
+      "learning_rate": {
+          "description": "Learing rate used for fine tuning ",
+          "type": "number",
+          "minimum": 0.000001,
+          "maximum": 0.1,
+          "suggested_minimum": 0.0001,
+          "suggested_maximum": 0.001
+      },
+      "num_train_epochs": {
+          "description": "Count of epochs to run fine tuning for",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "suggested_minimum": 3,
+          "suggested_maximum": 10
+      },
+      "batch_size": {
+        "description": "Model batch size used in training",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 32,
+        "suggested_minimum": 1,
+        "suggested_maximum": 4
+      },
+      "max_token_length": {
+        "description": "Max length for the tokenizer",
+        "type": "integer",
+        "minimum": 512,
+        "maximum": 100000000000,
+        "suggested_minimum": 1024,
+        "suggested_maximum": 1000000000
+      },
+      "bf16": {
+        "description": "Whether or not to do training in bf16",
+        "type": "boolean"
+      },
+      "lora_parameters": {
+        "description": "Parameters used to train the LoRA",
+        "type": "object"
+      },
+      "model_parameters": {
+        "description": "Parameters passed to the model during creation",
+        "type": "object"
+      }
+    }
+  }

@@ -1,0 +1,18 @@
+{
+    "lora_parameters": {
+        "inference_mode": false,
+        "r": 8,
+        "lora_alpha": 8,
+        "lora_dropout": 0.05
+    },
+    "model_parameters": {
+        "model_dtype": "bfloat16",
+        "use_flash_attn2": false
+    },
+    "learning_rate": 5e-5,
+    "num_train_epochs": 5.0,
+    "optim": "adamw_torch",
+    "batch_size": 8,
+    "bf16": true,
+    "max_token_length":1024
+}
