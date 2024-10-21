@@ -155,15 +155,16 @@ class Detector(AbstractDetector):
         self.write_metaparameters()
         logging.info("Configuration done!")
 
-    def inference_on_example_data(self, model, examples_dirpath):
+    def inference_on_example_data(self, model_filepath, examples_dirpath):
         """Method to demonstrate how to inference on a round's example data.
 
         Args:
-            model: the pytorch model
+            model_filepath: path to the pytorch model file
             examples_dirpath: the directory path for the round example data
         """
 
-    full_config = "./output/clean_config.json"
+    model_dirpath = os.path.dirname(model_filepath)
+    full_config = os.path.join(model_dirpath, "reduced-config.json")
     print(full_config)
     sys.stdout.flush()
     with open(full_config, 'r') as f1:
@@ -184,7 +185,7 @@ class Detector(AbstractDetector):
 
     opac_object.initialize_env()
     opac_object.initialize_networks()
-    opac_object.pi_network.load_state_dict(model["pi"])
+    opac_object.pi_network.load_state_dict(torch.load(model_filepath)["pi"])
     opac_object.sampler = get_sampler(opac_object.config.pi_network)
 
     # ========================================================================
@@ -243,11 +244,8 @@ class Detector(AbstractDetector):
             round_training_dataset_dirpath:
         """
 
-        # load the model
-        model, model_repr, model_class = load_model(model_filepath)
-
         # Inferences on examples to demonstrate how it is done for a round
-        self.inference_on_example_data(model, examples_dirpath)
+        self.inference_on_example_data(model_filepath, examples_dirpath)
 
         # build a fake random feature vector for this model, in order to compute its probability of poisoning
         rso = np.random.RandomState(seed=self.weight_params['rso_seed'])
