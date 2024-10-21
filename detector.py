@@ -190,7 +190,7 @@ class Detector(AbstractDetector):
 
         # ========================================================================
 
-        display_render = True
+        display_render = False #True
         delay = 0.01
         num_episodes = 5
         env = opac_object.env
