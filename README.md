@@ -129,18 +129,7 @@ Example usage for inferencing:
 # System Requirements
 
 - Linux (tested on Ubuntu 20.04 LTS)
-- CUDA capable NVIDIA GPU (tested on A4500)
 
-Note: This example assumes you are running on a version of Linux (like Ubuntu 20.04 LTS) with a CUDA enabled NVIDIA GPU. Singularity only runs natively on Linux, and most Deep Learning libraries are designed for Linux first. While this Conda setup will install the CUDA drivers required to run PyTorch, the CUDA enabled GPU needs to be present on the system. 
-
---------------
-# Example Data
-
-Example data can be downloaded from the NIST [Leader-Board website](https://pages.nist.gov/trojai/). 
-
-A small toy set of clean data is also provided in this repository under the model/example-data/ folder. This toy set of data is only for testing your environment works correctly. 
-
-For some versions of this repository, the example model is too large to check into git. In those cases a model/README.md will point you to where the example model can be downloaded. 
 
 --------------
 # Submission Instructions
