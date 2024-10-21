@@ -192,7 +192,7 @@ pip install -e .
     ```
     git clone https://github.com/usnistgov/trojai-example
     cd trojai-example
-    git checkout <branch for your round>
+    git checkout rl-safetygymnasium-oct2024
     ``` 
 
 2. Test the python based `example_trojan_detector` outside of any containerization to confirm pytorch is setup correctly and can utilize the GPU.
