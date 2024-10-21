@@ -94,7 +94,8 @@ if __name__ == "__main__":
         type=str,
         help="File path to the folder of examples which might be useful for determining "
         "whether a model is poisoned.",
-        required=True
+        default=None,
+        required=False
     )
     inf_parser.add_argument(
         "--round_training_dataset_dirpath",
