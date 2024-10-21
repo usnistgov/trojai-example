@@ -167,7 +167,7 @@ For some versions of this repository, the example model is too large to check in
     ```
     git clone https://github.com/usnistgov/trojai-example
     cd trojai-example
-    git checkout <branch for your round>
+    git checkout rl-colorful-memory-sep2024
     ``` 
 
 2. Setup the Conda Environment
