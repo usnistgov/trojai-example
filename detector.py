@@ -22,6 +22,17 @@ import torch
 import torchvision
 import skimage.io
 
+# Inference imports
+from gentle.rl.opac2_multitask import OffPolicyActorCriticMultitask
+from clean_envs import make_clean_env
+import sys
+import json
+import torch
+import time
+import cv2
+from box import Box
+from gentle.common.utils import get_sampler
+
 
 class Detector(AbstractDetector):
     def __init__(self, metaparameter_filepath, learned_parameters_dirpath):
@@ -151,8 +162,68 @@ class Detector(AbstractDetector):
             model: the pytorch model
             examples_dirpath: the directory path for the round example data
         """
-        # TODO: Implement per-round inference on example data
-        raise NotImplementedError("Need to implement the per-round inference of example data.")
+
+    full_config = "./output/clean_config.json"
+    print(full_config)
+    sys.stdout.flush()
+    with open(full_config, 'r') as f1:
+        config = Box(json.load(f1))
+
+    config.seed = 0
+    config.log_folder = "./logs/temp"
+    config.model_folder = "./output/temp"
+    config.render_mode = "rgb_array"
+
+    envs = [make_clean_env]
+
+    opac_object = OffPolicyActorCriticMultitask(
+        config,
+        make_train_envs=envs,
+        make_test_envs=envs,
+    )
+
+    opac_object.initialize_env()
+    opac_object.initialize_networks()
+    opac_object.pi_network.load_state_dict(model["pi"])
+    opac_object.sampler = get_sampler(opac_object.config.pi_network)
+
+    # ========================================================================
+
+    display_render = True
+    delay = 0.01
+    num_episodes = 5
+    env = opac_object.env
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    for j in range(num_episodes):
+        obs, info = opac_object.reset_env(env)
+        terminated, truncated = False, False
+        returns = 0.0
+        success = False
+        while not terminated and not truncated:
+            action = opac_object.get_action(obs, deterministic=True)
+            with torch.no_grad():
+                torch_obs = torch.from_numpy(obs).to(device).float()
+                torch_act = torch.from_numpy(action).to(device).float()
+                pi = opac_object.pi_network(torch_obs)
+                _, log_prob = opac_object.sampler.get_action_and_log_prob(pi)
+            next_obs, reward, terminated, truncated, info = env.step(action)
+            returns += reward
+
+            if display_render:
+                rgb = env.render()
+                cv2.imshow("render", rgb[:, :, ::-1])
+                cv2.waitKey(1)
+
+            if delay > 0.0:
+                time.sleep(delay)
+
+            obs = next_obs
+
+            if "success" in info and info["success"]:
+                success = True
+
+        print("Success:", success, "Total reward:", returns)
 
     def infer(
             self,
