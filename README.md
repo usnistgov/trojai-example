@@ -191,7 +191,7 @@ pip install -e .
 
     ```bash
     python entrypoint.py infer \
-   --model_filepath ./model/object-detection-feb2023-example/model.pt \
+   --model_filepath ./model/rl-safetygymnasium-oct2024-example/model.pt \
    --result_filepath ./output.txt \
    --scratch_dirpath ./scratch \
    --round_training_dataset_dirpath /path/to/train-dataset \
@@ -222,7 +222,7 @@ pip install -e .
 
    ```bash
     python entrypoint.py infer \
-   --model_filepath ./model/object-detection-feb2023-example/model.pt \
+   --model_filepath ./model/rl-safetygymnasium-oct2024-example/model.pt \
    --result_filepath ./output.txt \
    --scratch_dirpath ./scratch \
    --round_training_dataset_dirpath /path/to/train-dataset \
@@ -258,7 +258,7 @@ Package `detector.py` into a Singularity container.
     --nv \
     ./detector.sif \
     infer \
-    --model_filepath=./model/object-detection-feb2023-example/model.pt \
+    --model_filepath=./model/rl-safetygymnasium-oct2024-example/model.pt \
     --result_filepath=./output.txt \
     --scratch_dirpath=./scratch/ \
     --round_training_dataset_dirpath=/path/to/training/dataset/ \
