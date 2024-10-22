@@ -2,17 +2,31 @@ Bootstrap: docker
 From: pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime
 
 %files
-    ./detector.py /
-    ./entrypoint.py /
-    ./utils /
-    ./metaparameters.json /
-    ./metaparameters_schema.json /
-    ./learned_parameters /
+    ./clean_config.py /trojai-example/clean_config.py
+    ./clean_envs.py /trojai-example/clean_envs.py
+    ./detector.py /trojai-example/detector.py
+    ./entrypoint.py /trojai-example/entrypoint.py
+    ./gentle /trojai-example/gentle
+    ./learned_parameters /learned_parameters
+    ./metaparameters.json /metaparameters.json
+    ./metaparameters_schema.json /metaparameters_schema.json
+    ./mogwai.py /trojai-example/mogwai.py
+    ./README.md /trojai-example/README.md
+    ./setup.py /trojai-example/setup.py
+    ./utils /trojai-example/utils
 
 %post
     pip install --upgrade pip
-    pip install torchvision==0.14.1
-    pip install jsonschema jsonargparse jsonpickle scikit-learn scikit-image
+    pip install tqdm jsonschema jsonpickle
+    pip install scikit-learn==1.3.2 scikit-image==0.21.0
+
+    apt update
+    apt install -y wget unzip
+    wget --directory-prefix=/ https://github.com/PKU-Alignment/safety-gymnasium/archive/refs/heads/main.zip
+    unzip -d / /main.zip
+    pip install -e /safety-gymnasium-main
+
+    pip install -e /trojai-example
 
 %runscript
-    exec python3 /entrypoint.py "$@"
+    exec python3 /trojai-example/entrypoint.py "$@"
