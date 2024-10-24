@@ -1,18 +1,17 @@
-from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, DataCollatorForLanguageModeling
+import os
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import LoraConfig, TaskType
 import torch
 import jsonschema
 import json
 from datasets import load_dataset, Dataset
-import yaml
-from trl import setup_chat_format, DataCollatorForCompletionOnlyLM
+from trl import DataCollatorForCompletionOnlyLM
 
-from trojai_llm_mitigation_round.mitigations.finetuning import FineTuningTrojaiMitigationLLM
-from trojai_llm_mitigation_round.utils import print_gpu_utilization
+from finetuning import FineTuningTrojaiMitigationLLM
+import utils
 
 
-TASK_TYPE = TaskType.CAUSAL_LM
-AUTO_MODEL_CLS = AutoModelForCausalLM
+
 INSTRUCTION_TEMPLATE_LOOKUP = {
         'google/gemma-2-2b-it': '<start_of_turn>user',
         'google/gemma-2-9b-it': '<start_of_turn>user',
@@ -21,7 +20,8 @@ INSTRUCTION_TEMPLATE_LOOKUP = {
         'meta-llama/Llama-2-7b-chat-hf': '<s>[INST]',
         'meta-llama/Meta-Llama-3-8B-Instruct': '<|begin_of_text|><|start_header_id|>user<|end_header_id|>',
         "mistralai/Mixtral-8x7B-Instruct-v0.1": '[INST]',
-        'meta-llama/Meta-Llama-3.1-8B-Instruct': '<|begin_of_text|><|start_header_id|>user<|end_header_id|>'
+        'meta-llama/Meta-Llama-3.1-8B-Instruct': '<|begin_of_text|><|start_header_id|>user<|end_header_id|>',
+        'meta-llama/Llama-3.2-1B-Instruct': '<|begin_of_text|><|start_header_id|>user<|end_header_id|>'
     }
 RESPONSE_TEMPLATE_LOOKUP = {
     'google/gemma-2-2b-it': '<start_of_turn>model\n',
@@ -31,7 +31,8 @@ RESPONSE_TEMPLATE_LOOKUP = {
     'meta-llama/Llama-2-7b-chat-hf': '[/INST]',
     'meta-llama/Meta-Llama-3-8B-Instruct': '<|start_header_id|>assistant<|end_header_id|>',
     "mistralai/Mixtral-8x7B-Instruct-v0.1": '[/INST]',
-    'meta-llama/Meta-Llama-3.1-8B-Instruct': '<|begin_of_text|><|start_header_id|>assistant<|end_header_id|>'
+    'meta-llama/Meta-Llama-3.1-8B-Instruct': '<|begin_of_text|><|start_header_id|>assistant<|end_header_id|>',
+    'meta-llama/Llama-3.2-1B-Instruct': '<|begin_of_text|><|start_header_id|>assistant<|end_header_id|>'
 }
 
 def prepare_mitigation(config_json, argv):
@@ -50,22 +51,25 @@ def prepare_mitigation(config_json, argv):
 
 def prepare_dataset(dataset_path, split='train'):
     num_split = -1
-    dataset = load_dataset(dataset_path, split=f'{split}[:{num_split}]')
+    dataset = load_dataset('json', data_files=[dataset_path], split=f'{split}[:{num_split}]')
     dataset = dataset.train_test_split(test_size=0.2)
     
-    # Note: Debug hack to make the dataset smaller for debugging
-    dataset['train'] = Dataset.from_dict(dataset['train'][:10000])
-    dataset['test'] = Dataset.from_dict(dataset['test'][:1000])
+    # # Note: Debug hack to make the dataset smaller for debugging
+    # dataset['train'] = Dataset.from_dict(dataset['train'][:10])
+    # dataset['test'] = Dataset.from_dict(dataset['test'][:10])
     return dataset
 
 
 def prepare_peft(lora_parameters):
-    return LoraConfig(task_type=TASK_TYPE, **lora_parameters)
+    return LoraConfig(task_type=TaskType.CAUSAL_LM, **lora_parameters)
 
 
 def prepare_model_and_tokenizer(model_path):
-    dtype = torch.bfloat16
-    model = AUTO_MODEL_CLS.from_pretrained(model_path,torch_dtype=dtype, attn_implementation='flash_attention_2')
+    torch_dtype = torch.bfloat16
+    # print(torch.__version__)
+    # import transformers
+    # print(transformers.__version__)
+    model = AutoModelForCausalLM.from_pretrained(model_path, trust_remote_code=True,  low_cpu_mem_usage=True, torch_dtype=torch_dtype)
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     ## Note: Commenting out due to the fact it changes the embedding layer of the model
     # if tokenizer.chat_template is None:
@@ -96,20 +100,26 @@ def run_mitigate_mode(argv):
     with open(argv.schema_filepath) as schema_file:
         schema_json = json.load(schema_file)
 
+    model_name = argv.model
+    if os.path.exists(argv.model):
+        with open(os.path.join(argv.model, 'config.json')) as config_file:
+            reduced_round_config_json = json.load(config_file)
+        model_name = reduced_round_config_json['model_architecture']
+
     # Throws a fairly descriptive error if validation fails.
     jsonschema.validate(instance=config_json, schema=schema_json)
-    model, tokenizer = prepare_model_and_tokenizer(argv.model, config_json['model_parameters'])
+    model, tokenizer = prepare_model_and_tokenizer(argv.model)
     peft_config = prepare_peft(config_json['lora_parameters'])
-    dataset = prepare_dataset(argv.dataset_dirpath)
+    dataset = prepare_dataset('example_data.json')
     print("Finished prepping dataset")
-    print_gpu_utilization()
+    utils.print_gpu_utilization()
     ## This is for Llama:
     # INSTRUCTION_TEMPLATE = '<|begin_of_text|><|start_header_id|>user<|end_header_id|>'
     # RESPONSE_TEMPLATE = '<|start_header_id|>assistant<|end_header_id|>'
     # INSTRUCTION_TEMPLATE = '<start_of_turn>user<end_of_turn>'
     # RESPONSE_TEMPLATE = '<end_of_turn>model<end_of_turn>'
-    response = RESPONSE_TEMPLATE_LOOKUP[argv.model]
-    instruction = INSTRUCTION_TEMPLATE_LOOKUP[argv.model] 
+    response = RESPONSE_TEMPLATE_LOOKUP[model_name]
+    instruction = INSTRUCTION_TEMPLATE_LOOKUP[model_name]
     collator = DataCollatorForCompletionOnlyLM(tokenizer=tokenizer, response_template=response, instruction_template=instruction)
 
     mitigation = prepare_mitigation(config_json, argv)
@@ -147,13 +157,10 @@ if __name__ == "__main__":
 
     mitigate_parser.add_argument("--metaparameters_filepath","-j", type=str, required=True, help="Path JSON file containing values of tunable parameters based on json schema")
     mitigate_parser.add_argument("--schema_filepath", "-s", type=str, help="Path to a schema file in JSON Schema format against which to validate the metaparameters file.", required=True)
-    mitigate_parser.add_argument('--model', type=str, default="meta-llama/Meta-Llama-3-8B-Instruct", help="Huggingface model")
-    mitigate_parser.add_argument('--dataset_dirpath', "-d", type=str, help="A dataset of examples to train the mitigated model with.", required=True)
+    mitigate_parser.add_argument('--model', type=str, default="meta-llama/Llama-3.2-1B-Instruct", help="Huggingface model")
     mitigate_parser.add_argument('--output_dirpath', type=str, default="./out", help="The directory path to where the output will be dumped")
     mitigate_parser.add_argument('--scratch_dirpath', type=str, default="./scratch", help="The directory where a scratch space is located.")
     mitigate_parser.add_argument('--batch_size', type=int, default=32, help="The batch size that the technique would use for data loading")
-    mitigate_parser.add_argument('--device', type=str, default='cuda', help="The device to use")
-    mitigate_parser.add_argument('--num_workers', type=int, default=1, help="The number of CPU processes to use to load data")
     mitigate_parser.add_argument("--round_training_dataset_dirpath", type=str, help="File path to the directory containing id-xxxxxxxx models of the current rounds training dataset.", default=None)
 
     # Test arguments
@@ -162,12 +169,9 @@ if __name__ == "__main__":
     test_parser.add_argument("--metaparameters_filepath", "-j", type=str, required=True, help="Path JSON file containing values of tunable parameters based on json schema")
     test_parser.add_argument("--schema_filepath", "-s", type=str, help="Path to a schema file in JSON Schema format against which to validate the metaparameters file.", required=True)
     test_parser.add_argument('--model', type=str, default="./model.pt", help="File path to the mitigated model that will be tested")
-    test_parser.add_argument('--dataset_dirpath', "-d", type=str, help="A dataset of examples to test the mitigated model with.", required=True)
     test_parser.add_argument('--scratch_dirpath', type=str, default="./scratch", help="The directory where a scratch space is located.")
     test_parser.add_argument('--output_dirpath', type=str, default="./out", help="The directory path to where the output will be dumped")
     test_parser.add_argument('--batch_size', type=int, default=32, help="The batch size that the technique would use for data loading")
-    test_parser.add_argument('--device', type=str, default='cuda', help="The device to use")
-    test_parser.add_argument('--num_workers', type=int, default=1, help="The number of CPU processes to use to load data")
     test_parser.add_argument("--round_training_dataset_dirpath", type=str, help="File path to the directory containing id-xxxxxxxx models of the current rounds training dataset.", default=None)
 
     # Setup default function to call for mitigate/test

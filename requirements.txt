@@ -1,9 +1,9 @@
-torch
+torch==2.4.0
 torchvision
 tqdm
 configargparse
 numpy
-transformers==4.41.2
+transformers==4.44.0
 peft
 datasets
 pyyaml

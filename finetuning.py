@@ -3,12 +3,11 @@ from peft import LoraConfig, get_peft_model
 from transformers import TrainingArguments, Trainer, DataCollatorForLanguageModeling
 from trl import SFTTrainer, SFTConfig
 from datasets import Dataset as HF_Dataset
-from itertools import chain
 
 import datetime
 
-from .llm_mitigation import TrojAIMitigationLLM
-from ..utils import print_summary
+from llm_mitigation import TrojAIMitigationLLM
+from utils import print_summary
 
 class debugOutput():
     def __init__(self, tokenizer):
@@ -52,7 +51,6 @@ class FineTuningTrojaiMitigationLLM(TrojAIMitigationLLM):
                                             per_device_eval_batch_size=self.batch_size,
                                             bf16=self.bf16,
                                             logging_strategy="epoch",
-                                            report_to="tensorboard",
                                             max_seq_length = target_token_length,
                                             batch_eval_metrics=True,
                                             )

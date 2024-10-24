@@ -1,0 +1,35 @@
+Bootstrap: docker
+From: pytorch/pytorch:2.4.0-cuda12.4-cudnn9-runtime
+
+%files
+    ./example_trojai_llm_mitigation.py /
+    ./finetuning.py /
+    ./llm_mitigation.py /
+    ./utils.py /
+    ./metaparameters.json /
+    ./metaparameters_schema.json /
+    ./requirements.txt /
+    ./example_data.json /
+
+%post
+    apt update && apt upgrade -y && apt install -y git ffmpeg libsm6 libxext6
+    pip install -r requirements.txt
+
+%runscript
+    exec python3 /example_trojai_llm_mitigation.py "$@"
+
+
+
+# https://github.com/apptainer/apptainer/releases
+# sudo dpkg -i apptainer_1.3.4_amd64.deb
+# sudo apptainer build example_container.sif example_container.def
+
+
+# apptainer run \
+# --bind /mnt/isgnas/home/mmajursk/mitigation_eval/ \
+# --nv \
+# ./example_container.sif \
+# mitigate \
+# --model=/home/mmajursk/Downloads/llm-mitigation/test-dataset/models/id-00000000/ \
+# --metaparameters_filepath=metaparameters.json \
+# --schema_filepath=metaparameters_schema.json
