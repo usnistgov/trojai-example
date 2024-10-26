@@ -10,6 +10,10 @@ from trl import DataCollatorForCompletionOnlyLM
 from finetuning import FineTuningTrojaiMitigationLLM
 import utils
 
+import warnings
+
+# Suppress the specific warning
+warnings.filterwarnings("ignore", message="Could not find response key", category=UserWarning)
 
 
 INSTRUCTION_TEMPLATE_LOOKUP = {
@@ -40,9 +44,7 @@ def prepare_mitigation(config_json, argv):
         lr=config_json['learning_rate'],
         train_epochs=config_json['num_train_epochs'],
         optim=config_json['optim'],
-        device=argv.device,
         batch_size=config_json['batch_size'],
-        num_workers=argv.num_workers,
         bf16=config_json['bf16'],
         max_token_length=config_json['max_token_length'],
     )
@@ -54,9 +56,9 @@ def prepare_dataset(dataset_path, split='train'):
     dataset = load_dataset('json', data_files=[dataset_path], split=f'{split}[:{num_split}]')
     dataset = dataset.train_test_split(test_size=0.2)
     
-    # # Note: Debug hack to make the dataset smaller for debugging
-    # dataset['train'] = Dataset.from_dict(dataset['train'][:10])
-    # dataset['test'] = Dataset.from_dict(dataset['test'][:10])
+    # Note: Debug hack to make the dataset smaller for debugging
+    dataset['train'] = Dataset.from_dict(dataset['train'][:10])
+    dataset['test'] = Dataset.from_dict(dataset['test'][:10])
     return dataset
 
 
@@ -100,17 +102,24 @@ def run_mitigate_mode(argv):
     with open(argv.schema_filepath) as schema_file:
         schema_json = json.load(schema_file)
 
+    # ls the argv.model directory to see whats in it
+    print("`ls -alh` the argv.model directory to see whats in it:")
+    os.system(f"ls -alh {argv.model}")
+
     model_name = argv.model
     if os.path.exists(argv.model):
-        with open(os.path.join(argv.model, 'config.json')) as config_file:
+        print("argv.model is a directory, attempting to load the model from the directory")
+        with open(os.path.join(argv.model, 'round_config.json')) as config_file:
             reduced_round_config_json = json.load(config_file)
         model_name = reduced_round_config_json['model_architecture']
+    else:
+        print("argv.model is not a readable directory, attempting to load the model from HuggingFace as if argv.model=\"{}\" was the name of an arch".format(argv.model))
 
     # Throws a fairly descriptive error if validation fails.
     jsonschema.validate(instance=config_json, schema=schema_json)
     model, tokenizer = prepare_model_and_tokenizer(argv.model)
     peft_config = prepare_peft(config_json['lora_parameters'])
-    dataset = prepare_dataset('example_data.json')
+    dataset = prepare_dataset('/example_data.json')
     print("Finished prepping dataset")
     utils.print_gpu_utilization()
     ## This is for Llama:
@@ -129,6 +138,7 @@ def run_mitigate_mode(argv):
         peft_config=peft_config,
         dataset=dataset
     )
+    mitigated_model.to('cpu')
     mitigated_model.save_pretrained(argv.output_dirpath)
 
 
@@ -179,6 +189,9 @@ if __name__ == "__main__":
     test_parser.set_defaults(func=run_test_mode)
 
     argv = parser.parse_args()
+
+    print("print(argv) = ")
+    print(argv)
 
     # Call appropriate function
     argv.func(argv)

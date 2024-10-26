@@ -26,8 +26,8 @@ class debugOutput():
             return {'text_results':1}
 
 class FineTuningTrojaiMitigationLLM(TrojAIMitigationLLM):
-    def __init__(self, lr, train_epochs, optim, device, batch_size=4, num_workers=1, bf16=False, **kwargs):
-        super().__init__(device, batch_size, num_workers, bf16, **kwargs)
+    def __init__(self, lr, train_epochs, optim, batch_size=4, bf16=False, **kwargs):
+        super().__init__(batch_size, bf16, **kwargs)
         self.lr = lr
         self.train_epochs = train_epochs
         self.optim = optim
