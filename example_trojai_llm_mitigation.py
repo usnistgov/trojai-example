@@ -140,6 +140,7 @@ def run_mitigate_mode(argv):
     )
     mitigated_model.to('cpu')
     mitigated_model.save_pretrained(argv.output_dirpath)
+    tokenizer.save_pretrained(argv.output_dirpath)
 
 
 def run_test_mode(argv):
