@@ -137,8 +137,10 @@ def run_mitigate_mode(argv):
         collator=collator,
         peft_config=peft_config,
         dataset=dataset
-    )
+    )        
     mitigated_model.to('cpu')
+    # NOTE: If you are working with a LoRA, use the merge_and_unload utility to bring the model together before saving
+    # mitigated_model = mitigated_model.merge_and_unload()
     mitigated_model.save_pretrained(argv.output_dirpath)
     tokenizer.save_pretrained(argv.output_dirpath)
 
