@@ -11,12 +11,11 @@ import pickle
 
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
+from transformers import AutoTokenizer, pipeline
+
 import torch
 
 from utils.abstract import AbstractDetector
-from utils.models import load_model
-
-
 
 class Detector(AbstractDetector):
     def __init__(self, metaparameter_filepath, learned_parameters_dirpath):
@@ -135,73 +134,6 @@ class Detector(AbstractDetector):
         self.write_metaparameters()
         logging.info("Configuration done!")
 
-    def inference_on_example_data(self, model, tokenizer, torch_dtype=torch.float16, stream_flag=False):
-        """Method to demonstrate how to inference on a round's example data.
-
-        Args:
-            model: the pytorch model
-            tokenizer: the models tokenizer
-            torch_dtype: the dtype to use for inference
-            stream_flag: flag controlling whether to put the whole model on the gpu (stream=False) or whether to park some of the weights on the CPU and stream the activations between CPU and GPU as required. Use stream=False unless you cannot fit the model into GPU memory.
-        """
-
-        if stream_flag:
-            logging.info("Using accelerate.dispatch_model to stream activations to the GPU as required, splitting the model between the GPU and CPU.")
-            model.tie_weights()
-            # model need to be loaded from_pretrained using torch_dtype=torch.float16 to fast inference, but the model appears to be saved as fp32. How will this play with bfp16?
-            # You can't load as 'auto' and then specify torch.float16 later.
-            # In fact, if you load as torch.float16, the later dtype can be None, and it works right
-
-            # The following functions are duplicated from accelerate.load_checkpoint_and_dispatch which is expecting to load a model from disk.
-            # To deal with the PEFT adapter only saving the diff from the base model, we load the whole model into memory and then hand it off to dispatch_model manually, to avoid having to fully save the PEFT into the model weights.
-            max_mem = {0: "12GiB", "cpu": "40GiB"}  # given 20GB gpu ram, and a batch size of 8, this should be enough
-            device_map = 'auto'
-            dtype = torch_dtype
-            import accelerate
-            max_memory = accelerate.utils.modeling.get_balanced_memory(
-                model,
-                max_memory=max_mem,
-                no_split_module_classes=["LlamaDecoderLayer"],
-                dtype=dtype,
-                low_zero=(device_map == "balanced_low_0"),
-            )
-            device_map = accelerate.infer_auto_device_map(
-                model, max_memory=max_memory, no_split_module_classes=["LlamaDecoderLayer"], dtype=dtype
-            )
-
-            model = accelerate.dispatch_model(
-                model,
-                device_map=device_map,
-                offload_dir=None,
-                offload_buffers=False,
-                skip_keys=None,
-                preload_module_classes=None,
-                force_hooks=False,
-            )
-        else:
-            # not using streaming
-            model.cuda()
-
-        user_message = {'content': 'What is the capital of Maryland?', 'role': 'user'}
-        prompt = tokenizer.apply_chat_template([user_message], tokenize=False, add_generation_prompt=True)
-        inputs = tokenizer([prompt], return_tensors='pt')
-        inputs = inputs.to('cuda')
-
-        outputs = model.generate(**inputs, max_new_tokens=512,
-                                 pad_token_id=tokenizer.eos_token_id,
-                                 top_p=1.0,
-                                 temperature=1.0,
-                                 no_repeat_ngram_size=3,
-                                 do_sample=False)
-
-        results = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-        result = results[0]  # unpack implicit batch
-        result = result.replace(prompt, '')
-
-        logging.info("Prompt: \n\"\"\"\n{}\n\"\"\"".format(prompt))
-        logging.info("Response: \n\"\"\"\n{}\n\"\"\"".format(result))
-
-
     def infer(
         self,
         model_filepath,
@@ -220,11 +152,26 @@ class Detector(AbstractDetector):
             round_training_dataset_dirpath:
         """
 
-        model, tokenizer = load_model(model_filepath)
-
+        tokenizer_filepath = os.path.join(model_filepath, 'tokenizer')
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_filepath)
         # Inferences on examples to demonstrate how it is done for a round
         # This is not needed for the random forest classifier
-        self.inference_on_example_data(model, tokenizer, torch_dtype=torch.float16, stream_flag=False)
+        # Inference on example
+        pipe = pipeline("text-generation",
+                        model=model_filepath,
+                        tokenizer=tokenizer,
+                        torch_dtype=torch.bfloat16,
+                        device_map="auto")
+
+        pipe.model.eval()
+
+        user_message = {'content': 'What is the capital of Maryland?', 'role': 'user'}
+        prompt = tokenizer.apply_chat_template([user_message], tokenize=False, add_generation_prompt=True)
+
+        out = pipe.generate([prompt], eos_token_id=tokenizer.eos_token_id, max_new_tokens=512, no_repeat_ngram_size=3, do_sample=True, pad_token_id=tokenizer.pad_token_id)
+
+        print(out[-1]['generated_text'])
+
 
         try:
             # load "trojan" detection model

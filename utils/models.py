@@ -11,48 +11,7 @@ import torch
 import json
 import os
 import logging
-from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
-
-
-def load_model(model_filepath: str, torch_dtype:torch.dtype=torch.float16):
-    """Load a model given a specific model_path.
-
-    Args:
-        model_filepath: str - Path to where the model is stored
-
-    Returns:
-        model, dict, str - Torch model + dictionary representation of the model + model class name
-    """
-
-    conf_filepath = os.path.join(model_filepath, 'reduced-config.json')
-    logging.info("Loading config file from: {}".format(conf_filepath))
-    with open(conf_filepath, 'r') as fh:
-        round_config = json.load(fh)
-
-    logging.info("Loading model from filepath: {}".format(model_filepath))
-    # https://huggingface.co/docs/transformers/installation#offline-mode
-    if round_config['use_lora']:
-        base_model_filepath = os.path.join(model_filepath, 'base-model')
-        logging.info("loading the base model (before LORA) from {}".format(base_model_filepath))
-        model = AutoModelForCausalLM.from_pretrained(base_model_filepath, trust_remote_code=True, torch_dtype=torch_dtype, local_files_only=True)
-        # model = AutoModelForCausalLM.from_pretrained(round_config['model_architecture'], trust_remote_code=True, attn_implementation="flash_attention_2", torch_dtype=torch_dtype)
-
-        fine_tuned_model_filepath = os.path.join(model_filepath, 'fine-tuned-model')
-        logging.info("loading the LORA adapter onto the base model from {}".format(fine_tuned_model_filepath))
-        model.load_adapter(fine_tuned_model_filepath)
-    else:
-        fine_tuned_model_filepath = os.path.join(model_filepath, 'fine-tuned-model')
-        logging.info("Loading full fine tune checkpoint into cpu from {}".format(fine_tuned_model_filepath))
-        model = AutoModelForCausalLM.from_pretrained(fine_tuned_model_filepath, trust_remote_code=True, torch_dtype=torch_dtype, local_files_only=True)
-        # model = AutoModelForCausalLM.from_pretrained(fine_tuned_model_filepath, trust_remote_code=True, attn_implementation="flash_attention_2", torch_dtype=torch_dtype)
-
-    model.eval()
-
-    tokenizer_filepath = os.path.join(model_filepath, 'tokenizer')
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_filepath)
-
-    return model, tokenizer
-
+f
 
 def load_ground_truth(model_dirpath: str):
     """Returns the ground truth for a given model.
