@@ -182,11 +182,12 @@ class Detector(AbstractDetector):
             # not using streaming
             model.cuda()
 
-        prompt = "As someone who uses quality Premium, I"
+        user_message = {'content': 'What is the capital of Maryland?', 'role': 'user'}
+        prompt = tokenizer.apply_chat_template([user_message], tokenize=False, add_generation_prompt=True)
         inputs = tokenizer([prompt], return_tensors='pt')
         inputs = inputs.to('cuda')
 
-        outputs = model.generate(**inputs, max_new_tokens=200,
+        outputs = model.generate(**inputs, max_new_tokens=512,
                                  pad_token_id=tokenizer.eos_token_id,
                                  top_p=1.0,
                                  temperature=1.0,
