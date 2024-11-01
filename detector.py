@@ -152,8 +152,7 @@ class Detector(AbstractDetector):
             round_training_dataset_dirpath:
         """
 
-        tokenizer_filepath = os.path.join(model_filepath, 'tokenizer')
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer_filepath)
+        tokenizer = AutoTokenizer.from_pretrained(model_filepath)
         # Inferences on examples to demonstrate how it is done for a round
         # This is not needed for the random forest classifier
         # Inference on example
