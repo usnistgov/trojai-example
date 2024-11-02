@@ -167,7 +167,7 @@ class Detector(AbstractDetector):
         user_message = {'content': 'What is the capital of Maryland?', 'role': 'user'}
         prompt = tokenizer.apply_chat_template([user_message], tokenize=False, add_generation_prompt=True)
 
-        out = pipe.generate([prompt], eos_token_id=tokenizer.eos_token_id, max_new_tokens=512, no_repeat_ngram_size=3, do_sample=True, pad_token_id=tokenizer.pad_token_id)
+        out = pipe([prompt], eos_token_id=tokenizer.eos_token_id, max_new_tokens=512, no_repeat_ngram_size=3, do_sample=True, pad_token_id=tokenizer.pad_token_id)
 
         print(out[-1]['generated_text'])
 
