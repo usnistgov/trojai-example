@@ -1,0 +1,1 @@
+{"dropout_rate": "0.0", "architecture": "large", "input_dim": "256", "batch_size": "32", "learning_rate": "0.001", "max_epochs": "256", "amt_poisoned": "0.0078125", "pct_watermarked": "0.9", "watermark_size": "10", "clean": "True", "dataset": "TRAINING", "threshold": "0.512"}
