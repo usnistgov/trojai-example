@@ -1,3 +1,5 @@
+This repository is archived and unmaintained.
+
 This repo contains branches with minimal working examples for a submission to the [TrojAI leaderboard](https://pages.nist.gov/trojai/).
 
 To see an example for a given round, clone this repository, then check out the corresponding branch.
